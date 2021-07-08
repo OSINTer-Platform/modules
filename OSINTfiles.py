@@ -7,11 +7,10 @@ from string import Template
 # For converting html to markdown
 from markdownify import markdownify
 
-# Used for checking if theres already a query paramter in the url
-from urllib import parse
-
 # Used for creating the name of the markdown file in a safe maner
 from OSINTmodules.OSINTmisc import fileSafeString
+
+from OSINTmodules.OSINTwebserver import generatePageDetails
 
 # Function for writing details from a template to a file
 def writeTemplateToFile(contentList, templateFile, newFilePath):
@@ -70,25 +69,9 @@ def createMDFile(sourceName, sourceURL, articleDetails, articleContent, articleT
     return MDFileName
 
 # Function used for constructing the CSS and HTML needed for the front end used for presenting the users with the different articles
-def constructArticleOverview(OGTags, overviewPath="./webFront/"):
-    HTML = ""
-    CSS = ""
-    JS = ""
-    # The JS variable contains the list for the following variables: articleURLs imageURLs, titles and descriptions. The string hardcoded into these right here is the name of the javascript arrays that each of these list in the JSList will create
-    JSList = [["articleURLs"],["imageURLs"],["titles"],["descriptions"]]
-    for i,article in enumerate(OGTags):
-        # If there's already a paramater in the url it will add the OSINTerProfile parameter with &, otherwise it will simply use ?
-        # OSINTerProfile is used when scraping the website, to know what profile is associated with the article the user choose
-        URL = article['url'] + ('&' if parse.urlparse(article['url']).query else '?') + "OSINTerProfile=" + article['profile']
-        HTML += '<article id="card-' + str(i) + '"><a href="' + URL + '"><h1>' + article['title'] + '</h1></a></article>\n'
-        CSS += '#card-' + str(i) + '::before { background-image: url("' + article['image'] + '");}\n'
-        JSList[0].append(URL)
-        JSList[1].append(article['image'])
-        JSList[2].append(article['title'])
-        JSList[3].append(article['description'])
+def constructArticleOverview(OGTags, overviewPath="./"):
 
-    for currentJSList in JSList:
-        JS += 'const ' + currentJSList.pop(0) + ' = [ "' + currentJSList.pop(0) + '"' + "".join([(', "' + element + '"') for element in currentJSList]) + ' ]\n'
+    HTML, CSS, JS = generatePageDetails(OGTags)
 
     # Make template for HTML file
     writeTemplateToFile({'CSS': CSS, 'HTML': HTML}, "./webFront/index.html", overviewPath + "overview.html")
