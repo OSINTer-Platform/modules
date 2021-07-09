@@ -1,3 +1,5 @@
+from OSINTmodules import OSINTmisc
+
 def initiateArticleTable(connection):
     tableContentList = [
                             "id BIGSERIAL NOT NULL PRIMARY KEY",
@@ -51,27 +53,24 @@ def writeOGTagsToDB(connection, OGTags, tableName):
     # Return the list of urls not already in the database so they can be scraped
     return newUrls
 
-def requestOGTagsFromDB(connection, tableName):
+def requestOGTagsFromDB(connection, tableName, profileList):
 
     # The dictionary to hold the OG tags
     OGTagCollection = {}
 
     with connection.cursor() as cur:
-        # Get the different profiles stored in the database
-        cur.execute("SELECT DISTINCT profile FROM {};".format(tableName))
-        profiles = cur.fetchall()
-        for profile in profiles:
+        for profile in profileList:
 
             # As the profiles is each stored as a tuble when recieved from the database, one has to remember to take the first (and) only element of the tuble to work with
-            OGTagCollection[profile[0]] = []
+            OGTagCollection[profile] = []
 
             # Take the 10 newest articles from a specfic source that has been scraped
-            cur.execute("SELECT * FROM {} WHERE profile=%s AND scraped=true ORDER BY id DESC LIMIT 10;".format(tableName), (profile[0],))
+            cur.execute("SELECT * FROM {} WHERE profile=%s AND scraped=true ORDER BY id DESC LIMIT 10;".format(tableName), (profile,))
             queryResults = cur.fetchall()
 
             # Adding them to the final OG tag collection
             for result in queryResults:
-                OGTagCollection[profile[0]].append({
+                OGTagCollection[profile].append({
                          'profile'      : result[5],
                          'url'          : result[3],
                          'title'        : result[1],
@@ -79,6 +78,14 @@ def requestOGTagsFromDB(connection, tableName):
                          'image'        : result[4]
                     })
     return OGTagCollection
+
+def requestProfileListFromDB(connection, tableName):
+    with connection.cursor() as cur:
+        # Get the different profiles stored in the database
+        cur.execute("SELECT DISTINCT profile FROM {};".format(tableName))
+        profiles = OSINTmisc.tubleListToList(cur.fetchall())
+        return profiles
+
 
 def markAsScraped(connection, URL):
     with connection.cursor() as cur:
