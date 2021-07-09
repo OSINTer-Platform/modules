@@ -1,6 +1,8 @@
 # Used for checking if theres already a query paramter in the url
 from urllib import parse
 
+from OSINTmodules import OSINTdatabase
+
 def generatePageDetails(OGTags):
     HTML = ""
     CSS = ""
@@ -22,3 +24,13 @@ def generatePageDetails(OGTags):
         JS += 'const ' + currentJSList.pop(0) + ' = [ "' + currentJSList.pop(0) + '"' + "".join([(', "' + element + '"') for element in currentJSList]) + ' ]\n'
 
     return HTML, CSS, JS
+
+def verifyProfiles(profiles, connection, tableName):
+    # Getting the profiles that are actually stored
+    storedProfiles = OSINTdatabase.requestProfileListFromDB(connection, tableName)
+    # Looping through the profiles we want to confirm are matching those stored
+    for profile in profiles:
+        if profile not in storedProfiles:
+            return profile
+
+    return True
