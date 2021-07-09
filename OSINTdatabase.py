@@ -53,7 +53,11 @@ def writeOGTagsToDB(connection, OGTags, tableName):
     # Return the list of urls not already in the database so they can be scraped
     return newUrls
 
-def requestOGTagsFromDB(connection, tableName, profileList):
+def requestOGTagsFromDB(connection, tableName, profileList, limit):
+
+    # Making sure the limit given is actually an intenger
+    if type(limit) != int:
+        raise Exception("An internal number given when trying to access the database appears to not be a number but instead: \"{}\"".format(limit))
 
     # The dictionary to hold the OG tags
     OGTagCollection = {}
@@ -65,7 +69,7 @@ def requestOGTagsFromDB(connection, tableName, profileList):
             OGTagCollection[profile] = []
 
             # Take the 10 newest articles from a specfic source that has been scraped
-            cur.execute("SELECT * FROM {} WHERE profile=%s AND scraped=true ORDER BY id DESC LIMIT 10;".format(tableName), (profile,))
+            cur.execute("SELECT * FROM {} WHERE profile=%s AND scraped=true ORDER BY id DESC LIMIT {};".format(tableName, limit), (profile,))
             queryResults = cur.fetchall()
 
             # Adding them to the final OG tag collection
