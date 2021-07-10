@@ -1,5 +1,3 @@
-from OSINTmodules import OSINTmisc
-
 def initiateArticleTable(connection):
     tableContentList = [
                             "id BIGSERIAL NOT NULL PRIMARY KEY",
@@ -106,7 +104,7 @@ def requestProfileListFromDB(connection, tableName):
     with connection.cursor() as cur:
         # Get the different profiles stored in the database
         cur.execute("SELECT DISTINCT profile FROM {};".format(tableName))
-        profiles = OSINTmisc.tubleListToList(cur.fetchall())
+        profiles = [item for element in cur.fetchall() for item in element]
         return profiles
 
 

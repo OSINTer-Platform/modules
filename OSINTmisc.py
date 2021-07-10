@@ -39,10 +39,6 @@ def createNewsSiteFolder(newsSite):
         except:
             raise Exception("Apparently {} couldn't get the needed folder created for storing MD files, exiting".format(newsSite))
 
-def tubleListToList(tubleList):
-    return [item for element in tubleList for item in element]
-
-
 def checkIfURL(URL):
     if re.match(r"https?:\/\/.*\..*", URL):
         return True
