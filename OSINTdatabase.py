@@ -83,6 +83,25 @@ def requestOGTagsFromDB(connection, tableName, profileList, limit):
                     })
     return OGTagCollection
 
+def findUnscrapedArticles(connection, tableName, profileList):
+    articleCollection = []
+
+    with connection.cursor() as cur:
+        # Go through each of the profiles one by one, so that the urls will be grouped by profile making scraping easier
+        for profile in profileList:
+            # Create a new list inside the "master" list with the first entry being the profile
+            articleCollection.append([profile])
+            # Finding all articles for that specific profile that hasn't yet been marked as scraped
+            cur.execute("SELECT * FROM {} WHERE profile=%s AND scraped=false".format(tableName), (profile,))
+            queryResults = cur.fetchall()
+
+            # Adding the results one by one to the latest added list in the "master" list which is the one for the current profile
+            for result in queryResults:
+                # Only adding the url as that is the only needed part
+                articleCollection[-1].append(result[3])
+
+    return articleCollection
+
 def requestProfileListFromDB(connection, tableName):
     with connection.cursor() as cur:
         # Get the different profiles stored in the database
