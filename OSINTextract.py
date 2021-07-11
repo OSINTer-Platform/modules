@@ -7,15 +7,27 @@ def locateContent(contentDetails, soup, multiple=False, recursive=True):
 
     content = list()
 
-    # Getting the html tag that surrounds that tag we are interrested in
-    contentContainer = soup.find(class_=contentDetails['containerClass'])
+    # Getting the html tag that surrounds that tag we are interrested in, but only look for it if the class is actually given (otherwise this will only return HTML tags completly without a class)
+    if contentDetails['containerClass'] != "":
+        contentContainer = soup.find(class_=contentDetails['containerClass'])
+    else:
+        contentContainer = soup
 
     try:
+
+        # The same case with not looking for the class if it's empty
+        if contentDetails['class'] == "":
         # We only want the first entry for some things like date and author, but for the text, which is often split up into different <p> tags we want to return all of them
-        if multiple:
-            return contentContainer.find_all(contentDetails['element'].split(';'), class_=contentDetails['class'], recursive=recursive)
+            if multiple:
+                return contentContainer.find_all(contentDetails['element'].split(';'), recursive=recursive)
+            else:
+                return contentContainer.find(contentDetails['element'], recursive=recursive)
         else:
-            return contentContainer.find(contentDetails['element'], class_=contentDetails['class'], recursive=recursive)
+            if multiple:
+                return contentContainer.find_all(contentDetails['element'].split(';'), class_=contentDetails['class'], recursive=recursive)
+            else:
+                return contentContainer.find(contentDetails['element'], class_=contentDetails['class'], recursive=recursive)
+
     except:
         return BeautifulSoup("Unknown", "html.parser")
 
