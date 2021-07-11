@@ -32,6 +32,10 @@ def openInObsidian(vaultName, vaultPath, fileName):
     # Construct the URI for opening obsidian:
     URI = "obsidian://open?vault=" + encVaultName + "&file=" + encFileName
 
+    openURILocally(URI)
+
+
+def openURILocally(URI):
     # And lastly open the file in obsidian by using an URI along with the open command for the currently used OS
     platform = sys.platform
 
@@ -47,4 +51,3 @@ def openInObsidian(vaultName, vaultPath, fileName):
         raise Exception("Unfortunatly, your system isn't support. You should be running a new version of Windows, Mac or Linux.")
 
     os.system(openCommand)
-
