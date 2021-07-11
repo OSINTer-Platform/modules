@@ -100,6 +100,24 @@ def findUnscrapedArticles(connection, tableName, profileList):
 
     return articleCollection
 
+# Function for taking in a list of lists of articles with the first entry of each list being the name of the profile, and then removing all the articles that already has been saved in the database
+def filterArticleURLList(connection, tableName, articleURLCollection):
+    # The final list that will be returned in the same format as the articleURLCollection list, but with the already stored articles removed
+    filteredArticleURLList = []
+
+    with connection.cursor() as cur:
+        for URLList in articleURLCollection:
+            # The first element is always just the profile, so that should simply be copied to the filtered list
+            filteredArticleURLList.append([URLList.pop(0)])
+            for URL in URLList:
+                # Checking if the article is already stored in the database using the URL as that is probably not going to change and is uniqe
+                cur.execute("SELECT exists (SELECT 1 FROM {} WHERE url = %s);".format(tableName), (URL,))
+                if cur.fetchall()[0][0] == False:
+                    filteredArticleURLList[-1].append(URL)
+
+    return filteredArticleURLList
+
+
 def requestProfileListFromDB(connection, tableName):
     with connection.cursor() as cur:
         # Get the different profiles stored in the database
