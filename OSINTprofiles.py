@@ -4,6 +4,8 @@ import os
 # Used for handling relative paths
 from pathlib import Path
 
+import json
+
 from OSINTmodules.OSINTscraping import getImageForFrontPage
 
 
