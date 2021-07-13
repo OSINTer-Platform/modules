@@ -38,7 +38,7 @@ def collectWebsiteDetails():
     for profile in profiles:
         currentProfile = json.loads(profile)
 
-        imageURL = getImageForFrontPage(currentProfile)
+        imageURL = currentProfile['source']['imageURL']
 
         details[currentProfile['source']['profileName']] = {
             'name' : currentProfile['source']['name'],
