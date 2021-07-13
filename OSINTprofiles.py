@@ -4,6 +4,8 @@ import os
 # Used for handling relative paths
 from pathlib import Path
 
+from OSINTmodules.OSINTscraping import getIamgeForFrontPage
+
 
 # Function for reading all profile files and returning the content in a list if given no argument, or for returning the contents of one profile if given an argument
 def getProfiles(profileName=""):
@@ -26,3 +28,21 @@ def getProfiles(profileName=""):
         return profiles
     else:
         return Path(profilePath + profileName + ".profile").read_text().strip()
+
+def collectWebsiteDetails():
+    profiles = getProfiles()
+
+    # The final list of all the website information
+    details = {}
+
+    for profile in profiles:
+        currentProfile = json.loads(profile)
+
+        imageURL = getImageForFrontPage(currentProfile)
+
+        details[currentProfile['source']['profileName']] = {
+            'name' : currentProfile['source']['name'],
+            'image' : imageURL
+        }
+
+    return details
