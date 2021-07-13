@@ -3,6 +3,7 @@ from urllib import parse
 
 from OSINTmodules import OSINTdatabase
 
+# Function for generating the needed source code for the front page displaying the articles
 def generatePageDetails(OGTags):
     HTML = ""
     CSS = ""
@@ -24,6 +25,20 @@ def generatePageDetails(OGTags):
         JS += 'const ' + currentJSList.pop(0) + ' = [ "' + currentJSList.pop(0) + '"' + "".join([(', "' + element + '"') for element in currentJSList]) + ' ]\n'
 
     return HTML, CSS, JS
+
+
+def generateSourcesList(sourceDetailsList):
+    HTML = ""
+
+    for source in sourceDetailsList:
+        HTML += '<article class="leaderboard__profile">\n'
+        HTML += '<img src="{}" alt="{}" class="leaderboard__picture">\n'.format(sourceDetailsList[source]['image'], sourceDetailsList[source]['name'])
+        HTML += '<span class="leaderboard__name">{}</span>\n'.format(sourceDetailsList[source]['name'])
+        HTML += '<input type="checkbox" class="checkbox" name="profiles" value="{}">\n'.format(source)
+        HTML += '</article>\n\n'
+
+    return HTML
+
 
 def verifyProfiles(profiles, connection, tableName):
     # Getting the profiles that are actually stored

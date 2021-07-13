@@ -4,7 +4,7 @@ import os
 # Used for handling relative paths
 from pathlib import Path
 
-from OSINTmodules.OSINTscraping import getIamgeForFrontPage
+from OSINTmodules.OSINTscraping import getImageForFrontPage
 
 
 # Function for reading all profile files and returning the content in a list if given no argument, or for returning the contents of one profile if given an argument
