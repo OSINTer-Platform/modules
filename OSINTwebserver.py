@@ -31,11 +31,13 @@ def generateSourcesList(sourceDetailsList):
     HTML = ""
 
     for source in sourceDetailsList:
+        HTML += '<label for="{}-checkbox">\n'.format(source)
         HTML += '<article class="leaderboard__profile">\n'
         HTML += '<img src="{}" alt="{}" class="leaderboard__picture">\n'.format(sourceDetailsList[source]['image'], sourceDetailsList[source]['name'])
         HTML += '<span class="leaderboard__name">{}</span>\n'.format(sourceDetailsList[source]['name'])
-        HTML += '<input type="checkbox" class="checkbox" name="profiles" value="{}">\n'.format(source)
-        HTML += '</article>\n\n'
+        HTML += '<input id="{}-checkbox" type="checkbox" class="checkbox" name="profiles" value="{}">\n'.format(source, source)
+        HTML += '</article>\n'
+        HTML += '</label>\n\n'
 
     return HTML
 
