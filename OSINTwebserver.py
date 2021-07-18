@@ -1,7 +1,7 @@
 # Used for checking if theres already a query paramter in the url
 from urllib import parse
 
-from OSINTmodules import OSINTdatabase
+from OSINTmodules import OSINTdatabase, OSINTprofiles
 
 # Function for generating the needed source code for the front page displaying the articles
 def generatePageDetails(OGTags):
@@ -43,11 +43,15 @@ def generateSourcesList(sourceDetailsList):
 
 
 def verifyProfiles(profiles, connection, tableName):
-    # Getting the profiles that are actually stored
-    storedProfiles = OSINTdatabase.requestProfileListFromDB(connection, tableName)
+    # Getting the profiles that are stored in the database
+    DBStoredProfiles = OSINTdatabase.requestProfileListFromDB(connection, tableName)
+
+    # Getting the names of the locally avaiable profiles stored in the json files
+    localProfiles = OSINTprofiles.getProfiles(justNames = True)
+
     # Looping through the profiles we want to confirm are matching those stored
     for profile in profiles:
-        if profile not in storedProfiles:
+        if profile not in DBStoredProfiles or profile not in localProfiles:
             return profile
 
     return True
