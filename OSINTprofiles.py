@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 
 from OSINTmodules.OSINTscraping import getImageForFrontPage
+from OSINTmodules.OSINTdatabase import requestProfileListFromDB
 
 
 # Function for reading all profile files and returning the content in a list if profileName is left empty, returning the contents of one profile if it isn't or simply just return the names of the available profile if profileName is left empty and justNames is set to true
@@ -35,8 +36,11 @@ def getProfiles(profileName="", justNames=False):
     else:
         return Path(profilePath + profileName + ".profile").read_text().strip()
 
-def collectWebsiteDetails():
+def collectWebsiteDetails(connection, tableName):
     profiles = getProfiles()
+
+    # For cross-checking to make sure to only include profiles that also has been scraped some articles from
+    DBStoredProfiles = requestProfileListFromDB(connection, tableName)
 
     # The final list of all the website information
     details = {}
@@ -44,11 +48,12 @@ def collectWebsiteDetails():
     for profile in profiles:
         currentProfile = json.loads(profile)
 
-        imageURL = currentProfile['source']['imageURL']
+        if currentProfile['source']['profileName'] in DBStoredProfiles:
+            imageURL = currentProfile['source']['imageURL']
 
-        details[currentProfile['source']['profileName']] = {
-            'name' : currentProfile['source']['name'],
-            'image' : imageURL
-        }
+            details[currentProfile['source']['profileName']] = {
+                'name' : currentProfile['source']['name'],
+                'image' : imageURL
+            }
 
     return details
