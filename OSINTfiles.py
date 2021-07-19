@@ -63,7 +63,7 @@ def createMDFile(sourceName, sourceURL, articleDetails, articleContent, articleT
     # Converting the title of the article to a string that can be used as filename and then opening the file in append mode (will create file if it doesn't exist)
     MDFileName = MDFilePath + fileSafeString(articleDetails[0]) + ".md"
 
-    writeTemplateToFile(contentList, "./markdownTemplate.md", MDFileName)
+    writeTemplateToFile(contentList, "./tools/markdownTemplate.md", MDFileName)
 
     # Returning the file name, so it possible to open it in obsidian using an URI
     return MDFileName

@@ -35,7 +35,7 @@ def generateTags(clearTextList):
     uncommonWords = list()
 
     # Generating set of all words in the wordlist
-    wordlist = set(line.strip() for line in open("./wordlist.txt", "r"))
+    wordlist = set(line.strip() for line in open("./tools/wordlist.txt", "r"))
 
     # Find all the words that doesn't exist in the normal english dictionary (since those are the names and special words that we want to use as tags)
     for word in clearTextList:
