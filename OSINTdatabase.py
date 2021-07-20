@@ -8,7 +8,7 @@ def initiateArticleTable(connection):
                             "profile VARCHAR(30) NOT NULL",
                             "scraped BOOL NOT NULL"
                         ]
-    createTable(connection, "articles", tableContentList)
+    return createTable(connection, "articles", tableContentList)
 
 # Function for creating new tables
 def createTable(connection, tableName, tableContentList):
@@ -25,8 +25,10 @@ def createTable(connection, tableName, tableContentList):
             cur.execute("CREATE TABLE {} ({});".format(tableName, tableContents))
             # Writing the changes to the database
             connection.commit()
+            # Will return true if table has been created or false if table already existed
+            return True
         else:
-            print("Table \"%s\" already exists, skipping it for now" % tableName)
+            return False
 
 # Function for writting OG tags to database
 def writeOGTagsToDB(connection, OGTags, tableName):
