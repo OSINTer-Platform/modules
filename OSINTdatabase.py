@@ -1,3 +1,6 @@
+import secrets
+import psycopg2
+
 def initiateArticleTable(connection):
     tableContentList = [
                             "id BIGSERIAL NOT NULL PRIMARY KEY",
@@ -9,6 +12,50 @@ def initiateArticleTable(connection):
                             "scraped BOOL NOT NULL"
                         ]
     return createTable(connection, "articles", tableContentList)
+
+def initiateUsers(connection):
+
+    adminUsername = "osinter_admin"
+    adminPassword = secrets.token_urlsafe(30)
+    writerPassword = secrets.token_urlsafe(30)
+    print(adminPassword + " " + writerPassword)
+
+    # Creating the new admin user
+    createUser(connection, adminUsername, adminPassword)
+
+    with connection.cursor() as cur:
+        cur.execute("ALTER USER {} WITH SUPERUSER;".format(adminUsername))
+    connection.commit()
+
+    # Will be used for initiating new connection using new superuser
+    dbName = connection.info.dbname
+
+    # Make sure to close the old connection
+    connection.close()
+
+    # Switching the connection from the prior superuser to the newly created one
+    connection = psycopg2.connect("dbname={} user={} password={}".format(dbName, adminUsername, adminPassword))
+
+    users = {
+            "writerUser" : {
+                "privs" : [["articles", "SELECT", "UPDATE", "INSERT"], ["articles_id_seq", "UPDATE"]],
+                "username" : "writer",
+                "password" : writerPassword
+                },
+
+            "readerUser" : {
+                "privs" : [["articles", "SELECT"]],
+                "username" : "reader",
+                "password" : ""
+                }
+            }
+
+    for user in users:
+        createUser(connection, users[user]['username'], users[user]['password'])
+        grantUserPrivs(connection, users[user]["username"], users[user]['privs'])
+
+    return adminPassword, writerPassword, connection
+
 
 # Function for creating new users with certain priviledges
 def createUser(connection, username, userPassword=""):
