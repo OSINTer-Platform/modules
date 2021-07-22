@@ -10,6 +10,25 @@ def initiateArticleTable(connection):
                         ]
     return createTable(connection, "articles", tableContentList)
 
+# Function for creating new users with certain priviledges
+def createUser(connection, username, userPassword=""):
+    connectedUser = connection.info.user
+    with connection.cursor() as cur:
+        # Checking whether the user already exists
+        cur.execute("SELECT * FROM pg_roles WHERE rolname=%s;", (username,))
+        # In case the user already exist we have to reassign the objects owned by them, before deleting them, the latter which is done to make sure they have the right priviledges
+        if cur.fetchall() != []:
+            cur.execute("REASSIGN OWNED BY {} TO {};".format(username, connectedUser))
+            cur.execute("DROP OWNED BY {};".format(username))
+            cur.execute("DROP USER {};".format(username))
+
+        if userPassword == "":
+            cur.execute("CREATE USER {} NOINHERIT;".format(username))
+        else:
+            cur.execute("CREATE USER {} WITH ENCRYPTED PASSWORD %s NOINHERIT".format(username), (userPassword,))
+
+    connection.commit()
+
 # Function for creating new tables
 def createTable(connection, tableName, tableContentList):
     # Making sure the tablename is in all lowercase
