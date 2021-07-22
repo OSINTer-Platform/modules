@@ -13,12 +13,10 @@ def initiateArticleTable(connection):
             ]
     return createTable(connection, "articles", tableContentList)
 
-def initiateUsers(connection):
+def initiateAdmin(connection):
 
     adminUsername = "osinter_admin"
     adminPassword = secrets.token_urlsafe(30)
-    writerPassword = secrets.token_urlsafe(30)
-    print(adminPassword + " " + writerPassword)
 
     # Creating the new admin user
     createUser(connection, adminUsername, adminPassword)
@@ -35,6 +33,12 @@ def initiateUsers(connection):
 
     # Switching the connection from the prior superuser to the newly created one
     connection = psycopg2.connect("dbname={} user={} password={}".format(dbName, adminUsername, adminPassword))
+
+    return adminPassword, connection
+
+def initiateUsers(connection):
+
+    writerPassword = secrets.token_urlsafe(30)
 
     users = {
             "writerUser" : {
@@ -54,7 +58,7 @@ def initiateUsers(connection):
         createUser(connection, users[user]['username'], users[user]['password'])
         grantUserPrivs(connection, users[user]["username"], users[user]['privs'])
 
-    return adminPassword, writerPassword, connection
+    return writerPassword
 
 
 # Function for creating new users with certain priviledges
