@@ -29,6 +29,14 @@ def createUser(connection, username, userPassword=""):
 
     connection.commit()
 
+def grantUserPrivs(connection, username, privLists):
+    with connection.cursor() as cur:
+        for privList in privLists:
+            tableName = privList.pop(0)
+            cur.execute("GRANT {} ON {} TO {};".format(", ".join(privList), tableName, username))
+
+    connection.commit()
+
 # Function for creating new tables
 def createTable(connection, tableName, tableContentList):
     # Making sure the tablename is in all lowercase
