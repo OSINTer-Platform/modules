@@ -3,14 +3,14 @@ import psycopg2
 
 def initiateArticleTable(connection):
     tableContentList = [
-                            "id BIGSERIAL NOT NULL PRIMARY KEY",
-                            "title VARCHAR(150) NOT NULL",
-                            "description VARCHAR(350)",
-                            "url VARCHAR(300) NOT NULL",
-                            "image_url VARCHAR(300)",
-                            "profile VARCHAR(30) NOT NULL",
-                            "scraped BOOL NOT NULL"
-                        ]
+            "id BIGSERIAL NOT NULL PRIMARY KEY",
+            "title VARCHAR(150) NOT NULL",
+            "description VARCHAR(350)",
+            "url VARCHAR(300) NOT NULL",
+            "image_url VARCHAR(300)",
+            "profile VARCHAR(30) NOT NULL",
+            "scraped BOOL NOT NULL"
+            ]
     return createTable(connection, "articles", tableContentList)
 
 def initiateUsers(connection):
@@ -149,11 +149,11 @@ def requestOGTagsFromDB(connection, tableName, profileList, limit):
             # Adding them to the final OG tag collection
             for result in queryResults:
                 OGTagCollection[profile].append({
-                         'profile'      : result[5],
-                         'url'          : result[3],
-                         'title'        : result[1],
-                         'description'  : result[2],
-                         'image'        : result[4]
+                    'profile'      : result[5],
+                    'url'          : result[3],
+                    'title'        : result[1],
+                    'description'  : result[2],
+                    'image'        : result[4]
                     })
     return OGTagCollection
 
