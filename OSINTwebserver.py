@@ -52,6 +52,6 @@ def verifyProfiles(profiles, connection, tableName):
     # Looping through the profiles we want to confirm are matching those stored
     for profile in profiles:
         if profile not in DBStoredProfiles or profile not in localProfiles:
-            return profile
+            return False
 
     return True
