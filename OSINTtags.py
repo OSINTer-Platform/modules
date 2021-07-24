@@ -77,7 +77,9 @@ def collectOGTagsFromNewsSite(profileName, URLList):
                 'url'           : URL,
                 'title'         : OGTags[0],
                 'description'   : OGTags[1],
-                'image'         : OGTags[2]
+                'image'         : OGTags[2],
+                'author'        : OGTags[3],
+                'publishDate'   : OGTags[4]
             })
 
     return OGTagCollection

@@ -1,6 +1,9 @@
 # For parsing html
 from bs4 import BeautifulSoup
 
+# For parsing application/ld+json
+import json
+
 
 # Function for using the class of a container along with the element type and class of desired html tag (stored in the contentDetails variable) to extract that specific tag. Data is found under the "scraping" class in the profiles.
 def locateContent(contentDetails, soup, multiple=False, recursive=True):
@@ -106,5 +109,17 @@ def extractMetaInformation(URL):
 
     for tag in ["og:title", "og:description", "og:image"]:
             OGTags.append(pageSoup.find("meta", property=tag).get('content'))
+
+    LDJSON = json.loads("".join(pageSoup.find("script", {"type":"application/ld+json"}).contents))
+
+    try:
+        OGTags.append(LDJSON['author']['name'])
+    except KeyError:
+        OGTags.append(None)
+
+    try:
+        OGTags.append(LDJSON['datePublished'])
+    except KeyError:
+        OGTags.append(None)
 
     return OGTags
