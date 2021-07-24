@@ -110,21 +110,6 @@ def scrapePageDynamic(pageURL, loadTime=3, headless=True):
 
     return pageSource
 
-# Function for scraping OG tag from page
-def scrapeOGTags(URL):
-    pageSource = requests.get(URL)
-    if pageSource.status_code != 200:
-        print("Error: Status code " + str(pageSource.status_code) + ", skipping URL: " + URL)
-        return []
-    pageSoup = BeautifulSoup(pageSource.content, 'html.parser')
-
-    OGTags = list()
-
-    for tag in ["og:title", "og:description", "og:image"]:
-        OGTags.append(pageSoup.find("meta", property=tag).get('content'))
-
-    return OGTags
-
 def getImageForFrontPage(profile):
     # Getting the OG tag image from the frontpage of a news site, since this can often times represent the website quite will
     frontPageSource = requests.get(profile['source']['address']).content

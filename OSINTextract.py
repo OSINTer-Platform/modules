@@ -93,3 +93,18 @@ def extractAllDetails(currentProfile, articleSource):
     articleClearText =  extractArticleContent(currentProfile['scraping']['content'], articleSoup, True)
 
     return articleDetails, articleContent, articleClearText
+
+# Function for scraping OG tag from page
+def extractMetaInformation(URL):
+    pageSource = requests.get(URL)
+    if pageSource.status_code != 200:
+        print("Error: Status code " + str(pageSource.status_code) + ", skipping URL: " + URL)
+        return []
+    pageSoup = BeautifulSoup(pageSource.content, 'html.parser')
+
+    OGTags = list()
+
+    for tag in ["og:title", "og:description", "og:image"]:
+            OGTags.append(pageSoup.find("meta", property=tag).get('content'))
+
+    return OGTags

@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from OSINTmodules.OSINTprofiles import getProfiles
 
 # Used for scraping the needed OG tags
-from OSINTmodules.OSINTscraping import scrapeOGTags
+from OSINTmodules.OSINTscraping import extractMetaInformation
 
 
 
@@ -66,7 +66,7 @@ def collectOGTagsFromNewsSite(profileName, URLList):
 
     # Looping through each URL for the articles, scraping the OG tags for those articles and then adding them to the final data structure
     for URL in URLList:
-        OGTags = scrapeOGTags(URL)
+        OGTags = extractMetaInformation(URL)
         if OGTags != []:
             # If the sitename isn't in the title, it will be added now
             if siteName.lower() not in OGTags[0].lower():
