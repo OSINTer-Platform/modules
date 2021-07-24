@@ -10,6 +10,7 @@ def initiateArticleTable(connection):
             "image_url VARCHAR(300)",
             "profile VARCHAR(30) NOT NULL",
             "scraped BOOL NOT NULL"
+            "inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
             ]
     return createTable(connection, "articles", tableContentList)
 
@@ -124,7 +125,7 @@ def writeOGTagsToDB(connection, OGTags, tableName):
                 if cur.fetchall()[0][0] == False:
                     # Adding the url to list of new articles since it was not found in the database
                     newUrls[-1].append(tags['url'])
-                    insertQuery = "INSERT INTO {} (title, description, url, image_url, profile, scraped) VALUES (%s, %s, %s, %s, %s, false);".format(tableName)
+                    insertQuery = "INSERT INTO {} (title, description, url, image_url, profile, scraped, inserted_at) VALUES (%s, %s, %s, %s, %s, false, NOW());".format(tableName)
                     insertParameters = (tags['title'][:150], tags['description'][:350], tags['url'], tags['image'], newsSite)
                     cur.execute(insertQuery, insertParameters)
     connection.commit()
