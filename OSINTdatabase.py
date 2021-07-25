@@ -8,6 +8,8 @@ def initiateArticleTable(connection):
             "description VARCHAR(350)",
             "url VARCHAR(300) NOT NULL",
             "image_url VARCHAR(300)",
+            "author VARCHAR(100) DEFAULT NULL",
+            "publish_date TIMESTAMP WITH TIME ZONE DEFAULT NULL",
             "profile VARCHAR(30) NOT NULL",
             "scraped BOOL NOT NULL"
             "inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
