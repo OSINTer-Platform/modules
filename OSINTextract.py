@@ -101,23 +101,31 @@ def extractAllDetails(currentProfile, articleSource):
 
 # Function for scraping OG tag from page
 def extractMetaInformation(pageSoup):
-    OGTags = list()
+    OGTags = {'author' : None, 'publishDate': None}
 
     # Extract the 3 relevant og tags from the website
     for tag in ["og:title", "og:description", "og:image"]:
-            OGTags.append(pageSoup.find("meta", property=tag).get('content'))
+            OGTags[tag] = (pageSoup.find("meta", property=tag).get('content'))
 
     # Use ld+json to extract extra information not found in the meta OG tags like author and publish date
-    LDJSON = json.loads("".join(pageSoup.find("script", {"type":"application/ld+json"}).contents))
+    JSONScriptTags = pageSoup.find_all("script", {"type":"application/ld+json"})
 
-    try:
-        OGTags.append(LDJSON['author']['name'])
-    except:
-        OGTags.append(None)
 
-    try:
-        OGTags.append(parse(LDJSON['datePublished']))
-    except:
-        OGTags.append(None)
+    for scriptTag in JSONScriptTags:
+        LDJSON = json.loads("".join(scriptTag))
+
+        try:
+            print(type(LDJSON['author']))
+            if type(LDJSON['author']) == list:
+                OGTags['author'] = LDJSON['author'][0]['name']
+            else:
+                OGTags['author'] = LDJSON['author']['name']
+        except:
+            pass
+
+        try:
+            OGTags['publishDate'] = parse(search(LDJSON, 'datePublished'))
+        except:
+            pass
 
     return OGTags

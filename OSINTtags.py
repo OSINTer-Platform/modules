@@ -71,17 +71,17 @@ def collectOGTagsFromNewsSite(profileName, URLList):
         OGTags = extractMetaInformation(scrapeWebSoup(URL))
         if OGTags != []:
             # If the sitename isn't in the title, it will be added now
-            if siteName.lower() not in OGTags[0].lower():
-                OGTags[0] += " | " + siteName
+            if siteName.lower() not in OGTags['og:title'].lower():
+                OGTags['og:title'] += " | " + siteName
 
             OGTagCollection[profileName].append({
                 'profile'       : profileName,
                 'url'           : URL,
-                'title'         : OGTags[0],
-                'description'   : OGTags[1],
-                'image'         : OGTags[2],
-                'author'        : OGTags[3],
-                'publishDate'   : OGTags[4]
+                'title'         : OGTags['og:title'],
+                'description'   : OGTags['og:description'],
+                'image'         : OGTags['og:image'],
+                'author'        : OGTags['author'],
+                'publishDate'   : OGTags['publishDate']
             })
 
     return OGTagCollection
