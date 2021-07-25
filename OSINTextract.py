@@ -4,8 +4,17 @@ from bs4 import BeautifulSoup
 # For parsing application/ld+json
 import json
 
+import re
+
 # For parsing the date when scraping OG tags to python datetime object
 from dateutil.parser import parse
+
+
+# Used for matching the relevant information from LD+JSON
+JSONPatterns = {
+        "publishDate":  re.compile(r'("datePublished": ")(.*?)(?=")'),
+        "author":       re.compile(r'("@type": "Person",.*?"name": ")(.*?)(?=")')
+        }
 
 # Function for using the class of a container along with the element type and class of desired html tag (stored in the contentDetails variable) to extract that specific tag. Data is found under the "scraping" class in the profiles.
 def locateContent(contentDetails, soup, multiple=False, recursive=True):
@@ -22,7 +31,7 @@ def locateContent(contentDetails, soup, multiple=False, recursive=True):
 
         # The same case with not looking for the class if it's empty
         if contentDetails['class'] == "":
-        # We only want the first entry for some things like date and author, but for the text, which is often split up into different <p> tags we want to return all of them
+            # We only want the first entry for some things like date and author, but for the text, which is often split up into different <p> tags we want to return all of them
             if multiple:
                 return contentContainer.find_all(contentDetails['element'].split(';'), recursive=recursive)
             else:
@@ -99,33 +108,24 @@ def extractAllDetails(currentProfile, articleSource):
 
     return articleDetails, articleContent, articleClearText
 
-# Function for scraping OG tag from page
+# Function for scraping meta information (like title, author and publish date) from articles. This both utilizes the OG tags and LD+JSON data, and while the proccess for extracting the OG tags is fairly simply as those is (nearly) always following the same standard, the LD+JSON data is a little more complicated. Here the data isn't parsed as JSON, but rather as a string where the relevant pieces of information is extracted using regex. It's probably ugly and definitly not the officially "right" way of doing this, but different placement of the information in the JSON object on different websites using different attributes made parsing the information from a python JSON object near impossible. As such, be warned that this function is not for the faint of heart
 def extractMetaInformation(pageSoup):
     OGTags = {'author' : None, 'publishDate': None}
 
     # Extract the 3 relevant og tags from the website
     for tag in ["og:title", "og:description", "og:image"]:
-            OGTags[tag] = (pageSoup.find("meta", property=tag).get('content'))
+        OGTags[tag] = (pageSoup.find("meta", property=tag).get('content'))
 
     # Use ld+json to extract extra information not found in the meta OG tags like author and publish date
     JSONScriptTags = pageSoup.find_all("script", {"type":"application/ld+json"})
 
-
     for scriptTag in JSONScriptTags:
-        LDJSON = json.loads("".join(scriptTag))
-
-        try:
-            print(type(LDJSON['author']))
-            if type(LDJSON['author']) == list:
-                OGTags['author'] = LDJSON['author'][0]['name']
-            else:
-                OGTags['author'] = LDJSON['author']['name']
-        except:
-            pass
-
-        try:
-            OGTags['publishDate'] = parse(search(LDJSON, 'datePublished'))
-        except:
-            pass
+        # Converting to and from JSON to standardize the format to avoid things like line breaks and excesive spaces at the end and start of line. Will also make sure there spaces in the right places between the keys and values so it isn't like "key" :"value" and "key  : "value" but rather "key": "value" and "key": "value".
+        scriptTagString = json.dumps(json.loads("".join(scriptTag.contents)))
+        for pattern in JSONPatterns:
+            articleDetailPatternMatch = JSONPatterns[pattern].search(scriptTagString)
+            if articleDetailPatternMatch != None:
+                # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
+                OGTags[pattern] = articleDetailPatternMatch.group(2)
 
     return OGTags

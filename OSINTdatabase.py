@@ -1,5 +1,6 @@
 import secrets
 import psycopg2
+from datetime import datetime
 
 def initiateArticleTable(connection):
     tableContentList = [
