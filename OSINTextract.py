@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 # For parsing application/ld+json
 import json
 
+# For parsing the date when scraping OG tags to python datetime object
+from dateutil.parser import parse
 
 # Function for using the class of a container along with the element type and class of desired html tag (stored in the contentDetails variable) to extract that specific tag. Data is found under the "scraping" class in the profiles.
 def locateContent(contentDetails, soup, multiple=False, recursive=True):
@@ -118,7 +120,7 @@ def extractMetaInformation(URL):
         OGTags.append(None)
 
     try:
-        OGTags.append(LDJSON['datePublished'])
+        OGTags.append(parse(LDJSON['datePublished']))
     except KeyError:
         OGTags.append(None)
 
