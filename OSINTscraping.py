@@ -41,11 +41,8 @@ def scrapeArticleURLs(rootURL, frontPageURL, scrapingTargets, profileName):
     # List for holding the urls for the articles
     articleURLs = [profileName]
 
-    # The raw source of the site
-    frontPage = requests.get(frontPageURL)
-
-    # Parsing the source code from the site to a soup
-    frontPageSoup = BeautifulSoup(frontPage.content, 'html.parser')
+    # Getting a soup for the website
+    frontPageSoup = scrapeWebSoup(frontPageURL)
 
     # Some websites doesn't have a uniqe class for the links to the articles. If that's the case, we have to extract the elements around the link and the extract the link from those
     if scrapingTargets['linkClass'] == "":
