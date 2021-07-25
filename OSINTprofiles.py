@@ -6,7 +6,6 @@ from pathlib import Path
 
 import json
 
-from OSINTmodules.OSINTscraping import getImageForFrontPage
 from OSINTmodules.OSINTdatabase import requestProfileListFromDB
 
 

@@ -109,17 +109,3 @@ def scrapePageDynamic(pageURL, loadTime=3, headless=True):
     driver.quit()
 
     return pageSource
-
-def getImageForFrontPage(profile):
-    # Getting the OG tag image from the frontpage of a news site, since this can often times represent the website quite will
-    frontPageSource = requests.get(profile['source']['address']).content
-    frontPageSoup = BeautifulSoup(frontPageSource, 'html.parser')
-    OGTag = frontPageSoup.find("meta", property='og:image')
-
-    # If the website has an OG tag for the image, use that, or if it wasn't found use hardcoded URL from profile
-    if OGTag != None:
-        imageURL = OGTag.get('content')
-    else:
-        imageURL = profile['source']['imageURL']
-
-    return imageURL
