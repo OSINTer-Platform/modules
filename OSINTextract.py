@@ -103,19 +103,21 @@ def extractAllDetails(currentProfile, articleSource):
 def extractMetaInformation(pageSoup):
     OGTags = list()
 
+    # Extract the 3 relevant og tags from the website
     for tag in ["og:title", "og:description", "og:image"]:
             OGTags.append(pageSoup.find("meta", property=tag).get('content'))
 
+    # Use ld+json to extract extra information not found in the meta OG tags like author and publish date
     LDJSON = json.loads("".join(pageSoup.find("script", {"type":"application/ld+json"}).contents))
 
     try:
         OGTags.append(LDJSON['author']['name'])
-    except KeyError:
+    except:
         OGTags.append(None)
 
     try:
         OGTags.append(parse(LDJSON['datePublished']))
-    except KeyError:
+    except:
         OGTags.append(None)
 
     return OGTags
