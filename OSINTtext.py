@@ -12,16 +12,12 @@ from collections import Counter
 def cleanText(clearText):
     # Normalizing the text, to remove weird characthers that sometimes pop up in webarticles
     cleanClearText = unicodedata.normalize("NFKD", clearText)
-    # Removing all contractions and "'s" created in english by descriping possession
-    cleanClearText = re.sub(r'\'\S*', '', cleanClearText)
-    # Remove all characthers that isn't spaces, numbers or letters
-    cleanClearText = re.sub(r'[^\w\s-]', ' ', cleanClearText)
-    # Remove those words that are only numbers
-    cleanClearText = re.sub(r'\s\d*\s', ' ', cleanClearText)
     # Remove line endings
     cleanClearText = re.sub(r'\n', ' ', cleanClearText)
-    # Making sure there isn't anywhere with more than one consecutive space
-    cleanClearText = re.sub(r'\s\s', ' ', cleanClearText)
+    # Removing all contractions and "'s" created in english by descriping possession
+    cleanClearText = re.sub(r'\'\S*', '', cleanClearText)
+    # Remove all "words" where the word doesn't have any letters in it. This will remove "-", "3432" (words consisting purely of letters) and double spaces.
+    cleanClearText = re.sub(r'\s[^a-zA-Z]*\s', ' ', cleanClearText)
 
     # Converting the cleaned cleartext to a list
     clearTextList = cleanClearText.split(" ")
