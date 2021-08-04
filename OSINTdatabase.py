@@ -14,6 +14,7 @@ def initiateArticleTable(connection):
             "profile VARCHAR(30) NOT NULL",
             "scraped BOOL NOT NULL",
             "inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+            "file_path VARCHAR(150) DEFAULT NULL",
             ]
     return createTable(connection, "articles", tableContentList)
 
@@ -215,18 +216,18 @@ def requestProfileListFromDB(connection, tableName):
         return profiles
 
 
-def markAsScraped(connection, URL, tableName):
+def markAsScraped(connection, URL, filePath, tableName):
     with connection.cursor() as cur:
-        cur.execute("UPDATE {} SET scraped = true WHERE url = %s;".format(tableName), (URL,))
+        cur.execute("UPDATE {} SET scraped = true, file_path = %s WHERE url = %s;".format(tableName), (filePath, URL))
         connection.commit()
 
-def returnArticleProfileAndTitle(connection, articleId, tableName):
+def returnArticleFilePathById(connection, articleId, tableName):
     # Making sure the id given is actually an intenger
     if type(articleId) != int:
         raise Exception("An internal number given when trying to access the database appears to not be a number but instead: \"{}\"".format(articleId))
 
     with connection.cursor() as cur:
-        cur.execute("SELECT profile, title FROM {} WHERE id = %s".format(tableName), (articleId,))
+        cur.execute("SELECT file_path FROM {} WHERE id = %s".format(tableName), (articleId,))
         results = cur.fetchall()
 
         if results == []:
