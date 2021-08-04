@@ -233,5 +233,4 @@ def returnArticleFilePathById(connection, articleId, tableName):
         if results == []:
             return None
         else:
-            # The result from the DB will be a single tuble in a list, so take that tuble and convert it to a list
-            return list(results[0])
+            return results[0][0]
