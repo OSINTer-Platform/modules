@@ -65,8 +65,8 @@ def createMDFile(sourceName, sourceURL, articleDetails, articleContent, articleT
 
     writeTemplateToFile(contentList, "./tools/markdownTemplate.md", MDFileName)
 
-    # Returning the file name, so it possible to open it in obsidian using an URI
-    return MDFileName
+    # Returning the file name, so it's possible to locate the file
+    return fileSafeString(articleDetails[0])
 
 # Function used for constructing the CSS and HTML needed for the front end used for presenting the users with the different articles
 def constructArticleOverview(OGTags, overviewPath="./"):
