@@ -12,7 +12,7 @@ def initiateArticleTable(connection):
             "author VARCHAR(100) DEFAULT NULL",
             "publish_date TIMESTAMP WITH TIME ZONE DEFAULT NULL",
             "profile VARCHAR(30) NOT NULL",
-            "scraped BOOL NOT NULL"
+            "scraped BOOL NOT NULL",
             "inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
             ]
     return createTable(connection, "articles", tableContentList)
