@@ -215,7 +215,7 @@ def requestProfileListFromDB(connection, tableName):
         return profiles
 
 
-def markAsScraped(connection, URL):
+def markAsScraped(connection, URL, tableName):
     with connection.cursor() as cur:
-        cur.execute("UPDATE articles SET scraped = true WHERE url = %s;", (URL,))
+        cur.execute("UPDATE {} SET scraped = true WHERE url = %s;".format(tableName), (URL,))
         connection.commit()
