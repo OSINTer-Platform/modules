@@ -219,3 +219,18 @@ def markAsScraped(connection, URL, tableName):
     with connection.cursor() as cur:
         cur.execute("UPDATE {} SET scraped = true WHERE url = %s;".format(tableName), (URL,))
         connection.commit()
+
+def returnArticleProfileAndTitle(connection, articleId, tableName):
+    # Making sure the id given is actually an intenger
+    if type(articleId) != int:
+        raise Exception("An internal number given when trying to access the database appears to not be a number but instead: \"{}\"".format(articleId))
+
+    with connection.cursor() as cur:
+        cur.execute("SELECT profile, title FROM {} WHERE id = %s".format(tableName), (articleId,))
+        results = cur.fetchall()
+
+        if results == []:
+            return None
+        else:
+            # The result from the DB will be a single tuble in a list, so take that tuble and convert it to a list
+            return list(results[0])
