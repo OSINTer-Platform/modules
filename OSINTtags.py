@@ -59,9 +59,6 @@ def collectAllOGTags(articleURLLists):
 # Function used for ordering the OG tags into a dictionary based on source, that can then be used later. Will only gather articles from one news site at a time
 def collectOGTagsFromNewsSite(profileName, URLList):
 
-    # Gets the name of the news media
-    siteName = json.loads(getProfiles(profileName))['source']['name']
-
     # Creating the data structure that will store the OG tags
     OGTagCollection = {}
     OGTagCollection[profileName] = []
@@ -70,10 +67,6 @@ def collectOGTagsFromNewsSite(profileName, URLList):
     for URL in URLList:
         OGTags = extractMetaInformation(scrapeWebSoup(URL))
         if OGTags != []:
-            # If the sitename isn't in the title, it will be added now
-            if siteName.lower() not in OGTags['og:title'].lower():
-                OGTags['og:title'] += " | " + siteName
-
             OGTagCollection[profileName].append({
                 'profile'       : profileName,
                 'url'           : URL,
