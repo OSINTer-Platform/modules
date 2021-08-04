@@ -55,7 +55,7 @@ def catURL(rootURL, relativePath):
 # Function for taking an arbitrary string and convert it into one that can safely be used as a filename and for removing spaces as those can be a headache to deal with
 def fileSafeString(unsafeString):
     allowedCharacthers = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
-    unsafeString = unsafeString.replace(" ", "-")
+    unsafeString = unsafeString.strip().replace(" ", "-")
     safeString = ''.join(c for c in unsafeString if c in allowedCharacthers)
     return safeString
 
