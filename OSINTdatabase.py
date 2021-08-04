@@ -231,6 +231,6 @@ def returnArticleFilePathById(connection, articleId, tableName):
         results = cur.fetchall()
 
         if results == []:
-            return None
+            return ""
         else:
             return results[0][0]
