@@ -147,21 +147,26 @@ def requestOGTagsFromDB(connection, tableName, profileList, limit):
     with connection.cursor() as cur:
         for profile in profileList:
 
-            # As the profiles is each stored as a tuble when recieved from the database, one has to remember to take the first (and) only element of the tuble to work with
             OGTagCollection[profile] = []
 
+            # Which collumns to extract data from
+            collumns = "id, title, description, url, image_url, author, publish_date, profile"
+
             # Take the 10 newest articles from a specfic source that has been scraped
-            cur.execute("SELECT * FROM {} WHERE profile=%s AND scraped=true ORDER BY id DESC LIMIT {};".format(tableName, limit), (profile,))
+            cur.execute("SELECT {} FROM {} WHERE profile=%s AND scraped=true ORDER BY id DESC LIMIT {};".format(collumns, tableName, limit), (profile,))
             queryResults = cur.fetchall()
 
             # Adding them to the final OG tag collection
             for result in queryResults:
                 OGTagCollection[profile].append({
-                    'profile'      : result[5],
-                    'url'          : result[3],
-                    'title'        : result[1],
-                    'description'  : result[2],
-                    'image'        : result[4]
+                    'id'            : result[0],
+                    'title'         : result[1],
+                    'description'   : result[2],
+                    'url'           : result[3],
+                    'image'         : result[4],
+                    'author'        : result[5],
+                    'publish_date'  : result[6],
+                    'profile'       : result[7]
                     })
     return OGTagCollection
 
