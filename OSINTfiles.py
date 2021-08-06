@@ -10,8 +10,6 @@ from markdownify import markdownify
 # Used for creating the name of the markdown file in a safe maner
 from OSINTmodules.OSINTmisc import fileSafeString
 
-from OSINTmodules.OSINTwebserver import generatePageDetails
-
 # Function for writing details from a template to a file
 def writeTemplateToFile(contentList, templateFile, newFilePath):
     # Open the template for the given file
@@ -67,14 +65,3 @@ def createMDFile(sourceName, sourceURL, articleDetails, articleContent, articleT
 
     # Returning the file name, so it's possible to locate the file
     return fileSafeString(articleDetails[0])
-
-# Function used for constructing the CSS and HTML needed for the front end used for presenting the users with the different articles
-def constructArticleOverview(OGTags, overviewPath="./"):
-
-    HTML, CSS, JS = generatePageDetails(OGTags)
-
-    # Make template for HTML file
-    writeTemplateToFile({'CSS': CSS, 'HTML': HTML}, "./webFront/index.html", overviewPath + "overview.html")
-
-    # Make the template for the JS file
-    writeTemplateToFile({'variables': JS}, "./webFront/switchOverview.js", overviewPath + "script.js")

@@ -1,9 +1,6 @@
 # For generating random numbers for scrambling the OG tags
 import random
 
-# For loading a profile
-import json
-
 # Used for substituting characthers from text
 import re
 
@@ -13,10 +10,6 @@ import time
 # Used for scraping web papges in parrallel (multithreaded)
 from concurrent.futures import ThreadPoolExecutor
 
-
-
-# Used for loading a specific profile
-from OSINTmodules.OSINTprofiles import getProfiles
 
 from OSINTmodules.OSINTscraping import scrapeWebSoup
 
