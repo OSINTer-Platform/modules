@@ -215,12 +215,14 @@ def requestProfileListFromDB(connection, tableName):
         profiles = [item for element in cur.fetchall() for item in element]
         return profiles
 
-
+# Currently, the articles are inserted in the DB as OGTags and then the full article is scraped. To make sure that one does not end up with articles that are in the DB but not scraped in full, the articles will be marked as scraped in the DB using this function when they have actually been scraped
 def markAsScraped(connection, URL, filePath, tableName):
     with connection.cursor() as cur:
+        # The full filepath of the file (which is [profile]/[filename] will also be noted, so it's easier to find when the front ends needs to render the MD files
         cur.execute("UPDATE {} SET scraped = true, file_path = %s WHERE url = %s;".format(tableName), (filePath, URL))
         connection.commit()
 
+# Simply find the filepath of a given article with articleId. Used by front end when rendering MD files
 def returnArticleFilePathById(connection, articleId, tableName):
     # Making sure the id given is actually an intenger
     if type(articleId) != int:
