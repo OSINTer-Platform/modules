@@ -13,8 +13,8 @@ def initiateArticleTable(connection):
             "publish_date TIMESTAMP WITH TIME ZONE DEFAULT NULL",
             "profile VARCHAR(30) NOT NULL",
             "scraped BOOL NOT NULL",
-            "inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
-            "file_path VARCHAR(150) DEFAULT NULL",
+            "inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+            "file_path VARCHAR(150) DEFAULT NULL"
             ]
     return createTable(connection, "articles", tableContentList)
 
