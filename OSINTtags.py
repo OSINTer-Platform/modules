@@ -65,8 +65,11 @@ def collectOGTagsFromNewsSite(profileName, URLList):
 
     # Looping through each URL for the articles, scraping the OG tags for those articles and then adding them to the final data structure
     for URL in URLList:
-        OGTags = extractMetaInformation(scrapeWebSoup(URL))
-        if OGTags != []:
+        pageSoup = scrapeWebSoup(URL)
+        # In case the page that has been scraped returned anything but http response 200, the pagesoup returned will have the value none, which means we have to skip it
+        if pageSoup != None:
+            OGTags = extractMetaInformation(pageSoup)
+
             OGTagCollection[profileName].append({
                 'profile'       : profileName,
                 'url'           : URL,

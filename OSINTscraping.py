@@ -32,7 +32,7 @@ def scrapeWebSoup(URL):
     pageSource = requests.get(URL)
     if pageSource.status_code != 200:
         print("Error: Status code " + str(pageSource.status_code) + ", skipping URL: " + URL)
-        return []
+        return None
     return BeautifulSoup(pageSource.content, 'html.parser')
 
 # Scraping targets is element and class of element in which the target url is stored, and the profileName is prepended on the list, to be able to find the profile again when it's needed for scraping
