@@ -23,7 +23,7 @@ try:
     # For if the user wants verbose output
     from __main__ import debugMessages
 except:
-    pass
+    debugMessages = True
 
 
 def printDebug(message, timeStamp=True):
