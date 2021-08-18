@@ -47,13 +47,13 @@ def initiateUsers(connection):
 
     users = {
             "writerUser" : {
-                "privs" : [["articles", "SELECT", "UPDATE", "INSERT"], ["articles_id_seq", "UPDATE"]],
+                "privs" : [["articles", "SELECT", "UPDATE", "INSERT"], ["articles_id_seq", "UPDATE", "SELECT"]],
                 "username" : "writer",
                 "password" : writerPassword
                 },
 
             "readerUser" : {
-                "privs" : [["articles", "SELECT"]],
+                "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"]],
                 "username" : "reader",
                 "password" : ""
                 }
