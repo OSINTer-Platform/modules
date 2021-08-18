@@ -6,9 +6,6 @@ import json
 
 import re
 
-# For parsing the date when scraping OG tags to python datetime object
-from dateutil.parser import parse
-
 
 # Used for matching the relevant information from LD+JSON
 JSONPatterns = {
@@ -18,8 +15,6 @@ JSONPatterns = {
 
 # Function for using the class of a container along with the element type and class of desired html tag (stored in the contentDetails variable) to extract that specific tag. Data is found under the "scraping" class in the profiles.
 def locateContent(contentDetails, soup, multiple=False, recursive=True):
-
-    content = list()
 
     # Getting the html tag that surrounds that tag we are interrested in, but only look for it if the class is actually given (otherwise this will only return HTML tags completly without a class)
     if contentDetails['containerClass'] != "":
