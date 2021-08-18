@@ -111,7 +111,7 @@ def RSSArticleURLs(RSSURL, profileName):
     return articleURLs
 
 # Function for gathering list of URLs for articles from newssite
-def gatherArticleURLs(profiles):
+def gatherArticleURLs(profiles, rootURL=""):
 
     articleURLs = list()
 
@@ -120,13 +120,16 @@ def gatherArticleURLs(profiles):
         # Parsing the json properly
         profile = json.loads(profile)['source']
 
+        if rootURL == "":
+            rootURL = profile['newsPath']
+
         # For those were the RSS feed is useful, that will be used
         if profile['retrivalMethod'] == "rss":
-            articleURLs.append(RSSArticleURLs(profile['newsPath'], profile['profileName']))
+            articleURLs.append(RSSArticleURLs(rootURL, profile['profileName']))
 
         # For basically everything else scraping will be used
         elif profile['retrivalMethod'] == "scraping":
-            articleURLs.append(scrapeArticleURLs(profile['address'], profile['newsPath'], profile['scrapingTargets'], profile['profileName']))
+            articleURLs.append(scrapeArticleURLs(profile['address'], rootURL, profile['scrapingTargets'], profile['profileName']))
 
     return articleURLs
 
