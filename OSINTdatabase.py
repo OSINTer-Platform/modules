@@ -97,9 +97,9 @@ def createUser(connection, username, userPassword=""):
             cur.execute("DROP USER {};".format(username))
 
         if userPassword == "":
-            cur.execute("CREATE USER {} NOINHERIT;".format(username))
+            cur.execute("CREATE USER {};".format(username))
         else:
-            cur.execute("CREATE USER {} WITH ENCRYPTED PASSWORD %s NOINHERIT".format(username), (userPassword,))
+            cur.execute("CREATE USER {} WITH ENCRYPTED PASSWORD %s;".format(username), (userPassword,))
 
     connection.commit()
 
