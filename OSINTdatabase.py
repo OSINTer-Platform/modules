@@ -53,8 +53,15 @@ def initiateAdmin(connection):
 def initiateUsers(connection):
 
     writerPassword = secrets.token_urlsafe(30)
+    authPassword = secrets.token_urlsafe(30)
 
     users = {
+            "AuthUser" : {
+                "privs" : [["osinter_users", "SELECT", "UPDATE", "INSERT", "DELETE"]],
+                "username": "auth",
+                "password": authPassword,
+                "inherit" : "reader"
+                },
             "writerUser" : {
                 "privs" : [["articles", "SELECT", "UPDATE", "INSERT"], ["articles_id_seq", "UPDATE", "SELECT"]],
                 "username" : "writer",
@@ -63,7 +70,7 @@ def initiateUsers(connection):
                 },
 
             "readerUser" : {
-                "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"]],
+                "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
                 "username" : "reader",
                 "password" : "",
                 "inherit" : False
@@ -74,7 +81,7 @@ def initiateUsers(connection):
         createUser(connection, users[user]['username'], users[user]['password'])
         grantUserPrivs(connection, users[user]["username"], users[user]["inherit"], users[user]['privs'])
 
-    return writerPassword
+    return { "writer" : writerPassword, "auth" : authPassword }
 
 
 # Function for creating new users with certain priviledges
