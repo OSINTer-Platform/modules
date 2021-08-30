@@ -3,7 +3,7 @@ import psycopg2
 from datetime import datetime
 
 def initiateArticleTable(connection):
-    tableContentList = [
+    articleTableContentList = [
             "id BIGSERIAL NOT NULL PRIMARY KEY",
             "title VARCHAR(150) NOT NULL",
             "description VARCHAR(350)",
@@ -16,7 +16,16 @@ def initiateArticleTable(connection):
             "inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
             "file_path VARCHAR(150) DEFAULT NULL"
             ]
-    return createTable(connection, "articles", tableContentList)
+
+    return createTable(connection, "articles", articleTableContentList)
+
+def initiateUserTable(connection):
+    userTableContentList = [
+        "username VARCHAR(64) NOT NULL PRIMARY KEY",
+        "selected_article_ids BIGINT[]"
+    ]
+    return createTable(connection, "osinter_users", userTableContentList)
+
 
 def initiateAdmin(connection):
 
