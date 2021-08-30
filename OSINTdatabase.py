@@ -58,19 +58,21 @@ def initiateUsers(connection):
             "writerUser" : {
                 "privs" : [["articles", "SELECT", "UPDATE", "INSERT"], ["articles_id_seq", "UPDATE", "SELECT"]],
                 "username" : "writer",
-                "password" : writerPassword
+                "password" : writerPassword,
+                "inherit" : "reader"
                 },
 
             "readerUser" : {
                 "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"]],
                 "username" : "reader",
-                "password" : ""
+                "password" : "",
+                "inherit" : False
                 }
             }
 
     for user in users:
         createUser(connection, users[user]['username'], users[user]['password'])
-        grantUserPrivs(connection, users[user]["username"], users[user]['privs'])
+        grantUserPrivs(connection, users[user]["username"], users[user]["inherit"], users[user]['privs'])
 
     return writerPassword
 
@@ -94,8 +96,10 @@ def createUser(connection, username, userPassword=""):
 
     connection.commit()
 
-def grantUserPrivs(connection, username, privLists):
+def grantUserPrivs(connection, username, inherit, privLists):
     with connection.cursor() as cur:
+        if inherit:
+            cur.execute("GRANT {} TO {}".format(inherit, username))
         for privList in privLists:
             tableName = privList.pop(0)
             cur.execute("GRANT {} ON {} TO {};".format(", ".join(privList), tableName, username))
