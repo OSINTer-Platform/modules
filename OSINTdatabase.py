@@ -55,31 +55,31 @@ def initiateUsers(connection):
     writerPassword = secrets.token_urlsafe(30)
     authPassword = secrets.token_urlsafe(30)
 
-    users = {
-            "AuthUser" : {
-                "privs" : [["osinter_users", "SELECT", "UPDATE", "INSERT", "DELETE"]],
-                "username": "auth",
-                "password": authPassword,
-                "inherit" : "reader"
+    # It's important the the reader user is created first, since the other roles inherit from it.
+    users = [
+                {
+                    "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
+                    "username" : "reader",
+                    "password" : "",
+                    "inherit" : False
                 },
-            "writerUser" : {
-                "privs" : [["articles", "SELECT", "UPDATE", "INSERT"], ["articles_id_seq", "UPDATE", "SELECT"]],
-                "username" : "writer",
-                "password" : writerPassword,
-                "inherit" : "reader"
+                {
+                    "privs" : [["osinter_users", "SELECT", "UPDATE", "INSERT", "DELETE"]],
+                    "username": "auth",
+                    "password": authPassword,
+                    "inherit" : "reader"
                 },
-
-            "readerUser" : {
-                "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
-                "username" : "reader",
-                "password" : "",
-                "inherit" : False
+                {
+                    "privs" : [["articles", "SELECT", "UPDATE", "INSERT"], ["articles_id_seq", "UPDATE", "SELECT"]],
+                    "username" : "writer",
+                    "password" : writerPassword,
+                    "inherit" : "reader"
                 }
-            }
+            ]
 
     for user in users:
-        createUser(connection, users[user]['username'], users[user]['password'])
-        grantUserPrivs(connection, users[user]["username"], users[user]["inherit"], users[user]['privs'])
+        createUser(connection, user['username'], user['password'])
+        grantUserPrivs(connection, user["username"], user["inherit"], user['privs'])
 
     return { "writer" : writerPassword, "auth" : authPassword }
 
