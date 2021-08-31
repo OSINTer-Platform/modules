@@ -133,6 +133,24 @@ def createTable(connection, tableName, tableContentList):
         else:
             return False
 
+def markArticle(connection, articleTableName, userTableName, osinter_user, articleID, select):
+    with connection.cursor() as cur:
+        # Verifying that the user exists
+        cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s".format(userTableName), (osinter_user,))
+        if !cur.fetchall()[0][0]:
+            return "User \"{}\" doesn't exist in the table \"{}\"".format(osinter_user, tableName)
+        else:
+            # Verifying that the article exists
+            cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE id = %s".format(articleTableName), (articleID,))
+            if !cur.fetchall()[0][0]:
+                return "Article with the ID \"{}\" doesn't seem to exist in the table \"{}\"".format(articleTableName)
+            else:
+                articleIDArray = "{" + str(articleID) + "}"
+                if select:
+                    cur.execute("UPDATE {0} SET selected_article_ids = (SELECT ARRAY(SELECT DISTINCT UNNEST(selected_article_ids || %s)) FROM {0}) WHERE username = %s;".format(userTableName), (articleIDArray, osinter_user))
+                else:
+                    cur.execute("UPDATE {} SET selected_article_ids = array_remove(selected_article_ids, %s)".format(userTableName), (articleIDArray,))
+
 # Function for writting OG tags to database
 def writeOGTagsToDB(connection, OGTags, tableName):
     # Making sure the tablename is in all lowercase
