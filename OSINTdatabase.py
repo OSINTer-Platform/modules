@@ -159,6 +159,17 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
     connection.commit()
     return 0
 
+# Function for checking looping through a list (IDList) containing ID's of articles, and checking if they have been marked as interresting by [username]. Will return list consisting of true or false (true if it has been marked, false if not), each corresponding to the ID at that index in the IDList
+def checkIfArticleMarked(connection, userTableName, IDList, username):
+    with connection.cursor() as cur:
+
+        cur.execute("SELECT selected_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
+        markedArticles = cur.fetchall()[0][0]
+
+        # The final list that will be returned that will consist of true and false.
+        IDMarkings = [ ID in markedArticles for ID in IDList ]
+
+        return IDMarkings
 
 # Function for writting OG tags to database
 def writeOGTagsToDB(connection, OGTags, tableName):
