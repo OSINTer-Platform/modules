@@ -140,13 +140,13 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
     with connection.cursor() as cur:
         # Verifying that the user exists
         cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s);".format(userTableName), (osinter_user,))
-        if not cur.fetchall()[0][0]:
-            return "User \"{}\" doesn't exist in the table \"{}\"".format(osinter_user, userTableName)
+        if cur.fetchall() == []:
+            return []
         else:
             # Verifying that the article exists
             cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE id = %s);".format(articleTableName), (articleID,))
-            if not cur.fetchall()[0][0]:
-                return "Article with the ID \"{}\" doesn't seem to exist in the table \"{}\"".format(articleID, articleTableName)
+            if cur.fetchall() == []:
+                return []
             else:
                 if mark:
                     # The article ID has to be formated as an array if inserting in the DB, since the insertion combines the existing array, with the new ID to append it.
@@ -164,7 +164,13 @@ def checkIfArticleMarked(connection, userTableName, IDList, username):
     with connection.cursor() as cur:
 
         cur.execute("SELECT selected_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
-        markedArticles = cur.fetchall()[0][0]
+
+        DBResults = cur.fetchall()
+
+        if DBResults == []:
+            return []
+
+        markedArticles = DBResults[0][0]
 
         # The final list that will be returned that will consist of true and false.
         IDMarkings = [ ID in markedArticles for ID in IDList ]
