@@ -141,7 +141,7 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
         # Verifying that the user exists
         cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s);".format(userTableName), (osinter_user,))
         if not cur.fetchall()[0][0]:
-            return "User \"{}\" doesn't exist in the table \"{}\"".format(osinter_user, tableName)
+            return "User \"{}\" doesn't exist in the table \"{}\"".format(osinter_user, userTableName)
         else:
             # Verifying that the article exists
             cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE id = %s);".format(articleTableName), (articleID,))
@@ -155,6 +155,8 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
                     cur.execute("UPDATE {0} SET selected_article_ids = (SELECT ARRAY(SELECT DISTINCT UNNEST(selected_article_ids || %s)) FROM {0} WHERE username = %s) WHERE username = %s;".format(userTableName), (articleIDArray, osinter_user, osinter_user))
                 else:
                     cur.execute("UPDATE {} SET selected_article_ids = array_remove(selected_article_ids, %s) WHERE username = %s;".format(userTableName), (articleID, osinter_user))
+
+    connection.commit()
     return 0
 
 
