@@ -52,36 +52,32 @@ def initiateAdmin(connection):
 
 def initiateUsers(connection):
 
-    writerPassword = secrets.token_urlsafe(30)
-    authPassword = secrets.token_urlsafe(30)
-
     # It's important the the reader user is created first, since the other roles inherit from it.
     users = [
                 {
                     "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
                     "username" : "reader",
-                    "password" : "",
                     "inherit" : False
                 },
                 {
                     "privs" : [["osinter_users", "SELECT", "UPDATE", "INSERT", "DELETE"]],
                     "username": "auth",
-                    "password": authPassword,
                     "inherit" : "reader"
                 },
                 {
                     "privs" : [["articles", "SELECT", "UPDATE", "INSERT"], ["articles_id_seq", "UPDATE", "SELECT"]],
                     "username" : "writer",
-                    "password" : writerPassword,
                     "inherit" : "reader"
                 }
             ]
 
+    usernameAndPassword = { user['username']:secrets.token_urlsafe(30) for user in users if user != "user"}
+
     for user in users:
-        createUser(connection, user['username'], user['password'])
+        createUser(connection, user['username'], usernameAndPassword[user['username']])
         grantUserPrivs(connection, user["username"], user["inherit"], user['privs'])
 
-    return { "writer" : writerPassword, "auth" : authPassword }
+    return usernameAndPassword
 
 
 # Function for creating new users with certain priviledges
