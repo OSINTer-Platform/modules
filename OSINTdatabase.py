@@ -133,7 +133,8 @@ def createTable(connection, tableName, tableContentList):
         else:
             return False
 
-def markArticle(connection, articleTableName, userTableName, osinter_user, articleID, select):
+# Will mark an article as of interrest or remove an article as of interrest for the [osinter_user] based on whether mark is true or false. articleTableName is the name of the table storing the articles (used for verifying that there exists a table with that name) and userTableName is the name of the table holding the user and their preferences
+def markArticle(connection, articleTableName, userTableName, osinter_user, articleID, mark):
     with connection.cursor() as cur:
         # Verifying that the user exists
         cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s".format(userTableName), (osinter_user,))
@@ -145,11 +146,15 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
             if !cur.fetchall()[0][0]:
                 return "Article with the ID \"{}\" doesn't seem to exist in the table \"{}\"".format(articleTableName)
             else:
-                articleIDArray = "{" + str(articleID) + "}"
-                if select:
-                    cur.execute("UPDATE {0} SET selected_article_ids = (SELECT ARRAY(SELECT DISTINCT UNNEST(selected_article_ids || %s)) FROM {0}) WHERE username = %s;".format(userTableName), (articleIDArray, osinter_user))
+                if mark:
+                    # The article ID has to be formated as an array if inserting in the DB, since the insertion combines the existing array, with the new ID to append it.
+                    articleIDArray = "{" + str(articleID) + "}"
+                    # Combines the array from the DB with the new ID, and takes all the uniqe entries from that so that duplicates are avoided
+                    cur.execute("UPDATE {0} SET selected_article_ids = (SELECT ARRAY(SELECT DISTINCT UNNEST(selected_article_ids || %s)) FROM {0} WHERE username = %s) WHERE username = %s;".format(userTableName), (articleIDArray, osinter_user, osinter_user))
                 else:
-                    cur.execute("UPDATE {} SET selected_article_ids = array_remove(selected_article_ids, %s)".format(userTableName), (articleIDArray,))
+                    cur.execute("UPDATE {} SET selected_article_ids = array_remove(selected_article_ids, %s) WHERE username = %s;".format(userTableName), (articleID, osinter_user))
+    return 0
+
 
 # Function for writting OG tags to database
 def writeOGTagsToDB(connection, OGTags, tableName):
