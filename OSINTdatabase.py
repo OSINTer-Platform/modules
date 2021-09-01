@@ -137,14 +137,14 @@ def createTable(connection, tableName, tableContentList):
 def markArticle(connection, articleTableName, userTableName, osinter_user, articleID, mark):
     with connection.cursor() as cur:
         # Verifying that the user exists
-        cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s".format(userTableName), (osinter_user,))
-        if !cur.fetchall()[0][0]:
+        cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s);".format(userTableName), (osinter_user,))
+        if not cur.fetchall()[0][0]:
             return "User \"{}\" doesn't exist in the table \"{}\"".format(osinter_user, tableName)
         else:
             # Verifying that the article exists
-            cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE id = %s".format(articleTableName), (articleID,))
-            if !cur.fetchall()[0][0]:
-                return "Article with the ID \"{}\" doesn't seem to exist in the table \"{}\"".format(articleTableName)
+            cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE id = %s);".format(articleTableName), (articleID,))
+            if not cur.fetchall()[0][0]:
+                return "Article with the ID \"{}\" doesn't seem to exist in the table \"{}\"".format(articleID, articleTableName)
             else:
                 if mark:
                     # The article ID has to be formated as an array if inserting in the DB, since the insertion combines the existing array, with the new ID to append it.
