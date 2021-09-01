@@ -53,6 +53,7 @@ def initiateAdmin(connection):
 def initiateUsers(connection):
 
     # It's important the the reader user is created first, since the other roles inherit from it.
+    # IMPORTANT! All names should include lowercase letters ONLY
     users = [
                 {
                     "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
@@ -62,6 +63,11 @@ def initiateUsers(connection):
                 {
                     "privs" : [["osinter_users", "SELECT", "UPDATE", "INSERT", "DELETE"]],
                     "username": "auth",
+                    "inherit" : "reader"
+                },
+                {
+                    "privs" : [["osinter_users", "UPDATE(selected_article_ids)"]],
+                    "username": "article_marker",
                     "inherit" : "reader"
                 },
                 {
