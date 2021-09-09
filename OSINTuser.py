@@ -1,5 +1,4 @@
 import argon2
-from OSINTmodules.OSINTdatabase import setPasswordHashForOSINTerUser, getPasswordHashForOSINTerUser
 
 ph = argon2.PasswordHasher()
 
@@ -15,7 +14,7 @@ def checkIfUserExists(connection, userTableName, username):
 def setPasswordHashForOSINTerUser(connection, userTableName, username, passwordHash):
     if checkIfUserExists(connection, userTableName, username):
         with connection.cursor() as cur:
-            cur.exeucte("UPDATE {} SET password_hash=%s WHERE username=%s;".format(userTableName), (passwordHash, username))
+            cur.execute("UPDATE {} SET password_hash=%s WHERE username=%s;".format(userTableName), (passwordHash, username))
             connection.commit()
             return True
     else:
@@ -25,9 +24,8 @@ def setPasswordHashForOSINTerUser(connection, userTableName, username, passwordH
 def getPasswordHashForOSINTerUser(connection, userTableName, username):
     if checkIfUserExists(connection, userTableName, username):
         with connection.cursor() as cur:
-            cur.exeucte("SELECT password_hash FROM {} WHERE username=%s;".format(userTableName), (username,))
-            connection.commit()
-            return True
+            cur.execute("SELECT password_hash FROM {} WHERE username=%s;".format(userTableName), (username,))
+            return cur.fetchall()[0][0]
     else:
         return False
 
