@@ -35,17 +35,20 @@ def getPasswordHashForOSINTerUser(connection, userTableName, username):
 
 # Will verify that clear text [password] matches [username].
 def verifyPassword(connection, userTableName, username, password):
-    userHash = getPasswordHashForOSINTerUser(connection, userTableName, username)
-
-    try:
-        ph.verify(userHash)   
-
-        if ph.check_needs_rehash(userHash):
-            setPasswordHashForOSINTerUser(username, ph.hash(password))
-        return True
-
-    except argon2.exceptions.VerifyMismatchError:
+    if not checkIfUserExists(connection, userTableName, username):
         return False
+    else:
+        userHash = getPasswordHashForOSINTerUser(connection, userTableName, username)
+
+        try:
+            ph.verify(userHash)
+
+            if ph.check_needs_rehash(userHash):
+                setPasswordHashForOSINTerUser(username, ph.hash(password))
+            return True
+
+        except argon2.exceptions.VerifyMismatchError:
+            return False
 
 def createUser(connection, userTableName, username, password):
     if checkIfUserExists(connection, userTableName, username):
