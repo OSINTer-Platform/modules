@@ -41,7 +41,7 @@ def verifyPassword(connection, userTableName, username, password):
         userHash = getPasswordHashForOSINTerUser(connection, userTableName, username)
 
         try:
-            ph.verify(userHash)
+            ph.verify(userHash, password)
 
             if ph.check_needs_rehash(userHash):
                 setPasswordHashForOSINTerUser(username, ph.hash(password))
@@ -55,6 +55,6 @@ def createUser(connection, userTableName, username, password):
         return False
     else:
         with connection.cursor() as cur:
-            cur.execute("INSERT INTO {} (username, password_hash) VALUES (%s, %s);", (username, ph.hash(password)))
+            cur.execute("INSERT INTO {} (username, password_hash) VALUES (%s, %s);".format(userTableName), (username, ph.hash(password)))
         connection.commit()
         return True
