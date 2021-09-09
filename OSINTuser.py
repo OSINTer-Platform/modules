@@ -8,7 +8,11 @@ def checkIfUserExists(connection, userTableName, username):
         if cur.fetchall() == []:
             return False
         else:
-            return True
+            cur.execute("SELECT password_hash FROM {} WHERE username = %s;".format(userTableName), (username,))
+            if cur.fetchall() == []:
+                return False
+            else:
+                return True
 
 # Set the password hash for [username]
 def setPasswordHashForOSINTerUser(connection, userTableName, username, passwordHash):
