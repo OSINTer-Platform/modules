@@ -55,6 +55,7 @@ def initiateUsers(connection):
 
     # It's important the the reader user is created first, since the other roles inherit from it.
     # IMPORTANT! All names should include lowercase letters ONLY
+    # The passwordStoragePerms is used to mark the unix permissions of the file that will be storing the passwords on disk when deploying the program.
     users = [
                 {
                     "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
@@ -64,27 +65,34 @@ def initiateUsers(connection):
                 {
                     "privs" : [["osinter_users", "SELECT", "UPDATE", "INSERT", "DELETE"]],
                     "username": "auth",
+                    "passwordStoragePerms": 0o440,
                     "inherit" : "reader"
                 },
                 {
                     "privs" : [["osinter_users", "UPDATE(selected_article_ids)"]],
                     "username": "article_marker",
+                    "passwordStoragePerms": 0o440,
                     "inherit" : "reader"
                 },
                 {
                     "privs" : [["articles", "SELECT", "UPDATE", "INSERT"], ["articles_id_seq", "UPDATE", "SELECT"]],
                     "username" : "writer",
+                    "passwordStoragePerms": 0o400,
                     "inherit" : "reader"
                 }
             ]
 
-    usernameAndPassword = { user['username']:secrets.token_urlsafe(30) for user in users if user != "user"}
+    usernamePasswordAndPerms = { user['username'] : { "password" : secrets.token_urlsafe(30), "perms" : user["passwordStoragePerms"] } for user in users if user["username"] != "reader"}
 
     for user in users:
-        createUser(connection, user['username'], usernameAndPassword[user['username']])
+        if user["username"] != "reader":
+            createUser(connection, user['username'], usernamePasswordAndPerms[user['username']]["password"])
+        else:
+            createUser(connection, user['username'])
+
         grantUserPrivs(connection, user["username"], user["inherit"], user['privs'])
 
-    return usernameAndPassword
+    return usernamePasswordAndPerms
 
 
 # Function for creating new users with certain priviledges
