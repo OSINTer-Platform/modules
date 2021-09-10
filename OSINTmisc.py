@@ -25,7 +25,7 @@ def printDebug(message, timeStamp=True):
 def createNewsSiteFolder(newsSite):
     if not os.path.isdir(Path("./articles/" + newsSite)):
         try:
-            os.mkdir(Path("./articles/" + newsSite))
+            os.mkdir(Path("./articles/" + newsSite), mode=0o750)
         except:
             raise Exception("Apparently {} couldn't get the needed folder created for storing MD files, exiting".format(newsSite))
 
