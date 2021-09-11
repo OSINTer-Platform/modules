@@ -151,12 +151,12 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
         # Verifying that the user exists
         cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s);".format(userTableName), (osinter_user,))
         if cur.fetchall() == []:
-            return []
+            return "User does not seem to exist"
         else:
             # Verifying that the article exists
             cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE id = %s);".format(articleTableName), (articleID,))
             if cur.fetchall() == []:
-                return []
+                return "Article does not seem to exist"
             else:
                 if mark:
                     # The article ID has to be formated as an array if inserting in the DB, since the insertion combines the existing array, with the new ID to append it.
@@ -167,7 +167,7 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
                     cur.execute("UPDATE {} SET selected_article_ids = array_remove(selected_article_ids, %s) WHERE username = %s;".format(userTableName), (articleID, osinter_user))
 
     connection.commit()
-    return 0
+    return True
 
 # Function for checking looping through a list (IDList) containing ID's of articles, and checking if they have been marked as interresting by [username]. Will return list consisting of true or false (true if it has been marked, false if not), each corresponding to the ID at that index in the IDList
 def checkIfArticleMarked(connection, userTableName, IDList, username):
