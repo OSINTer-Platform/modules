@@ -164,7 +164,7 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
                     # Combines the array from the DB with the new ID, and takes all the uniqe entries from that so that duplicates are avoided
                     cur.execute("UPDATE {0} SET selected_article_ids = (SELECT ARRAY(SELECT DISTINCT UNNEST(selected_article_ids || %s)) FROM {0} WHERE username = %s) WHERE username = %s;".format(userTableName), (articleIDArray, osinter_user, osinter_user))
                 else:
-                    cur.execute("UPDATE {} SET selected_article_ids = array_remove(selected_article_ids, %s) WHERE username = %s;".format(userTableName), (articleID, osinter_user))
+                    cur.execute("UPDATE {} SET selected_article_ids = array_remove(selected_article_ids, %s::bigint) WHERE username = %s;".format(userTableName), (articleID, osinter_user))
 
     connection.commit()
     return True
