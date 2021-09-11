@@ -1,4 +1,5 @@
 import argon2
+import secrets
 
 ph = argon2.PasswordHasher()
 
@@ -61,6 +62,14 @@ def createUser(connection, userTableName, username, password):
         return False
     else:
         with connection.cursor() as cur:
-            cur.execute("INSERT INTO {} (username, password_hash) VALUES (%s, %s);".format(userTableName), (username, ph.hash(password)))
+
+            # Will generate ID for the new user, and make sure that it's unique
+            while True:
+                userID = secrets.token_urlsafe(128)[0:128]
+                cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE id = %s);".format(userTableName), (userID,))
+                if cur.fetchall()[0][0] == False:
+                    break
+
+            cur.execute("INSERT INTO {} (username, password_hash, id) VALUES (%s, %s, %s);".format(userTableName), (username, ph.hash(password), userID))
         connection.commit()
         return True
