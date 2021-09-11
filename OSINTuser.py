@@ -77,6 +77,16 @@ class User():
     def is_anonymous(self):
         return False
 
+def getUsernameFromID(connection, userTableName, userID):
+    with connection.cursor() as cur:
+        cur.execute("SELECT username FROM {} WHERE id = %s;".format(userTableName), (userID,))
+        username = cur.fetchall()
+        if username == []:
+            return False
+        else:
+            return username[0][0]
+
+
 def createUser(connection, userTableName, username, password):
     if User(connection, userTableName, username).checkIfUserExists():
         return False
