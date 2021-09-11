@@ -177,10 +177,10 @@ def checkIfArticleMarked(connection, userTableName, IDList, username):
 
         DBResults = cur.fetchall()
 
-        if DBResults == []:
-            return []
-
         markedArticles = DBResults[0][0]
+
+        if markedArticles == None:
+            return [False] * len(IDList)
 
         # The final list that will be returned that will consist of true and false.
         IDMarkings = [ ID in markedArticles for ID in IDList ]
