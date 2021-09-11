@@ -65,6 +65,14 @@ class User():
         else:
             return False
 
+    # Methods needed by the flask_login plugin
+    def is_active(self):
+        return True
+    def is_authenticated(self):
+        return True
+    def is_anonymous(self):
+        return False
+
 def createUser(connection, userTableName, username, password):
     if User(connection, userTableName, username).checkIfUserExists():
         return False
