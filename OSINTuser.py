@@ -40,6 +40,10 @@ class User():
         else:
             return False
 
+    def changePassword(self, password):
+        if self.checkIfUserExists():
+            self.setPasswordHash(ph.hash(password))
+
     # Will verify that clear text [password] matches the one for the current user
     def verifyPassword(self, password):
         if not self.checkIfUserExists():
