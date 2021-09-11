@@ -57,6 +57,14 @@ class User():
             except argon2.exceptions.VerifyMismatchError:
                 return False
 
+    def get_id(self):
+        if self.checkIfUserExists():
+            with self.DBConnection.cursor() as cur:
+                cur.execute("SELECT id FROM {} WHERE username=%s;".format(self.userTableName), (self.username,))
+                return cur.fetchall()[0][0]
+        else:
+            return False
+
 def createUser(connection, userTableName, username, password):
     if User(connection, userTableName, username).checkIfUserExists():
         return False
