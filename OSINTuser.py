@@ -1,5 +1,6 @@
 import argon2
 import secrets
+from OSINTmodules.OSINTdatabase import returnArticleFilePathById
 
 ph = argon2.PasswordHasher()
 
@@ -85,6 +86,22 @@ def getUsernameFromID(connection, userTableName, userID):
             return False
         else:
             return username[0][0]
+
+def getMarkedArticlePaths(connection, username, userTableName, articleTableName):
+    with connection.cursor() as cur:
+        cur.execute("SELECT selected_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
+
+        markedArticles = cur.fetchall()[0][0]
+
+        if markedArticles == None:
+            return []
+
+        markedArticlePaths = []
+
+        for articleID in markedArticles:
+            markedArticlePaths.append(returnArticleFilePathById(connection, articleID, articleTableName))
+
+        return markedArticlePaths
 
 
 def createUser(connection, userTableName, username, password):
