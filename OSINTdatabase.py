@@ -64,7 +64,13 @@ def initiateUsers(connection):
                     "inherit" : False
                 },
                 {
-                    "privs" : [["osinter_users", "SELECT", "UPDATE", "INSERT", "DELETE"]],
+                    "privs" : [["osinter_users", "SELECT", "INSERT"]],
+                    "username": "user_creator",
+                    "passwordStoragePerms": 0o440,
+                    "inherit" : "reader"
+                },
+                {
+                    "privs" : [["osinter_users", "SELECT"]],
                     "username": "auth",
                     "passwordStoragePerms": 0o440,
                     "inherit" : "reader"
