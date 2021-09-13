@@ -23,8 +23,8 @@ def initiateUserTable(connection):
     userTableContentList = [
         "username VARCHAR(64) NOT NULL PRIMARY KEY",
         "selected_article_ids BIGINT[]",
-        "password_hash VARCHAR(100)",
-        "id VARCHAR(128)"
+        "password_hash VARCHAR(100) NOT NULL",
+        "id VARCHAR(128) NOT NULL"
     ]
     return createTable(connection, "osinter_users", userTableContentList)
 

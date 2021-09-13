@@ -13,14 +13,10 @@ class User():
     def checkIfUserExists(self):
         with self.DBConnection.cursor() as cur:
             cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s);".format(self.userTableName), (self.username,))
-            if cur.fetchall() == []:
+            if cur.fetchall()[0][0] == False:
                 return False
             else:
-                cur.execute("SELECT password_hash FROM {} WHERE username = %s;".format(self.userTableName), (self.username,))
-                if cur.fetchall() == []:
-                    return False
-                else:
-                    return True
+                return True
 
     # Set the password hash for [username]
     def setPasswordHash(self, passwordHash):
