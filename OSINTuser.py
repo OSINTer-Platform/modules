@@ -58,6 +58,14 @@ class User():
             except argon2.exceptions.VerifyMismatchError:
                 return False
 
+    def getMarkedArticles(self):
+        if self.checkIfUserExists():
+            with self.DBConnection.cursor() as cur:
+                cur.execute("SELECT selected_article_ids FROM {} WHERE username=%s;".format(self.userTableName), (self.username,))
+                return cur.fetchall()[0][0]
+        else:
+            return []
+
     def get_id(self):
         if self.checkIfUserExists():
             with self.DBConnection.cursor() as cur:
