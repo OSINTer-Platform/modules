@@ -62,7 +62,11 @@ class User():
         if self.checkIfUserExists():
             with self.DBConnection.cursor() as cur:
                 cur.execute("SELECT selected_article_ids FROM {} WHERE username=%s;".format(self.userTableName), (self.username,))
-                return cur.fetchall()[0][0]
+                DBResults = cur.fetchall()[0][0]
+                if DBResults:
+                    return DBResults
+                else:
+                    return []
         else:
             return []
 
