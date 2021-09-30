@@ -61,6 +61,7 @@ def initiateUsers(connection):
                 {
                     "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
                     "username" : "reader",
+                    "passwordStoragePerms": 0o440,
                     "inherit" : False
                 },
                 {
@@ -89,13 +90,10 @@ def initiateUsers(connection):
                 }
             ]
 
-    usernamePasswordAndPerms = { user['username'] : { "password" : secrets.token_urlsafe(30), "perms" : user["passwordStoragePerms"] } for user in users if user["username"] != "reader"}
+    usernamePasswordAndPerms = { user['username'] : { "password" : secrets.token_urlsafe(30), "perms" : user["passwordStoragePerms"] } for user in users }
 
     for user in users:
-        if user["username"] != "reader":
-            createUser(connection, user['username'], usernamePasswordAndPerms[user['username']]["password"])
-        else:
-            createUser(connection, user['username'])
+        createUser(connection, user['username'], usernamePasswordAndPerms[user['username']]["password"])
 
         grantUserPrivs(connection, user["username"], user["inherit"], user['privs'])
 
