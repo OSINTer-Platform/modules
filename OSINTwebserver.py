@@ -1,13 +1,6 @@
 from OSINTmodules import OSINTdatabase, OSINTprofiles
 
 
-def collectFeedDetails(OGTags):
-    listCollection = {}
-    for detailList in ['id', 'url', 'image', 'title', 'description']:
-        listCollection[detailList] = [article[detailList] for article in OGTags]
-    return listCollection
-
-
 def verifyProfiles(profiles, connection, tableName):
     # Getting the profiles that are stored in the database
     DBStoredProfiles = OSINTdatabase.requestProfileListFromDB(connection, tableName)
