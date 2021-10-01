@@ -74,26 +74,3 @@ def collectOGTagsFromNewsSite(profileName, URLList):
             })
 
     return OGTagCollection
-
-# Function used for scrambling the OG tags. The reason the URLs isn't simply scrambled before scrapping the OG tags and thereby making the proccess of scramblin them a lot simpler, is that this will scramble the source, but the newest articles will still be first.
-def scrambleOGTags(OGTagCollection):
-    # The list of the scrambled OG tags that will be returned
-    scrambledTags = list()
-
-    # Making sure that we have no empty lists with articles
-    for profile in list(OGTagCollection):
-        if OGTagCollection[profile] == []:
-            del OGTagCollection[profile]
-
-    while OGTagCollection != {}:
-        # Choosing a random source (eg. bleepingcomputer or zdnet or something else)
-        randomSource = random.choice(" ".join(OGTagCollection).split())
-
-        # Moves the newest article from a random source from the ordered list to the scrambled
-        scrambledTags.append(OGTagCollection[randomSource].pop(0))
-
-        # Checks if individual list is empty and removing it if it is
-        if OGTagCollection[randomSource] == []:
-            del OGTagCollection[randomSource]
-
-    return(scrambledTags)

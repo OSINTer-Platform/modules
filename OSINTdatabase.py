@@ -61,6 +61,7 @@ def initiateUsers(connection):
                 {
                     "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
                     "username" : "reader",
+                    "passwordStoragePerms": 0o440,
                     "inherit" : False
                 },
                 {
@@ -89,13 +90,10 @@ def initiateUsers(connection):
                 }
             ]
 
-    usernamePasswordAndPerms = { user['username'] : { "password" : secrets.token_urlsafe(30), "perms" : user["passwordStoragePerms"] } for user in users if user["username"] != "reader"}
+    usernamePasswordAndPerms = { user['username'] : { "password" : secrets.token_urlsafe(30), "perms" : user["passwordStoragePerms"] } for user in users }
 
     for user in users:
-        if user["username"] != "reader":
-            createUser(connection, user['username'], usernamePasswordAndPerms[user['username']]["password"])
-        else:
-            createUser(connection, user['username'])
+        createUser(connection, user['username'], usernamePasswordAndPerms[user['username']]["password"])
 
         grantUserPrivs(connection, user["username"], user["inherit"], user['privs'])
 
@@ -223,35 +221,23 @@ def requestOGTagsFromDB(connection, tableName, profileList, limit, idList=[]):
         raise Exception("An internal number given when trying to access the database appears to not be a number but instead: \"{}\"".format(limit))
 
     # The dictionary to hold the OG tags
-    OGTagCollection = {}
+    OGTagCollection = []
 
     with connection.cursor() as cur:
-        for profile in profileList:
 
-            OGTagCollection[profile] = []
+        # Which collumns to extract data from
+        collumns = "id, title, description, url, image_url, author, publish_date, profile"
 
-            # Which collumns to extract data from
-            collumns = "id, title, description, url, image_url, author, publish_date, profile"
+        # Take the [limit] newest articles from a specfic source that has been scraped
+        if idList != []:
+            cur.execute("SELECT {} FROM {} WHERE scraped=true AND id=ANY(%s) AND profile=ANY(%s) ORDER BY id DESC;".format(collumns, tableName), (idList, profileList))
+        else:
+            cur.execute("SELECT {} FROM {} WHERE scraped=true AND profile=ANY(%s) ORDER BY id DESC LIMIT {};".format(collumns, tableName, limit), (profileList,))
+        queryResults = cur.fetchall()
 
-            # Take the 10 newest articles from a specfic source that has been scraped
-            if idList != []:
-                cur.execute("SELECT {} FROM {} WHERE profile=%s AND scraped=true AND id=ANY(%s) ORDER BY id DESC;".format(collumns, tableName), (profile, idList))
-            else:
-                cur.execute("SELECT {} FROM {} WHERE profile=%s AND scraped=true ORDER BY id DESC LIMIT {};".format(collumns, tableName, limit), (profile,))
-            queryResults = cur.fetchall()
-
-            # Adding them to the final OG tag collection
-            for result in queryResults:
-                OGTagCollection[profile].append({
-                    'id'            : result[0],
-                    'title'         : result[1],
-                    'description'   : result[2],
-                    'url'           : result[3],
-                    'image'         : result[4],
-                    'author'        : result[5],
-                    'publish_date'  : result[6],
-                    'profile'       : result[7]
-                    })
+        # Adding them to the final OG tag collection
+        for result in queryResults:
+            OGTagCollection.append({descriptor:value for (descriptor,value) in zip(collumns.split(", "), result)})
     return OGTagCollection
 
 def findUnscrapedArticles(connection, tableName, profileList):
