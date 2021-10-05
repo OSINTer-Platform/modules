@@ -230,9 +230,9 @@ def requestOGTagsFromDB(connection, tableName, profileList, limit, idList=[]):
 
         # Take the [limit] newest articles from a specfic source that has been scraped
         if idList != []:
-            cur.execute("SELECT {} FROM {} WHERE scraped=true AND id=ANY(%s) AND profile=ANY(%s) ORDER BY id DESC;".format(collumns, tableName), (idList, profileList))
+            cur.execute("SELECT {} FROM {} WHERE scraped=true AND id=ANY(%s) AND profile=ANY(%s) ORDER BY publish_date DESC;".format(collumns, tableName), (idList, profileList))
         else:
-            cur.execute("SELECT {} FROM {} WHERE scraped=true AND profile=ANY(%s) ORDER BY id DESC LIMIT {};".format(collumns, tableName, limit), (profileList,))
+            cur.execute("SELECT {} FROM {} WHERE scraped=true AND profile=ANY(%s) ORDER BY publish_date DESC LIMIT {};".format(collumns, tableName, limit), (profileList,))
         queryResults = cur.fetchall()
 
         # Adding them to the final OG tag collection
