@@ -30,9 +30,9 @@ def createNewsSiteFolder(newsSite):
             raise Exception("Apparently {} couldn't get the needed folder created for storing MD files, exiting".format(newsSite))
     else:
         try:
-            os.chmod(Path("./articles/" + folderName), 0o750)
+            os.chmod(Path("./articles/" + newsSite), 0o750)
         except:
-            raise Exception("Failed to set the 750 permissions on articles/{}, either remove the folder or set the right perms yourself and try again.".format(folderName))
+            raise Exception("Failed to set the 750 permissions on articles/{}, either remove the folder or set the right perms yourself and try again.".format(newsSite))
 
 def checkIfURL(URL):
     if re.match(r"https?:\/\/.*\..*", URL):
