@@ -208,7 +208,7 @@ def writeOGTagsToDB(connection, OGTags, tableName):
                     # Adding the url to list of new articles since it was not found in the database
                     newUrls[-1].append(tags['url'])
                     insertQuery = "INSERT INTO {} (title, description, url, image_url, author, publish_date, profile, scraped, inserted_at) VALUES (%s, %s, %s, %s, %s, %s, %s, false, NOW());".format(tableName)
-                    insertParameters = (tags['title'][:150], tags['description'][:350], tags['url'], tags['image'], tags['author'], tags['publishDate'], newsSite)
+                    insertParameters = (tags['title'][:150], tags['description'][:350], tags['url'], tags['image'], tags['author'], tags['publishDate'] if tags['publishDate'] != None else datetime.now(), newsSite)
                     cur.execute(insertQuery, insertParameters)
     connection.commit()
     # Return the list of urls not already in the database so they can be scraped
@@ -230,9 +230,9 @@ def requestOGTagsFromDB(connection, tableName, profileList, limit, idList=[]):
 
         # Take the [limit] newest articles from a specfic source that has been scraped
         if idList != []:
-            cur.execute("SELECT {} FROM {} WHERE scraped=true AND id=ANY(%s) AND profile=ANY(%s) ORDER BY id DESC;".format(collumns, tableName), (idList, profileList))
+            cur.execute("SELECT {} FROM {} WHERE scraped=true AND id=ANY(%s) AND profile=ANY(%s) ORDER BY publish_date DESC;".format(collumns, tableName), (idList, profileList))
         else:
-            cur.execute("SELECT {} FROM {} WHERE scraped=true AND profile=ANY(%s) ORDER BY id DESC LIMIT {};".format(collumns, tableName, limit), (profileList,))
+            cur.execute("SELECT {} FROM {} WHERE scraped=true AND profile=ANY(%s) ORDER BY publish_date DESC LIMIT {};".format(collumns, tableName, limit), (profileList,))
         queryResults = cur.fetchall()
 
         # Adding them to the final OG tag collection
