@@ -109,7 +109,10 @@ def extractMetaInformation(pageSoup):
 
     # Extract the 3 relevant og tags from the website
     for tag in ["og:title", "og:description", "og:image"]:
-        OGTags[tag] = (pageSoup.find("meta", property=tag).get('content'))
+        try:
+            OGTags[tag] = (pageSoup.find("meta", property=tag).get('content'))
+        except:
+            OGTags[tag] = None
 
     # Use ld+json to extract extra information not found in the meta OG tags like author and publish date
     JSONScriptTags = pageSoup.find_all("script", {"type":"application/ld+json"})
