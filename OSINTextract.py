@@ -60,7 +60,7 @@ def extractArticleDetails(contentDetails, soup):
 
     return details
 
-def extractArticleContent(textDetails, soup, clearText=False, delimiter='\n'):
+def extractArticleContent(textDetails, soup, delimiter='\n'):
 
     # Clean the textlist for unwanted html elements
     if textDetails['remove'] != "":
@@ -81,27 +81,15 @@ def extractArticleContent(textDetails, soup, clearText=False, delimiter='\n'):
         raise Exception("Wasn't able to fetch the text for the following soup:" + str(soup))
 
     assembledText = ""
+    assembledClearText = ""
 
     # Loop through all the <p> tags, extract the text and add them to string with newline in between
     for element in textList:
-        if clearText:
-            assembledText = assembledText + element.get_text() + delimiter
-        else:
-            assembledText = assembledText + str(element) + delimiter
+        assembledClearText = assembledClearText + element.get_text() + delimiter
+        assembledText = assembledText + str(element) + delimiter
 
-    return assembledText
+    return assembledText, assembledClearText
 
-# Function for scraping everything of relevans in an article
-def extractAllDetails(currentProfile, articleSource):
-
-    # Parsing full source code for the article to a soup
-    articleSoup = BeautifulSoup(articleSource, 'html.parser')
-
-    articleDetails =    extractArticleDetails(currentProfile['scraping']['details'], articleSoup)
-    articleContent =    extractArticleContent(currentProfile['scraping']['content'], articleSoup)
-    articleClearText =  extractArticleContent(currentProfile['scraping']['content'], articleSoup, True)
-
-    return articleDetails, articleContent, articleClearText
 
 # Function for scraping meta information (like title, author and publish date) from articles. This both utilizes the OG tags and LD+JSON data, and while the proccess for extracting the OG tags is fairly simply as those is (nearly) always following the same standard, the LD+JSON data is a little more complicated. Here the data isn't parsed as JSON, but rather as a string where the relevant pieces of information is extracted using regex. It's probably ugly and definitly not the officially "right" way of doing this, but different placement of the information in the JSON object on different websites using different attributes made parsing the information from a python JSON object near impossible. As such, be warned that this function is not for the faint of heart
 def extractMetaInformation(pageSoup):

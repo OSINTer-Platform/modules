@@ -196,23 +196,23 @@ def writeOGTagsToDB(connection, OGTags, tableName):
     # Making sure the tablename is in all lowercase
     tableName = tableName.lower()
     # List to hold all the urls along with the profile names off the articles that haven't been scraped and saved in the database before so the whole article can be scraped
-    newUrls = list()
+    newTags = list()
     with connection.cursor() as cur:
         for newsSite in OGTags:
             # Looping through each collection of tags an creating a list inside the original list to hold articles from each news site
-            newUrls.append([newsSite])
+            newTags.append([newsSite])
             for tags in OGTags[newsSite]:
                 # Checking if the article is already stored in the database using the URL as that is probably not going to change and is uniqe
                 cur.execute("SELECT exists (SELECT 1 FROM {} WHERE url = %s);".format(tableName), (tags['url'],))
                 if cur.fetchall()[0][0] == False:
                     # Adding the url to list of new articles since it was not found in the database
-                    newUrls[-1].append(tags['url'])
+                    newTags[-1].append(tags)
                     insertQuery = "INSERT INTO {} (title, description, url, image_url, author, publish_date, profile, scraped, inserted_at) VALUES (%s, %s, %s, %s, %s, %s, %s, false, NOW());".format(tableName)
                     insertParameters = (tags['title'][:150], tags['description'][:350], tags['url'], tags['image'], tags['author'], tags['publishDate'] if tags['publishDate'] != None else datetime.now(), newsSite)
                     cur.execute(insertQuery, insertParameters)
     connection.commit()
     # Return the list of urls not already in the database so they can be scraped
-    return newUrls
+    return newTags
 
 def requestOGTagsFromDB(connection, tableName, profileList, limit, idList=[]):
 

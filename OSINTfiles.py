@@ -23,24 +23,24 @@ def writeTemplateToFile(contentList, templateFile, newFilePath):
             newF.write(filledTemplate)
 
 # Function for taking in some details about an articles and creating a markdown file with those
-def createMDFile(sourceName, sourceURL, articleDetails, articleContent, articleTags, MDFilePath="./"):
+def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFilePath="./"):
 
     # Define the title
-    title = articleDetails[0]
+    title = articleMetaTags['title']
 
     # Define the subtitle too, if it exist
-    if articleDetails[1] != "Unknown":
-        subtitle = articleDetails[1]
+    if articleMetaTags['description'] != "Unknown":
+        subtitle = articleMetaTags['description']
     else:
         subtitle = ""
 
     # Convert the link for the article to markdown format
-    MDSourceURL = "[article](" + sourceURL + ")"
+    MDSourceURL = "[article](" + articleMetaTags['url'] + ")"
 
     # Define the details section by creating markdown list with "+"
     MDDetails = ""
     detailLabels = ["Source: ", "Link: ", "Date: ", "Author: "]
-    for i,detail in enumerate([sourceName, MDSourceURL, articleDetails[2], articleDetails[3]]):
+    for i,detail in enumerate([sourceName, articleMetaTags['url'], articleMetaTags['publishDate'], articleMetaTags['author']]):
         MDDetails += "+ " + detailLabels[i] + detail + '\n'
 
     # Convert the scraped article to markdown
@@ -59,9 +59,9 @@ def createMDFile(sourceName, sourceURL, articleDetails, articleContent, articleT
     }
 
     # Converting the title of the article to a string that can be used as filename and then opening the file in append mode (will create file if it doesn't exist)
-    MDFileName = MDFilePath + fileSafeString(articleDetails[0]) + ".md"
+    MDFileName = MDFilePath + fileSafeString(articleMetaTags['title']) + ".md"
 
     writeTemplateToFile(contentList, "./tools/markdownTemplate.md", MDFileName)
 
     # Returning the file name, so it's possible to locate the file
-    return fileSafeString(articleDetails[0])
+    return fileSafeString(articleMetaTags['title'])
