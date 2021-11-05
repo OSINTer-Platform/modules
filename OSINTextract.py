@@ -49,17 +49,6 @@ def cleanSoup(soup, HTMLTagsAndClasses):
     return soup
 
 
-# Function for collecting all the small details from the article (title, subtitle, date and author)
-def extractArticleDetails(contentDetails, soup):
-    details = list()
-    for detail in contentDetails:
-        if contentDetails[detail] != "":
-            details.append(locateContent(contentDetails[detail], soup).get_text())
-        else:
-            details.append("Unknown")
-
-    return details
-
 def extractArticleContent(textDetails, soup, delimiter='\n'):
 
     # Clean the textlist for unwanted html elements
@@ -68,14 +57,6 @@ def extractArticleContent(textDetails, soup, delimiter='\n'):
         textList = locateContent(textDetails, cleanedSoup, True, (textDetails['recursive'] == 'True'))
     else:
         textList = locateContent(textDetails, soup, True, (textDetails['recursive'] == 'True'))
-
-    # Get a title image too, if specified in the profile
-    if textDetails['headerImage'] != "":
-        # Extracting the title image
-        headerImage = locateContent(textDetails['headerImage'], soup)
-        # Inserting it in the existing soup containing the text and other wanted elements, as the first element, if it was possible to extract one
-        if headerImage != None:
-            textList.insert(0, headerImage)
 
     if textList == "Unknown":
         raise Exception("Wasn't able to fetch the text for the following soup:" + str(soup))
