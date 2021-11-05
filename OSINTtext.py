@@ -48,3 +48,19 @@ def generateTags(clearTextList):
             tagList.append(wordCount[0])
 
     return tagList
+
+def locateObjectsOfInterrest(clearText):
+    objects = {
+                "ip-adresses" : re.compile(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'),
+                "email-adresses" : re.compile(r'\b[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\b'),
+                "urls" : re.compile(r'\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))')
+            }
+    results = {}
+    for objectName in objects:
+
+        result =  [ result if type(result) != tuple else "".join(result) for result in objects[objectName].findall(clearText) ]
+
+        if result != []:
+            results[objectName] = result
+
+    return results
