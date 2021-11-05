@@ -67,3 +67,24 @@ def locateObjectsOfInterrest(clearText):
             results[objectName] = result
 
     return results
+
+# The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from OSINTtext will return (tag). [proximity] is optional, and if not specified 30 is the default value
+def locateKeywords(keywords, clearText):
+
+    manualTags = []
+    for keywordCollection in keywords:
+        for match in re.finditer(keywordCollection['keywords'].pop(0), clearText.lower()):
+
+            currentPos = [ (match.endpos - len(match.group()) ) - keywordCollection['proximity'], match.endpos + keywordCollection['proximity'] ]
+            scanResults = []
+
+            for keyword in keywordCollection['keywords']:
+                currentPattern = re.compile(keyword)
+
+                scanResults.append(currentPattern.search(clearText.lower(), currentPos[0], currentPos[1]))
+
+            if not None in scanResults:
+                manualTags.append(keywordCollection['tag'])
+                break
+
+    return manualTags
