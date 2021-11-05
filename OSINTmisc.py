@@ -62,7 +62,7 @@ def decodeKeywordsFile(filePath):
             try:
                 keywordDetails = line.strip().split(";")
                 keywordCollection = {}
-                keywordCollection["keywords"] = keywordDetails[0].split(",")
+                keywordCollection["keywords"] = keywordDetails[0].lower().split(",")
                 keywordCollection["tag"] = keywordDetails[1]
                 if len(keywordDetails) == 3:
                     keywordCollection["proximity"] = int(keywordDetails[2])
