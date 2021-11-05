@@ -75,7 +75,7 @@ def locateKeywords(keywords, clearText):
     for keywordCollection in keywords:
         for match in re.finditer(keywordCollection['keywords'].pop(0), clearText.lower()):
 
-            currentPos = [ (match.endpos - len(match.group()) ) - keywordCollection['proximity'], match.endpos + keywordCollection['proximity'] ]
+            currentPos = [ match.span()[0]  - keywordCollection['proximity'], match.span()[1] + keywordCollection['proximity'] ]
             scanResults = []
 
             for keyword in keywordCollection['keywords']:
