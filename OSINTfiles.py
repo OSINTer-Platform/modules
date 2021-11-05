@@ -23,7 +23,7 @@ def writeTemplateToFile(contentList, templateFile, newFilePath):
             newF.write(filledTemplate)
 
 # Function for taking in some details about an articles and creating a markdown file with those
-def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFilePath="./"):
+def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFilePath="./", intObjects = {}):
 
     # Define the title
     title = articleMetaTags['title']
@@ -48,6 +48,10 @@ def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFil
     # Convert the scraped article to markdown
     MDContent = markdownify(articleContent)
 
+    MDIntObjects = ""
+    for objectName in intObjects:
+        MDIntObjects += f"####{objectName}\n[[{']] [['.join(intObjects[objectName])}]]\n"
+
     # And lastly, some tags
     MDTags = "[[" + "]] [[".join(articleTags) + "]] [[" + sourceName + "]]"
 
@@ -58,7 +62,8 @@ def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFil
         'information': MDDetails,
         'articleImage' : MDImage,
         'articleContent': MDContent,
-        'tags': MDTags
+        'tags': MDTags,
+        'intObjects' : MDIntObjects
     }
 
     # Converting the title of the article to a string that can be used as filename and then opening the file in append mode (will create file if it doesn't exist)
