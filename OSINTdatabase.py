@@ -149,8 +149,8 @@ def createTable(connection, tableName, tableContentList):
         else:
             return False
 
-# Will mark an article as of interrest or remove an article as of interrest for the [osinter_user] based on whether mark is true or false. articleTableName is the name of the table storing the articles (used for verifying that there exists a table with that name) and userTableName is the name of the table holding the user and their preferences
-def markArticle(connection, articleTableName, userTableName, osinter_user, articleID, mark):
+# Will save or unsave an article for the [osinter_user] based on whether save is true or false. articleTableName is the name of the table storing the articles (used for verifying that there exists a table with that name) and userTableName is the name of the table holding the user and their saved articles
+def saveArticle(connection, articleTableName, userTableName, osinter_user, articleID, save):
     with connection.cursor() as cur:
         # Verifying that the user exists
         cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s);".format(userTableName), (osinter_user,))
@@ -162,7 +162,7 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
             if cur.fetchall() == []:
                 return "Article does not seem to exist"
             else:
-                if mark:
+                if save:
                     # The article ID has to be formated as an array if inserting in the DB, since the insertion combines the existing array, with the new ID to append it.
                     articleIDArray = "{" + str(articleID) + "}"
                     # Combines the array from the DB with the new ID, and takes all the uniqe entries from that so that duplicates are avoided
@@ -173,23 +173,23 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
     connection.commit()
     return True
 
-# Function for checking looping through a list (IDList) containing ID's of articles, and checking if they have been marked as interresting by [username]. Will return list consisting of true or false (true if it has been marked, false if not), each corresponding to the ID at that index in the IDList
-def checkIfArticleMarked(connection, userTableName, IDList, username):
+# Function for checking looping through a list (IDList) containing ID's of articles, and checking if they have been saved by [username]. Will return list consisting of true or false (true if it has been saved, false if not), each corresponding to the ID at that index in the IDList
+def checkIfArticleSaved(connection, userTableName, IDList, username):
     with connection.cursor() as cur:
 
         cur.execute("SELECT selected_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
 
         DBResults = cur.fetchall()
 
-        markedArticles = DBResults[0][0]
+        savedArticles = DBResults[0][0]
 
-        if markedArticles == None:
+        if savedArticles == None:
             return [False] * len(IDList)
 
         # The final list that will be returned that will consist of true and false.
-        IDMarkings = [ ID in markedArticles for ID in IDList ]
+        IDSaved = [ ID in savedArticles for ID in IDList ]
 
-        return IDMarkings
+        return IDSaved
 
 # Function for writting OG tags to database
 def writeOGTagsToDB(connection, OGTags, tableName):

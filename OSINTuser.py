@@ -58,7 +58,7 @@ class User():
             except argon2.exceptions.VerifyMismatchError:
                 return False
 
-    def getMarkedArticles(self):
+    def getSavedArticles(self):
         if self.checkIfUserExists():
             with self.DBConnection.cursor() as cur:
                 cur.execute("SELECT selected_article_ids FROM {} WHERE username=%s;".format(self.userTableName), (self.username,))
@@ -95,21 +95,21 @@ def getUsernameFromID(connection, userTableName, userID):
         else:
             return username[0][0]
 
-def getMarkedArticlePaths(connection, username, userTableName, articleTableName):
+def getSavedArticlePaths(connection, username, userTableName, articleTableName):
     with connection.cursor() as cur:
         cur.execute("SELECT selected_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
 
-        markedArticles = cur.fetchall()[0][0]
+        savedArticles = cur.fetchall()[0][0]
 
-        if markedArticles == None:
+        if savedArticles == None:
             return []
 
-        markedArticlePaths = []
+        savedArticlePaths = []
 
-        for articleID in markedArticles:
-            markedArticlePaths.append(returnArticleFilePathById(connection, articleID, articleTableName))
+        for articleID in savedArticles:
+            savedArticlePaths.append(returnArticleFilePathById(connection, articleID, articleTableName))
 
-        return markedArticlePaths
+        return savedArticlePaths
 
 
 def createUser(connection, userTableName, username, password):
