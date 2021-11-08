@@ -61,7 +61,7 @@ class User():
     def getSavedArticles(self):
         if self.checkIfUserExists():
             with self.DBConnection.cursor() as cur:
-                cur.execute("SELECT selected_article_ids FROM {} WHERE username=%s;".format(self.userTableName), (self.username,))
+                cur.execute("SELECT saved_article_ids FROM {} WHERE username=%s;".format(self.userTableName), (self.username,))
                 DBResults = cur.fetchall()[0][0]
                 if DBResults:
                     return DBResults
@@ -97,7 +97,7 @@ def getUsernameFromID(connection, userTableName, userID):
 
 def getSavedArticlePaths(connection, username, userTableName, articleTableName):
     with connection.cursor() as cur:
-        cur.execute("SELECT selected_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
+        cur.execute("SELECT saved_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
 
         savedArticles = cur.fetchall()[0][0]
 

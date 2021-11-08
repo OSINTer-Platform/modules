@@ -22,7 +22,7 @@ def initiateArticleTable(connection):
 def initiateUserTable(connection):
     userTableContentList = [
         "username VARCHAR(64) NOT NULL PRIMARY KEY",
-        "selected_article_ids BIGINT[]",
+        "saved_article_ids BIGINT[]",
         "password_hash VARCHAR(100) NOT NULL",
         "id VARCHAR(128) NOT NULL"
     ]
@@ -59,7 +59,7 @@ def initiateUsers(connection):
     # The passwordStoragePerms is used to mark the unix permissions of the file that will be storing the passwords on disk when deploying the program.
     users = [
                 {
-                    "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
+                    "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(saved_article_ids, username)"]],
                     "username" : "reader",
                     "passwordStoragePerms": 0o440,
                     "inherit" : False
@@ -77,7 +77,7 @@ def initiateUsers(connection):
                     "inherit" : "reader"
                 },
                 {
-                    "privs" : [["osinter_users", "UPDATE(selected_article_ids)"]],
+                    "privs" : [["osinter_users", "UPDATE(saved_article_ids)"]],
                     "username": "article_marker",
                     "passwordStoragePerms": 0o440,
                     "inherit" : "reader"
@@ -166,9 +166,9 @@ def saveArticle(connection, articleTableName, userTableName, osinter_user, artic
                     # The article ID has to be formated as an array if inserting in the DB, since the insertion combines the existing array, with the new ID to append it.
                     articleIDArray = "{" + str(articleID) + "}"
                     # Combines the array from the DB with the new ID, and takes all the uniqe entries from that so that duplicates are avoided
-                    cur.execute("UPDATE {0} SET selected_article_ids = (SELECT ARRAY(SELECT DISTINCT UNNEST(selected_article_ids || %s)) FROM {0} WHERE username = %s) WHERE username = %s;".format(userTableName), (articleIDArray, osinter_user, osinter_user))
+                    cur.execute("UPDATE {0} SET saved_article_ids = (SELECT ARRAY(SELECT DISTINCT UNNEST(saved_article_ids || %s)) FROM {0} WHERE username = %s) WHERE username = %s;".format(userTableName), (articleIDArray, osinter_user, osinter_user))
                 else:
-                    cur.execute("UPDATE {} SET selected_article_ids = array_remove(selected_article_ids, %s::bigint) WHERE username = %s;".format(userTableName), (articleID, osinter_user))
+                    cur.execute("UPDATE {} SET saved_article_ids = array_remove(saved_article_ids, %s::bigint) WHERE username = %s;".format(userTableName), (articleID, osinter_user))
 
     connection.commit()
     return True
@@ -177,7 +177,7 @@ def saveArticle(connection, articleTableName, userTableName, osinter_user, artic
 def checkIfArticleSaved(connection, userTableName, IDList, username):
     with connection.cursor() as cur:
 
-        cur.execute("SELECT selected_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
+        cur.execute("SELECT saved_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
 
         DBResults = cur.fetchall()
 
