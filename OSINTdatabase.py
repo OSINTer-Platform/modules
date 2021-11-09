@@ -150,8 +150,8 @@ def createTable(connection, tableName, tableContentList):
         else:
             return False
 
-# Will save or unsave an article for the [osinter_user] based on whether save is true or false. articleTableName is the name of the table storing the articles (used for verifying that there exists a table with that name) and userTableName is the name of the table holding the user and their saved articles
-def saveArticle(connection, articleTableName, userTableName, osinter_user, articleID, save):
+# Will mark or "unmark" an article for the [osinter_user] based on whether [add] is true or false. articleTableName is the name of the table storing the articles (used for verifying that there exists a table with that name) and userTableName is the name of the table holding the user and their saved articles. Collumn is the name of the collumn which holds the marked articles of that type, so this is what differentiates whether the system for example saves the article or markes it as read.
+def markArticle(connection, articleTableName, userTableName, osinter_user, collumn, articleID, add):
     with connection.cursor() as cur:
         # Verifying that the user exists
         cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s);".format(userTableName), (osinter_user,))
@@ -163,13 +163,13 @@ def saveArticle(connection, articleTableName, userTableName, osinter_user, artic
             if cur.fetchall() == []:
                 return "Article does not seem to exist"
             else:
-                if save:
+                if add:
                     # The article ID has to be formated as an array if inserting in the DB, since the insertion combines the existing array, with the new ID to append it.
                     articleIDArray = "{" + str(articleID) + "}"
                     # Combines the array from the DB with the new ID, and takes all the uniqe entries from that so that duplicates are avoided
-                    cur.execute("UPDATE {0} SET saved_article_ids = (SELECT ARRAY(SELECT DISTINCT UNNEST(saved_article_ids || %s)) FROM {0} WHERE username = %s) WHERE username = %s;".format(userTableName), (articleIDArray, osinter_user, osinter_user))
+                    cur.execute("UPDATE {0} SET {1} = (SELECT ARRAY(SELECT DISTINCT UNNEST({1} || %s)) FROM {0} WHERE username = %s) WHERE username = %s;".format(userTableName, collumn), (articleIDArray, osinter_user, osinter_user))
                 else:
-                    cur.execute("UPDATE {} SET saved_article_ids = array_remove(saved_article_ids, %s::bigint) WHERE username = %s;".format(userTableName), (articleID, osinter_user))
+                    cur.execute("UPDATE {0} SET {1} = array_remove({1}, %s::bigint) WHERE username = %s;".format(userTableName, collumn), (articleID, osinter_user))
 
     connection.commit()
     return True
