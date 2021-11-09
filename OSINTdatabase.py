@@ -23,6 +23,7 @@ def initiateUserTable(connection):
     userTableContentList = [
         "username VARCHAR(64) NOT NULL PRIMARY KEY",
         "saved_article_ids BIGINT[]",
+        "read_article_ids BIGINT[]"
         "password_hash VARCHAR(100) NOT NULL",
         "id VARCHAR(128) NOT NULL"
     ]
@@ -59,7 +60,7 @@ def initiateUsers(connection):
     # The passwordStoragePerms is used to mark the unix permissions of the file that will be storing the passwords on disk when deploying the program.
     users = [
                 {
-                    "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(saved_article_ids, username)"]],
+                    "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(saved_article_ids, read_article_ids, username)"]],
                     "username" : "reader",
                     "passwordStoragePerms": 0o440,
                     "inherit" : False
@@ -77,7 +78,7 @@ def initiateUsers(connection):
                     "inherit" : "reader"
                 },
                 {
-                    "privs" : [["osinter_users", "UPDATE(saved_article_ids)"]],
+                    "privs" : [["osinter_users", "UPDATE(saved_article_ids, read_article_ids)"]],
                     "username": "article_marker",
                     "passwordStoragePerms": 0o440,
                     "inherit" : "reader"
