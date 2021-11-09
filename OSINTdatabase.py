@@ -23,7 +23,7 @@ def initiateUserTable(connection):
     userTableContentList = [
         "username VARCHAR(64) NOT NULL PRIMARY KEY",
         "saved_article_ids BIGINT[]",
-        "read_article_ids BIGINT[]"
+        "read_article_ids BIGINT[]",
         "password_hash VARCHAR(100) NOT NULL",
         "id VARCHAR(128) NOT NULL"
     ]
