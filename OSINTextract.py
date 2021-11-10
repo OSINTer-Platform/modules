@@ -17,7 +17,9 @@ JSONPatterns = {
 def locateContent(contentDetails, soup, multiple=False, recursive=True):
 
     # Getting the html tag that surrounds that tag we are interrested in, but only look for it if the class is actually given (otherwise this will only return HTML tags completly without a class)
-    if contentDetails['containerClass'] != "":
+    if contentDetails["containerID"] != "":
+        contentContainer = soup.find({"id" : contentDetails["containerID"]})
+    elif contentDetails['containerClass'] != "":
         contentContainer = soup.find(class_=contentDetails['containerClass'])
     else:
         contentContainer = soup
