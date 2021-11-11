@@ -40,10 +40,10 @@ def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFil
     # Define the details section by creating markdown list with "+"
     MDDetails = ""
     detailLabels = ["Source: ", "Link: ", "Date: ", "Author: "]
-    for i,detail in enumerate([sourceName, articleMetaTags['url'], articleMetaTags['publishDate'], articleMetaTags['author']]):
-        MDDetails += "+ " + detailLabels[i] + detail + '\n'
+    for i,detail in enumerate([sourceName, articleMetaTags['url'], articleMetaTags['publish_date'], articleMetaTags['author']]):
+        MDDetails += "+ " + detailLabels[i] + str(detail) + '\n'
 
-    MDImage = "![Article Image](" + articleMetaTags['image'] + ")"
+    MDImage = "![Article Image](" + articleMetaTags['image_url'] + ")"
 
     # Convert the scraped article to markdown
     MDContent = markdownify(articleContent)

@@ -209,7 +209,7 @@ def writeOGTagsToDB(connection, OGTags, tableName):
                     # Adding the url to list of new articles since it was not found in the database
                     newTags[-1].append(tags)
                     insertQuery = "INSERT INTO {} (title, description, url, image_url, author, publish_date, profile, scraped, inserted_at) VALUES (%s, %s, %s, %s, %s, %s, %s, false, NOW());".format(tableName)
-                    insertParameters = (tags['title'][:150], tags['description'][:350], tags['url'], tags['image'], tags['author'], tags['publishDate'] if tags['publishDate'] != None else datetime.now(), newsSite)
+                    insertParameters = (tags['title'][:150], tags['description'][:350], tags['url'], tags['image_url'], tags['author'], tags['publish_date'] if tags['publish_date'] != None else datetime.now(), newsSite)
                     cur.execute(insertQuery, insertParameters)
     connection.commit()
     # Return the list of urls not already in the database so they can be scraped

@@ -9,7 +9,7 @@ import re
 
 # Used for matching the relevant information from LD+JSON
 JSONPatterns = {
-        "publishDate":  re.compile(r'("datePublished": ")(.*?)(?=")'),
+        "publish_date":  re.compile(r'("datePublished": ")(.*?)(?=")'),
         "author":       re.compile(r'("@type": "Person",.*?"name": ")(.*?)(?=")')
         }
 
@@ -76,7 +76,7 @@ def extractArticleContent(textDetails, soup, delimiter='\n'):
 
 # Function for scraping meta information (like title, author and publish date) from articles. This both utilizes the OG tags and LD+JSON data, and while the proccess for extracting the OG tags is fairly simply as those is (nearly) always following the same standard, the LD+JSON data is a little more complicated. Here the data isn't parsed as JSON, but rather as a string where the relevant pieces of information is extracted using regex. It's probably ugly and definitly not the officially "right" way of doing this, but different placement of the information in the JSON object on different websites using different attributes made parsing the information from a python JSON object near impossible. As such, be warned that this function is not for the faint of heart
 def extractMetaInformation(pageSoup):
-    OGTags = {'author' : None, 'publishDate': None}
+    OGTags = {'author' : None, 'publish_date': None}
 
     # Extract the 3 relevant og tags from the website
     for tag in ["og:title", "og:description", "og:image"]:

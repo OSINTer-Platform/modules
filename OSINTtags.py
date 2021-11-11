@@ -68,9 +68,9 @@ def collectOGTagsFromNewsSite(profileName, URLList):
                 'url'           : URL,
                 'title'         : re.sub(r'"', '', OGTags['og:title']),
                 'description'   : re.sub(r'"', '', OGTags['og:description']),
-                'image'         : OGTags['og:image'],
+                'image_url'     : OGTags['og:image'],
                 'author'        : OGTags['author'],
-                'publishDate'   : OGTags['publishDate']
+                'publish_date'  : OGTags['publish_date']
             })
 
     return OGTagCollection
