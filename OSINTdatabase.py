@@ -215,7 +215,7 @@ def writeOGTagsToDB(connection, OGTags, tableName):
     # Return the list of urls not already in the database so they can be scraped
     return newTags
 
-def requestOGTagsFromDB(connection, tableName, profileList, limit, idList=[]):
+def requestOGTagsFromDB(connection, tableName, profileList, limit=0, idList=[], scraped=True):
 
     # Making sure the limit given is actually an intenger
     if type(limit) != int:
@@ -231,9 +231,9 @@ def requestOGTagsFromDB(connection, tableName, profileList, limit, idList=[]):
 
         # Take the [limit] newest articles from a specfic source that has been scraped
         if idList != []:
-            cur.execute("SELECT {} FROM {} WHERE scraped=true AND id=ANY(%s) AND profile=ANY(%s) ORDER BY publish_date DESC;".format(collumns, tableName), (idList, profileList))
+            cur.execute(f"SELECT {collumns} FROM {tableName} WHERE scraped={str(scraped).lower()} AND id=ANY(%s) AND profile=ANY(%s) ORDER BY publish_date DESC;", (idList, profileList))
         else:
-            cur.execute("SELECT {} FROM {} WHERE scraped=true AND profile=ANY(%s) ORDER BY publish_date DESC LIMIT {};".format(collumns, tableName, limit), (profileList,))
+            cur.execute(f"SELECT {collumns} FROM {tableName} WHERE scraped={str(scraped).lower()} AND profile=ANY(%s) ORDER BY publish_date DESC LIMIT {str(limit)};", (profileList,))
         queryResults = cur.fetchall()
 
         # Adding them to the final OG tag collection
