@@ -50,7 +50,7 @@ def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFil
 
     MDIntObjects = ""
     for objectName in intObjects:
-        MDIntObjects += f"####{objectName}\n[[{']] [['.join(intObjects[objectName])}]]\n"
+        MDIntObjects += f"#### {objectName}\n[[{']] [['.join(intObjects[objectName])}]]\n"
 
     MDManualTags = " ".join([ f"[[{tag}]]" for tag in manualTags])
 
