@@ -16,6 +16,8 @@ def cleanText(clearText):
     cleanClearText = re.sub(r'\n', ' ', cleanClearText)
     # Removing all contractions and "'s" created in english by descriping possession
     cleanClearText = re.sub(r'\'\S*', '', cleanClearText)
+    # Remove punctuation
+    cleanClearText = re.sub(r'\s(?:,|\.|"|\'|\/|\\|:)|(?:,|\.|"|\'|\/|\\|:)\s', ' ', cleanClearText)
     # Remove all "words" where the word doesn't have any letters in it. This will remove "-", "3432" (words consisting purely of letters) and double spaces.
     cleanClearText = re.sub(r'\s[^a-zA-Z]*\s', ' ', cleanClearText)
 
