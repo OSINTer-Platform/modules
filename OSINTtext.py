@@ -60,7 +60,7 @@ def locateObjectsOfInterrest(clearText):
                 "email-adresses" : re.compile(r'\b[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\b'),
                 "urls" : re.compile(r'\b(?:[a-zA-Z]+:\/{1,3}|www\.)[^"\s]+'),
                 "CVE's" : re.compile(r'CVE-\d{4}-\d{4,7}'),
-                "MITRE ID" : re.compile(r'T\d{4}\.\d{3}')
+                "MITRE IDs" : re.compile(r'(?:[TMSGO]|TA)\d{4}\.\d{3}')
             }
     results = {}
     for objectName in objects:
