@@ -79,20 +79,15 @@ def scrapeArticleURLs(rootURL, frontPageURL, scrapingTargets, profileName):
     articleURLs = [profileName]
 
     # Getting a soup for the website
-    frontPageSoup = scrapeWebSoup(frontPageURL)
+    frontPageSoup = scrapeWebSoup(frontPageURL).select(scrapingTargets["containerList"])[0] if scrapingTargets["containerList"] != "" else scrapeWebSoup(frontPageURL)
 
-    # Some websites doesn't have a uniqe class for the links to the articles. If that's the case, we have to extract the elements around the link and the extract the link from those
-    if scrapingTargets['linkClass'] == "":
-        # Looping through the first 10 of the elements that in the profile has been specified by element type and class to contain the links we want. Only first 10 due to same reason in RSSArticleURLs
-        for linkContainer in itertools.islice(frontPageSoup.find_all(scrapingTargets['element'], class_=scrapingTargets['class']), 10):
+    for i in range(10):
+        if scrapingTargets["linkContainers"] != "":
+            currentContainer = frontPageSoup.select(scrapingTargets["linkContainers"])[i]
 
-            # The URL specified in the source will ofc be without the domain and http information, so that get's prepended here too by removing the last / from the url since the path also contains one
-            articleURLs.append(catURL(rootURL, linkContainer.find('a').get('href')))
+        link = frontPageSoup.select(scrapingTargets['links'])[i] if scrapingTargets["linkContainers"] == "" else currentContainer.select(scrapingTargets['links'])[0]
 
-    # Others do hovewer have a uniqe class for the links, and here we can just extract those
-    else:
-        for link in itertools.islice(frontPageSoup.find_all('a', class_=scrapingTargets['linkClass']), 10):
-            articleURLs.append(catURL(rootURL, link.get('href')))
+        articleURLs.append(catURL(rootURL, link.get("href")))
 
     return articleURLs
 

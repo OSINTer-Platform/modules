@@ -14,51 +14,29 @@ JSONPatterns = {
         }
 
 # Function for using the class of a container along with the element type and class of desired html tag (stored in the contentDetails variable) to extract that specific tag. Data is found under the "scraping" class in the profiles.
-def locateContent(contentDetails, soup, multiple=False, recursive=True):
-
-    # Getting the html tag that surrounds that tag we are interrested in, but only look for it if the class is actually given (otherwise this will only return HTML tags completly without a class)
-    if contentDetails["containerID"] != "":
-        contentContainer = soup.find({"id" : contentDetails["containerID"]})
-    elif contentDetails['containerClass'] != "":
-        contentContainer = soup.find(class_=contentDetails['containerClass'])
-    else:
-        contentContainer = soup
-
+def locateContent(CSSSelector, soup, recursive=True):
     try:
-
-        # The same case with not looking for the class if it's empty
-        if contentDetails['class'] == "":
-            # We only want the first entry for some things like date and author, but for the text, which is often split up into different <p> tags we want to return all of them
-            if multiple:
-                return contentContainer.find_all(contentDetails['element'].split(';'), recursive=recursive)
-            else:
-                return contentContainer.find(contentDetails['element'], recursive=recursive)
-        else:
-            if multiple:
-                return contentContainer.find_all(contentDetails['element'].split(';'), class_=contentDetails['class'], recursive=recursive)
-            else:
-                return contentContainer.find(contentDetails['element'], class_=contentDetails['class'], recursive=recursive)
-
+        return soup.select(CSSSelector, recursive=recursive)
     except:
         return BeautifulSoup("Unknown", "html.parser")
 
 # Function used for removing certain tags with or without class from a soup. Takes in a list of element tag and class in the format: "tag,class;tag,class;..."
-def cleanSoup(soup, HTMLTagsAndClasses):
-    for TagAndClass in HTMLTagsAndClasses.split(";"):
-        for tag in soup.find_all(TagAndClass.split(",")[0], class_=TagAndClass.split(",")[1]):
+def cleanSoup(soup, removeSelectors):
+    for CSSSelector in removeSelectors.split(";"):
+        for tag in soup.select(CSSSelector):
             tag.decompose()
 
     return soup
 
 
-def extractArticleContent(textDetails, soup, delimiter='\n'):
+def extractArticleContent(selectors, soup, delimiter='\n'):
 
     # Clean the textlist for unwanted html elements
-    if textDetails['remove'] != "":
-        cleanedSoup = cleanSoup(soup, textDetails['remove'])
-        textList = locateContent(textDetails, cleanedSoup, True, (textDetails['recursive'] == 'True'))
+    if selectors["remove"] != "":
+        cleanedSoup = cleanSoup(soup, selectors["remove"])
+        textList = locateContent(selectors["container"], cleanedSoup, recursive=True)
     else:
-        textList = locateContent(textDetails, soup, True, (textDetails['recursive'] == 'True'))
+        textList = locateContent(selectors["container"], soup, recursive=True)
 
     if textList == "Unknown":
         raise Exception("Wasn't able to fetch the text for the following soup:" + str(soup))
