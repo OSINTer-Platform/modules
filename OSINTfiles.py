@@ -50,7 +50,10 @@ def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFil
 
     MDIntObjects = ""
     for objectName in intObjects:
-        MDIntObjects += f"#### {objectName}\n[[{']] [['.join(intObjects[objectName])}]]\n"
+        # Eliminating duplicates from tag lists and remove all "[" and "]" characthers
+        intObjects[objectName]["results"] = [ result.replace("[", "").replace("]", "") for result in dict.fromkeys(intObjects[objectName]["results"]) ]
+
+        MDIntObjects += f"#### {objectName}\n[[{']] [['.join(intObjects[objectName]['results'])}]]\n" if intObjects[objectName]["tag"] else f"#### {objectName}\n{' '.join(intObjects[objectName]['results'])}\n"
 
     MDManualTags = " ".join([ f"[[{tag}]]" for tag in manualTags])
 
