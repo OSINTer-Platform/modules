@@ -76,20 +76,17 @@ def scrapeWebSoup(URL):
 def scrapeArticleURLs(rootURL, frontPageURL, scrapingTargets, profileName):
 
     # List for holding the urls for the articles
-    articleURLs = [profileName]
+    articleURLCollection = [profileName]
 
     # Getting a soup for the website
     frontPageSoup = scrapeWebSoup(frontPageURL).select(scrapingTargets["containerList"])[0] if scrapingTargets["containerList"] != "" else scrapeWebSoup(frontPageURL)
 
-    for i in range(10):
-        if scrapingTargets["linkContainers"] != "":
-            currentContainer = frontPageSoup.select(scrapingTargets["linkContainers"])[i]
+    articleURLs = [ catURL(rootURL, link.get("href") if scrapingTargets["linkContainers"] == "" else link.select(scrapingTargets["links"])[0].get("href")) for link in itertools.islice(frontPageSoup.select(scrapingTargets["linkContainers"] if scrapingTargets["linkContainers"] != "" else scrapingTargets["links"]), 10) ]
 
-        link = frontPageSoup.select(scrapingTargets['links'])[i] if scrapingTargets["linkContainers"] == "" else currentContainer.select(scrapingTargets['links'])[0]
 
-        articleURLs.append(catURL(rootURL, link.get("href")))
+    articleURLCollection.extend(articleURLs)
 
-    return articleURLs
+    return articleURLCollection
 
 # Function for scraping a list of recent articles using the url to a RSS feed
 def RSSArticleURLs(RSSURL, profileName):
