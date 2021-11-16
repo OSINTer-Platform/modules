@@ -60,16 +60,33 @@ def extractMetaInformation(pageSoup):
     for tag in ["og:title", "og:description", "og:image"]:
         OGTags[tag] = (pageSoup.find("meta", property=tag).get('content'))
 
-    # Use ld+json to extract extra information not found in the meta OG tags like author and publish date
-    JSONScriptTags = pageSoup.find_all("script", {"type":"application/ld+json"})
+    # This is a way to deal with the different ways webarticles specify the author and publish time of the article. First it will look for the publish time in the og tags using different combinations of property names and values, and then it will look for the author, and if either of them isn't found, it will resort to using JSON
+    try:
+        metaTimeTagDetails = { "property" : ["article:publish_time"], "name" : ["DC.date.issued", "date"] }
+        for propertyName in metaTimeTagDetails:
+            for propertyValue in metaTimeTagDetails[propertyName]:
+                try:
+                    OGTags["publish_date"] = pageSoup.select(f"meta[{propertyName}='{propertyValue}']")[0].get("content")
+                except IndexError:
+                    pass
 
-    for scriptTag in JSONScriptTags:
-        # Converting to and from JSON to standardize the format to avoid things like line breaks and excesive spaces at the end and start of line. Will also make sure there spaces in the right places between the keys and values so it isn't like "key" :"value" and "key  : "value" but rather "key": "value" and "key": "value".
-        scriptTagString = json.dumps(json.loads("".join(scriptTag.contents)))
-        for pattern in JSONPatterns:
-            articleDetailPatternMatch = JSONPatterns[pattern].search(scriptTagString)
-            if articleDetailPatternMatch != None:
-                # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
-                OGTags[pattern] = articleDetailPatternMatch.group(2)
+        OGTags["author"] = pageSoup.select("meta[name=author]")[0].get("content")
+
+        if OGTags["publish_date"] == None:
+            raise IndexError
+
+    except IndexError:
+
+        # Use ld+json to extract extra information not found in the meta OG tags like author and publish date
+        JSONScriptTags = pageSoup.find_all("script", {"type":"application/ld+json"})
+
+        for scriptTag in JSONScriptTags:
+            # Converting to and from JSON to standardize the format to avoid things like line breaks and excesive spaces at the end and start of line. Will also make sure there spaces in the right places between the keys and values so it isn't like "key" :"value" and "key  : "value" but rather "key": "value" and "key": "value".
+            scriptTagString = json.dumps(json.loads("".join(scriptTag.contents)))
+            for pattern in JSONPatterns:
+                articleDetailPatternMatch = JSONPatterns[pattern].search(scriptTagString)
+                if articleDetailPatternMatch != None:
+                    # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
+                    OGTags[pattern] = articleDetailPatternMatch.group(2)
 
     return OGTags
