@@ -48,7 +48,7 @@ def generateTags(clearTextList):
     tagList = list()
     for wordCount in sortedByFreq:
         if wordCount[1] > 2:
-            tagList.append(wordCount[0])
+            tagList.append(wordCount[0].capitalize())
 
     return tagList
 
