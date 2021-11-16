@@ -62,7 +62,7 @@ def extractMetaInformation(pageSoup):
 
     # This is a way to deal with the different ways webarticles specify the author and publish time of the article. First it will look for the publish time in the og tags using different combinations of property names and values, and then it will look for the author, and if either of them isn't found, it will resort to using JSON
     try:
-        metaTimeTagDetails = { "property" : ["article:publish_time"], "name" : ["DC.date.issued", "date"] }
+        metaTimeTagDetails = { "property" : ["article:published_time"], "name" : ["DC.date.issued", "date"] }
         for propertyName in metaTimeTagDetails:
             for propertyValue in metaTimeTagDetails[propertyName]:
                 try:
