@@ -122,7 +122,7 @@ def gatherArticleURLs(profiles):
 
     return articleURLs
 
-def scrapePageDynamic(pageURL, loadTime=3, headless=True):
+def scrapePageDynamic(pageURL, scrapingTypes, loadTime=3, headless=True):
 
     # Setting the options for running the browser driver headlessly so it doesn't pop up when running the script
     driverOptions = Options()
@@ -136,6 +136,9 @@ def scrapePageDynamic(pageURL, loadTime=3, headless=True):
 
     # Sleeping a pre-specified time to let the driver actually render the page properly
     time.sleep(loadTime)
+
+    if "fix-links" in scrapingTypes:
+        driver.execute_script(Path("./OSINTJSInjection/prepareLinks.js").read_text())
 
     # Getting the source code for the page
     pageSource = driver.page_source
