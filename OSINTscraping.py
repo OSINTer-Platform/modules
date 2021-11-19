@@ -137,8 +137,10 @@ def scrapePageDynamic(pageURL, scrapingTypes, loadTime=3, headless=True):
     # Sleeping a pre-specified time to let the driver actually render the page properly
     time.sleep(loadTime)
 
-    if "fix-links" in scrapingTypes:
-        driver.execute_script(Path("./OSINTJSInjection/prepareLinks.js").read_text())
+    for scrapingType in scrapingTypes:
+        currentType = scrapingType.split(":")
+        if currentType[0] == "JS":
+            driver.execute_script(Path(f"./OSINTJSInjection/{currentType[1]}.js").read_text())
 
     # Getting the source code for the page
     pageSource = driver.page_source
