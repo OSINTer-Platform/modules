@@ -63,6 +63,10 @@ def collectOGTagsFromNewsSite(profileName, URLList):
         if pageSoup != None:
             OGTags = extractMetaInformation(pageSoup)
 
+            # Temporary fix for The Record sometimes using links to images that for some reason doesn't work (the OSINTJSInjection script "fixTheRecordLinks" is used for the same, but for images and links in the article body when converting to markdown)
+            if profileName == "therecord":
+                OGTags["og:image"] = OGTags["og:image"].replace("www-therecord.recfut.com", "therecord.media")
+
             OGTagCollection[profileName].append({
                 'profile'       : profileName,
                 'url'           : URL,
