@@ -5,23 +5,23 @@ from datetime import datetime
 def initiateArticleTable(connection):
     articleTableContentList = [
             "id BIGSERIAL NOT NULL PRIMARY KEY",
-            "title VARCHAR(150) NOT NULL",
-            "description VARCHAR(350)",
-            "url VARCHAR(300) NOT NULL",
-            "image_url VARCHAR(300)",
+            "title VARCHAR(300) NOT NULL",
+            "description VARCHAR(500)",
+            "url VARCHAR(400) NOT NULL",
+            "image_url VARCHAR(400)",
             "author VARCHAR(100) DEFAULT NULL",
             "publish_date TIMESTAMP WITH TIME ZONE DEFAULT NULL",
             "profile VARCHAR(30) NOT NULL",
             "scraped BOOL NOT NULL",
             "inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
-            "file_path VARCHAR(150) DEFAULT NULL"
+            "file_path VARCHAR(330) DEFAULT NULL"
             ]
 
     return createTable(connection, "articles", articleTableContentList)
 
 def initiateUserTable(connection):
     userTableContentList = [
-        "username VARCHAR(64) NOT NULL PRIMARY KEY",
+        "username VARCHAR(128) NOT NULL PRIMARY KEY",
         "saved_article_ids BIGINT[]",
         "read_article_ids BIGINT[]",
         "password_hash VARCHAR(100) NOT NULL",
