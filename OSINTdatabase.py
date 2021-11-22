@@ -228,12 +228,13 @@ def requestOGTagsFromDB(connection, tableName, profileList, limit=0, idList=[], 
 
         # Which collumns to extract data from
         collumns = "id, title, description, url, image_url, author, publish_date, profile"
+        publishDateToCharExpression = "TO_CHAR(publish_date at time zone 'UTC', 'yyyy-mm-dd hh24:mi:ss+00:00')"
 
         # Take the [limit] newest articles from a specfic source that has been scraped
         if idList != []:
-            cur.execute(f"SELECT {collumns} FROM {tableName} WHERE scraped={str(scraped).lower()} AND id=ANY(%s) AND profile=ANY(%s) ORDER BY publish_date DESC;", (idList, profileList))
+            cur.execute(f"SELECT { collumns.replace('publish_date', publishDateToCharExpression) } FROM {tableName} WHERE scraped={str(scraped).lower()} AND id=ANY(%s) AND profile=ANY(%s) ORDER BY publish_date DESC;", (idList, profileList))
         else:
-            cur.execute(f"SELECT {collumns} FROM {tableName} WHERE scraped={str(scraped).lower()} AND profile=ANY(%s) ORDER BY publish_date DESC LIMIT {str(limit)};", (profileList,))
+            cur.execute(f"SELECT { collumns.replace('publish_date', publishDateToCharExpression) } FROM {tableName} WHERE scraped={str(scraped).lower()} AND profile=ANY(%s) ORDER BY publish_date DESC LIMIT {str(limit)};", (profileList,))
         queryResults = cur.fetchall()
 
         # Adding them to the final OG tag collection
