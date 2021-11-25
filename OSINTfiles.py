@@ -23,7 +23,7 @@ def writeTemplateToFile(contentList, templateFile, newFilePath):
             newF.write(filledTemplate)
 
 # Function for taking in some details about an articles and creating a markdown file with those
-def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFilePath="./", intObjects = {}, manualTags=[]):
+def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFilePath="./", intObjects = {}, manualTags={}):
 
     # Define the title
     title = articleMetaTags['title']
@@ -55,7 +55,7 @@ def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFil
 
         MDIntObjects += f"#### {objectName}\n[[{']] [['.join(intObjects[objectName]['results'])}]]\n" if intObjects[objectName]["tag"] else f"#### {objectName}\n{' '.join(intObjects[objectName]['results'])}\n"
 
-    MDManualTags = " ".join([ f"[[{tag}]]" for tag in manualTags])
+    MDManualTags = "\n" + "\n\n".join([f"#### {manualTagCollectionName.capitalize()}:\n" + " ".join([ f"[[{tag}]]" for tag in manualTags[manualTagCollectionName]]) for manualTagCollectionName in manualTags]) + "\n" if manualTags != {} else ""
 
     # And lastly, some tags
     MDTags = "[[" + "]] [[".join(articleTags) + "]] [[" + sourceName + "]]"
