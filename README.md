@@ -1,4 +1,4 @@
-![OSINTer](https://raw.githubusercontent.com/bertmad3400/OSINTer/master/logo.png)
+[![OSINTer](https://raw.githubusercontent.com/bertmad3400/OSINTer/master/logo.png)](https://osinter.dk)
 # Welcome to OSINTmodules
 This repo is a part of a larger project called ![OSINTer](https://github.com/bertmad3400/OSINTer). For more information on the project as a whole, you can find OSINTer at ![https://github.com/bertmad3400/OSINTer](https://github.com/bertmad3400/OSINTer).
 
