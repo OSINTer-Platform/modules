@@ -1,8 +1,10 @@
+# OSINTmodules
 [![OSINTer](https://raw.githubusercontent.com/bertmad3400/OSINTer/master/logo.png)](https://osinter.dk)
-# Welcome to OSINTmodules
+
+## Welcome to OSINTer
 This repo is a part of a larger project called ![OSINTer](https://github.com/bertmad3400/OSINTer). For more information on the project as a whole, you can find OSINTer at ![https://github.com/bertmad3400/OSINTer](https://github.com/bertmad3400/OSINTer).
 
-# What is OSINTmodules?
+## What is OSINTmodules?
 OSINTmodules is the portion of OSINTer, which is responsible for providing specific functionality for various parts of the project, including handling text, database connections, scraping and more. Following will be a list of descriptions for the different python scripts in this repo, each of which is responsible for some area of backend functionality for the OSINTer project:
 
 | Script | Description |
