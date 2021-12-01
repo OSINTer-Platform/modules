@@ -59,16 +59,19 @@ class User():
                 return False
 
     def getMarkedArticles(self):
+        tableNames = ["saved_article_ids", "read_article_ids"]
         if self.checkIfUserExists():
             with self.DBConnection.cursor() as cur:
-                cur.execute("SELECT selected_article_ids FROM {} WHERE username=%s;".format(self.userTableName), (self.username,))
-                DBResults = cur.fetchall()[0][0]
-                if DBResults:
-                    return DBResults
-                else:
-                    return []
+                DBResults = {}
+                for tableName in tableNames:
+                    cur.execute("SELECT {} FROM {} WHERE username=%s;".format(tableName, self.userTableName), (self.username,))
+
+                    currentResults = cur.fetchall()[0][0]
+                    DBResults[tableName] = currentResults if currentResults else []
+
+                return DBResults
         else:
-            return []
+            return { tableName:[] for tableName in tableNames}
 
     def get_id(self):
         if self.checkIfUserExists():
@@ -95,21 +98,21 @@ def getUsernameFromID(connection, userTableName, userID):
         else:
             return username[0][0]
 
-def getMarkedArticlePaths(connection, username, userTableName, articleTableName):
+def getSavedArticlePaths(connection, username, userTableName, articleTableName):
     with connection.cursor() as cur:
-        cur.execute("SELECT selected_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
+        cur.execute("SELECT saved_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
 
-        markedArticles = cur.fetchall()[0][0]
+        savedArticles = cur.fetchall()[0][0]
 
-        if markedArticles == None:
+        if savedArticles == None:
             return []
 
-        markedArticlePaths = []
+        savedArticlePaths = []
 
-        for articleID in markedArticles:
-            markedArticlePaths.append(returnArticleFilePathById(connection, articleID, articleTableName))
+        for articleID in savedArticles:
+            savedArticlePaths.append(returnArticleFilePathById(connection, articleID, articleTableName))
 
-        return markedArticlePaths
+        return savedArticlePaths
 
 
 def createUser(connection, userTableName, username, password):

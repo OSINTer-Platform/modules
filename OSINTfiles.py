@@ -23,28 +23,39 @@ def writeTemplateToFile(contentList, templateFile, newFilePath):
             newF.write(filledTemplate)
 
 # Function for taking in some details about an articles and creating a markdown file with those
-def createMDFile(sourceName, sourceURL, articleDetails, articleContent, articleTags, MDFilePath="./"):
+def createMDFile(sourceName, articleMetaTags, articleContent, articleTags, MDFilePath="./", intObjects = {}, manualTags={}):
 
     # Define the title
-    title = articleDetails[0]
+    title = articleMetaTags['title']
 
     # Define the subtitle too, if it exist
-    if articleDetails[1] != "Unknown":
-        subtitle = articleDetails[1]
+    if articleMetaTags['description'] != "Unknown":
+        subtitle = articleMetaTags['description']
     else:
         subtitle = ""
 
     # Convert the link for the article to markdown format
-    MDSourceURL = "[article](" + sourceURL + ")"
+    MDSourceURL = "[article](" + articleMetaTags['url'] + ")"
 
     # Define the details section by creating markdown list with "+"
     MDDetails = ""
     detailLabels = ["Source: ", "Link: ", "Date: ", "Author: "]
-    for i,detail in enumerate([sourceName, MDSourceURL, articleDetails[2], articleDetails[3]]):
-        MDDetails += "+ " + detailLabels[i] + detail + '\n'
+    for i,detail in enumerate([sourceName, articleMetaTags['url'], articleMetaTags['publish_date'], articleMetaTags['author']]):
+        MDDetails += "+ " + detailLabels[i] + str(detail) + '\n'
+
+    MDImage = "![Article Image](" + articleMetaTags['image_url'] + ")"
 
     # Convert the scraped article to markdown
     MDContent = markdownify(articleContent)
+
+    MDIntObjects = ""
+    for objectName in intObjects:
+        # Eliminating duplicates from tag lists and remove all "[" and "]" characthers
+        intObjects[objectName]["results"] = [ result.replace("[", "").replace("]", "") for result in dict.fromkeys(intObjects[objectName]["results"]) ]
+
+        MDIntObjects += f"#### {objectName}\n[[{']] [['.join(intObjects[objectName]['results'])}]]\n" if intObjects[objectName]["tag"] else f"#### {objectName}\n{' '.join(intObjects[objectName]['results'])}\n"
+
+    MDManualTags = "\n" + "\n\n".join([f"#### {manualTagCollectionName.capitalize()}:\n" + " ".join([ f"[[{tag}]]" for tag in manualTags[manualTagCollectionName]]) for manualTagCollectionName in manualTags]) + "\n" if manualTags != {} else ""
 
     # And lastly, some tags
     MDTags = "[[" + "]] [[".join(articleTags) + "]] [[" + sourceName + "]]"
@@ -54,14 +65,17 @@ def createMDFile(sourceName, sourceURL, articleDetails, articleContent, articleT
         'title': title,
         'subtitle': subtitle,
         'information': MDDetails,
+        'articleImage' : MDImage,
         'articleContent': MDContent,
-        'tags': MDTags
+        'manualTags' : MDManualTags,
+        'tags': MDTags,
+        'intObjects' : MDIntObjects
     }
 
     # Converting the title of the article to a string that can be used as filename and then opening the file in append mode (will create file if it doesn't exist)
-    MDFileName = MDFilePath + fileSafeString(articleDetails[0]) + ".md"
+    MDFileName = MDFilePath + fileSafeString(articleMetaTags['title']) + ".md"
 
     writeTemplateToFile(contentList, "./tools/markdownTemplate.md", MDFileName)
 
     # Returning the file name, so it's possible to locate the file
-    return fileSafeString(articleDetails[0])
+    return fileSafeString(articleMetaTags['title'])

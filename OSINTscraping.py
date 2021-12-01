@@ -76,25 +76,17 @@ def scrapeWebSoup(URL):
 def scrapeArticleURLs(rootURL, frontPageURL, scrapingTargets, profileName):
 
     # List for holding the urls for the articles
-    articleURLs = [profileName]
+    articleURLCollection = [profileName]
 
     # Getting a soup for the website
-    frontPageSoup = scrapeWebSoup(frontPageURL)
+    frontPageSoup = scrapeWebSoup(frontPageURL).select(scrapingTargets["containerList"])[0] if scrapingTargets["containerList"] != "" else scrapeWebSoup(frontPageURL)
 
-    # Some websites doesn't have a uniqe class for the links to the articles. If that's the case, we have to extract the elements around the link and the extract the link from those
-    if scrapingTargets['linkClass'] == "":
-        # Looping through the first 10 of the elements that in the profile has been specified by element type and class to contain the links we want. Only first 10 due to same reason in RSSArticleURLs
-        for linkContainer in itertools.islice(frontPageSoup.find_all(scrapingTargets['element'], class_=scrapingTargets['class']), 10):
+    articleURLs = [ catURL(rootURL, link.get("href") if scrapingTargets["linkContainers"] == "" else link.select(scrapingTargets["links"])[0].get("href")) for link in itertools.islice(frontPageSoup.select(scrapingTargets["linkContainers"] if scrapingTargets["linkContainers"] != "" else scrapingTargets["links"]), 10) ]
 
-            # The URL specified in the source will ofc be without the domain and http information, so that get's prepended here too by removing the last / from the url since the path also contains one
-            articleURLs.append(catURL(rootURL, linkContainer.find('a').get('href')))
 
-    # Others do hovewer have a uniqe class for the links, and here we can just extract those
-    else:
-        for link in itertools.islice(frontPageSoup.find_all('a', class_=scrapingTargets['linkClass']), 10):
-            articleURLs.append(catURL(rootURL, link.get('href')))
+    articleURLCollection.extend(articleURLs)
 
-    return articleURLs
+    return articleURLCollection
 
 # Function for scraping a list of recent articles using the url to a RSS feed
 def RSSArticleURLs(RSSURL, profileName):
@@ -130,7 +122,7 @@ def gatherArticleURLs(profiles):
 
     return articleURLs
 
-def scrapePageDynamic(pageURL, loadTime=3, headless=True):
+def scrapePageDynamic(pageURL, scrapingTypes, loadTime=3, headless=True):
 
     # Setting the options for running the browser driver headlessly so it doesn't pop up when running the script
     driverOptions = Options()
@@ -144,6 +136,11 @@ def scrapePageDynamic(pageURL, loadTime=3, headless=True):
 
     # Sleeping a pre-specified time to let the driver actually render the page properly
     time.sleep(loadTime)
+
+    for scrapingType in scrapingTypes:
+        currentType = scrapingType.split(":")
+        if currentType[0] == "JS":
+            driver.execute_script(Path(f"./OSINTJSInjection/{currentType[1]}.js").read_text())
 
     # Getting the source code for the page
     pageSource = driver.page_source

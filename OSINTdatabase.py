@@ -5,24 +5,25 @@ from datetime import datetime
 def initiateArticleTable(connection):
     articleTableContentList = [
             "id BIGSERIAL NOT NULL PRIMARY KEY",
-            "title VARCHAR(150) NOT NULL",
-            "description VARCHAR(350)",
-            "url VARCHAR(300) NOT NULL",
-            "image_url VARCHAR(300)",
+            "title VARCHAR(300) NOT NULL",
+            "description VARCHAR(500)",
+            "url VARCHAR(400) NOT NULL",
+            "image_url VARCHAR(400)",
             "author VARCHAR(100) DEFAULT NULL",
             "publish_date TIMESTAMP WITH TIME ZONE DEFAULT NULL",
             "profile VARCHAR(30) NOT NULL",
             "scraped BOOL NOT NULL",
             "inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
-            "file_path VARCHAR(150) DEFAULT NULL"
+            "file_path VARCHAR(330) DEFAULT NULL"
             ]
 
     return createTable(connection, "articles", articleTableContentList)
 
 def initiateUserTable(connection):
     userTableContentList = [
-        "username VARCHAR(64) NOT NULL PRIMARY KEY",
-        "selected_article_ids BIGINT[]",
+        "username VARCHAR(128) NOT NULL PRIMARY KEY",
+        "saved_article_ids BIGINT[]",
+        "read_article_ids BIGINT[]",
         "password_hash VARCHAR(100) NOT NULL",
         "id VARCHAR(128) NOT NULL"
     ]
@@ -59,7 +60,7 @@ def initiateUsers(connection):
     # The passwordStoragePerms is used to mark the unix permissions of the file that will be storing the passwords on disk when deploying the program.
     users = [
                 {
-                    "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(selected_article_ids, username)"]],
+                    "privs" : [["articles", "SELECT"], ["articles_id_seq", "SELECT"], ["osinter_users", "SELECT(saved_article_ids, read_article_ids, username)"]],
                     "username" : "reader",
                     "passwordStoragePerms": 0o440,
                     "inherit" : False
@@ -77,7 +78,7 @@ def initiateUsers(connection):
                     "inherit" : "reader"
                 },
                 {
-                    "privs" : [["osinter_users", "UPDATE(selected_article_ids)"]],
+                    "privs" : [["osinter_users", "UPDATE(saved_article_ids, read_article_ids)"]],
                     "username": "article_marker",
                     "passwordStoragePerms": 0o440,
                     "inherit" : "reader"
@@ -149,8 +150,8 @@ def createTable(connection, tableName, tableContentList):
         else:
             return False
 
-# Will mark an article as of interrest or remove an article as of interrest for the [osinter_user] based on whether mark is true or false. articleTableName is the name of the table storing the articles (used for verifying that there exists a table with that name) and userTableName is the name of the table holding the user and their preferences
-def markArticle(connection, articleTableName, userTableName, osinter_user, articleID, mark):
+# Will mark or "unmark" an article for the [osinter_user] based on whether [add] is true or false. articleTableName is the name of the table storing the articles (used for verifying that there exists a table with that name) and userTableName is the name of the table holding the user and their saved articles. Collumn is the name of the collumn which holds the marked articles of that type, so this is what differentiates whether the system for example saves the article or markes it as read.
+def markArticle(connection, articleTableName, userTableName, osinter_user, collumn, articleID, add):
     with connection.cursor() as cur:
         # Verifying that the user exists
         cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s);".format(userTableName), (osinter_user,))
@@ -162,59 +163,59 @@ def markArticle(connection, articleTableName, userTableName, osinter_user, artic
             if cur.fetchall() == []:
                 return "Article does not seem to exist"
             else:
-                if mark:
+                if add:
                     # The article ID has to be formated as an array if inserting in the DB, since the insertion combines the existing array, with the new ID to append it.
                     articleIDArray = "{" + str(articleID) + "}"
                     # Combines the array from the DB with the new ID, and takes all the uniqe entries from that so that duplicates are avoided
-                    cur.execute("UPDATE {0} SET selected_article_ids = (SELECT ARRAY(SELECT DISTINCT UNNEST(selected_article_ids || %s)) FROM {0} WHERE username = %s) WHERE username = %s;".format(userTableName), (articleIDArray, osinter_user, osinter_user))
+                    cur.execute("UPDATE {0} SET {1} = (SELECT ARRAY(SELECT DISTINCT UNNEST({1} || %s)) FROM {0} WHERE username = %s) WHERE username = %s;".format(userTableName, collumn), (articleIDArray, osinter_user, osinter_user))
                 else:
-                    cur.execute("UPDATE {} SET selected_article_ids = array_remove(selected_article_ids, %s::bigint) WHERE username = %s;".format(userTableName), (articleID, osinter_user))
+                    cur.execute("UPDATE {0} SET {1} = array_remove({1}, %s::bigint) WHERE username = %s;".format(userTableName, collumn), (articleID, osinter_user))
 
     connection.commit()
     return True
 
-# Function for checking looping through a list (IDList) containing ID's of articles, and checking if they have been marked as interresting by [username]. Will return list consisting of true or false (true if it has been marked, false if not), each corresponding to the ID at that index in the IDList
-def checkIfArticleMarked(connection, userTableName, IDList, username):
+# Function for checking looping through a list (IDList) containing ID's of articles, and checking if they have been saved by [username]. Will return list consisting of true or false (true if it has been saved, false if not), each corresponding to the ID at that index in the IDList
+def checkIfArticleSaved(connection, userTableName, IDList, username):
     with connection.cursor() as cur:
 
-        cur.execute("SELECT selected_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
+        cur.execute("SELECT saved_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
 
         DBResults = cur.fetchall()
 
-        markedArticles = DBResults[0][0]
+        savedArticles = DBResults[0][0]
 
-        if markedArticles == None:
+        if savedArticles == None:
             return [False] * len(IDList)
 
         # The final list that will be returned that will consist of true and false.
-        IDMarkings = [ ID in markedArticles for ID in IDList ]
+        IDSaved = [ ID in savedArticles for ID in IDList ]
 
-        return IDMarkings
+        return IDSaved
 
 # Function for writting OG tags to database
 def writeOGTagsToDB(connection, OGTags, tableName):
     # Making sure the tablename is in all lowercase
     tableName = tableName.lower()
     # List to hold all the urls along with the profile names off the articles that haven't been scraped and saved in the database before so the whole article can be scraped
-    newUrls = list()
+    newTags = {}
     with connection.cursor() as cur:
         for newsSite in OGTags:
             # Looping through each collection of tags an creating a list inside the original list to hold articles from each news site
-            newUrls.append([newsSite])
+            newTags[newsSite] = []
             for tags in OGTags[newsSite]:
                 # Checking if the article is already stored in the database using the URL as that is probably not going to change and is uniqe
                 cur.execute("SELECT exists (SELECT 1 FROM {} WHERE url = %s);".format(tableName), (tags['url'],))
                 if cur.fetchall()[0][0] == False:
                     # Adding the url to list of new articles since it was not found in the database
-                    newUrls[-1].append(tags['url'])
+                    newTags[newsSite].append(tags)
                     insertQuery = "INSERT INTO {} (title, description, url, image_url, author, publish_date, profile, scraped, inserted_at) VALUES (%s, %s, %s, %s, %s, %s, %s, false, NOW());".format(tableName)
-                    insertParameters = (tags['title'][:150], tags['description'][:350], tags['url'], tags['image'], tags['author'], tags['publishDate'] if tags['publishDate'] != None else datetime.now(), newsSite)
+                    insertParameters = (tags['title'][:150], tags['description'][:350], tags['url'], tags['image_url'], tags['author'], tags['publish_date'] if tags['publish_date'] != None else datetime.now(), newsSite)
                     cur.execute(insertQuery, insertParameters)
     connection.commit()
     # Return the list of urls not already in the database so they can be scraped
-    return newUrls
+    return newTags
 
-def requestOGTagsFromDB(connection, tableName, profileList, limit, idList=[]):
+def requestOGTagsFromDB(connection, tableName, profileList, limit=0, idList=[], scraped=True):
 
     # Making sure the limit given is actually an intenger
     if type(limit) != int:
@@ -227,12 +228,13 @@ def requestOGTagsFromDB(connection, tableName, profileList, limit, idList=[]):
 
         # Which collumns to extract data from
         collumns = "id, title, description, url, image_url, author, publish_date, profile"
+        publishDateToCharExpression = "TO_CHAR(publish_date at time zone 'UTC', 'yyyy-mm-dd hh24:mi:ss+00:00')"
 
         # Take the [limit] newest articles from a specfic source that has been scraped
         if idList != []:
-            cur.execute("SELECT {} FROM {} WHERE scraped=true AND id=ANY(%s) AND profile=ANY(%s) ORDER BY publish_date DESC;".format(collumns, tableName), (idList, profileList))
+            cur.execute(f"SELECT { collumns.replace('publish_date', publishDateToCharExpression) } FROM {tableName} WHERE scraped={str(scraped).lower()} AND id=ANY(%s) AND profile=ANY(%s) ORDER BY publish_date DESC;", (idList, profileList))
         else:
-            cur.execute("SELECT {} FROM {} WHERE scraped=true AND profile=ANY(%s) ORDER BY publish_date DESC LIMIT {};".format(collumns, tableName, limit), (profileList,))
+            cur.execute(f"SELECT { collumns.replace('publish_date', publishDateToCharExpression) } FROM {tableName} WHERE scraped={str(scraped).lower()} AND profile=ANY(%s) ORDER BY publish_date DESC LIMIT {str(limit)};", (profileList,))
         queryResults = cur.fetchall()
 
         # Adding them to the final OG tag collection
