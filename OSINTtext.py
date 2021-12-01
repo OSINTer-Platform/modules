@@ -60,7 +60,11 @@ def locateObjectsOfInterrest(clearText):
             "email-adresses" : { "pattern" : re.compile(r'\b[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\b'), "tag" : False },
             "urls" : { "pattern" : re.compile(r'\b(?:[a-zA-Z]+:\/{1,3}|www\.)[^"\s]+'), "tag" : False },
             "CVE's" : { "pattern" : re.compile(r'CVE-\d{4}-\d{4,7}'), "tag" : True },
-                "MITRE IDs" : { "pattern" : re.compile(r'(?:[TMSGO]|TA)\d{4}\.\d{3}'), "tag" : True }
+            "MITRE IDs" : { "pattern" : re.compile(r'(?:[TMSGO]|TA)\d{4}\.\d{3}'), "tag" : True },
+            "MD5-hash" : { "pattern" : re.compile(r'\b(?:[a-f0-9]{32}|[A-F0-9]{32})\b'), "tag" : False },
+            "SHA1-hash" : { "pattern" : re.compile(r'\b(?:[a-f0-9]{40}|[A-F0-9]{40})\b'), "tag" : False },
+            "SHA256-hash" : { "pattern" : re.compile(r'\b(?:[a-f0-9]{64}|[A-F0-9]{64})\b'), "tag" : False },
+            "SHA512-hash" : { "pattern" : re.compile(r'\b(?:[a-f0-9]{128}|[A-F0-9]{128})\b'), "tag" : False }
             }
     results = {}
     for objectName in objects:
