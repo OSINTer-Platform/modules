@@ -65,14 +65,14 @@ def collectOGTagsFromNewsSite(profileName, URLList):
 
             # Temporary fix for The Record sometimes using links to images that for some reason doesn't work (the OSINTJSInjection script "fixTheRecordLinks" is used for the same, but for images and links in the article body when converting to markdown)
             if profileName == "therecord":
-                OGTags["og:image"] = OGTags["og:image"].replace("www-therecord.recfut.com", "therecord.media")
+                OGTags["image"] = OGTags["image"].replace("www-therecord.recfut.com", "therecord.media")
 
             OGTagCollection[profileName].append({
                 'profile'       : profileName,
                 'url'           : URL,
-                'title'         : re.sub(r'"', '', OGTags['og:title']),
-                'description'   : re.sub(r'"', '', OGTags['og:description']),
-                'image_url'     : OGTags['og:image'],
+                'title'         : OGTags['title'].replace('"', ""),
+                'description'   : OGTags['description'].replace('"', ""),
+                'image_url'     : OGTags['image'],
                 'author'        : OGTags['author'],
                 'publish_date'  : OGTags['publish_date']
             })
