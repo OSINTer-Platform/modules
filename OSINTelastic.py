@@ -1,3 +1,4 @@
+from OSINTmodules.OSINTobjects import Article
 from elasticsearch import Elasticsearch
 
 class elasticDB():
@@ -24,3 +25,16 @@ class elasticDB():
         searchQ = {"size" : 0, "aggs" : {"profileNames" : {"terms" : { "field" : "profile",  "size" : 500 }}}}
 
         return [uniqueVal["key"] for uniqueVal in self.es.search(searchQ, self.indexName)["aggregations"]["profileNames"]["buckets"]]
+
+    def requestArticlesFromDB(self, profileList, limit=100, idList=None):
+        if idList:
+            searchQ = {"size" : int(limit), "sort": {"inserted_at" : "desc"}, "query" : { "bool" : { "must" : [ {"terms" : {"profile" : profileList}}, {"terms" : {"_id" : idList}} ] }}}
+        else:
+            searchQ = {"size" : int(limit), "sort": {"inserted_at" : "desc"}, "query" : {"terms" : {"profile" : profileList}}}
+
+        articleList = []
+
+        for queryResult in self.es.search(searchQ, self.indexName)["hits"]["hits"]:
+            articleList.append(Article(**queryResult["_source"]))
+
+        return articleList
