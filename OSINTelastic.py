@@ -16,3 +16,9 @@ class elasticDB():
                     newURLList.append(URL)
 
         return filteredArticleURLDict
+
+    # Function for getting each unique profile in the DB
+    def requestProfileListFromDB(es, indexName):
+        searchQ = {"size" : 0, "aggs" : {"profileNames" : {"terms" : { "field" : "profile",  "size" : 500 }}}}
+
+        return [uniqueVal["key"] for uniqueVal in es.search(searchQ, indexName)["aggregations"]["profileNames"]["buckets"]]
