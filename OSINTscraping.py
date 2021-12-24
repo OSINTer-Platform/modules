@@ -75,18 +75,12 @@ def scrapeWebSoup(URL):
 # Scraping targets is element and class of element in which the target url is stored, and the profileName is prepended on the list, to be able to find the profile again when it's needed for scraping
 def scrapeArticleURLs(rootURL, frontPageURL, scrapingTargets, profileName):
 
-    # List for holding the urls for the articles
-    articleURLCollection = [profileName]
-
     # Getting a soup for the website
-    frontPageSoup = scrapeWebSoup(frontPageURL).select(scrapingTargets["containerList"])[0] if scrapingTargets["containerList"] != "" else scrapeWebSoup(frontPageURL)
+    frontPageSoup = scrapeWebSoup(frontPageURL).select(scrapingTargets["containerList"])[0] if scrapingTargets["containerList"] != [] else scrapeWebSoup(frontPageURL)
 
     articleURLs = [ catURL(rootURL, link.get("href") if scrapingTargets["linkContainers"] == "" else link.select(scrapingTargets["links"])[0].get("href")) for link in itertools.islice(frontPageSoup.select(scrapingTargets["linkContainers"] if scrapingTargets["linkContainers"] != "" else scrapingTargets["links"]), 10) ]
 
-
-    articleURLCollection.extend(articleURLs)
-
-    return articleURLCollection
+    return articleURLs
 
 # Function for scraping a list of recent articles using the url to a RSS feed
 def RSSArticleURLs(RSSURL, profileName):
@@ -94,7 +88,7 @@ def RSSArticleURLs(RSSURL, profileName):
     RSSFeed = feedparser.parse(RSSURL)
 
     # List for holding the urls from the RSS feed
-    articleURLs = [profileName]
+    articleURLs = []
 
     # Extracting the urls only, as these are the only relevant information. Also only take the first 10, if more is given to only get the newest articles
     for entry in itertools.islice(RSSFeed.entries, 10):
@@ -109,19 +103,16 @@ def gatherArticleURLs(profiles):
 
     for profile in profiles:
 
-
         # Parsing the json properly
         profile = json.loads(profile)['source']
 
-        articleURLs[profile["profileName"]] = []
-
         # For those were the RSS feed is useful, that will be used
         if profile['retrivalMethod'] == "rss":
-            articleURLs[profile["profileName"]].append(RSSArticleURLs(profile['newsPath'], profile['profileName']))
+            articleURLs[profile["profileName"]] = RSSArticleURLs(profile['newsPath'], profile['profileName'])
 
         # For basically everything else scraping will be used
         elif profile['retrivalMethod'] == "scraping":
-            articleURLs[profile["profileName"]].append(scrapeArticleURLs(profile['address'], profile['newsPath'], profile['scrapingTargets'], profile['profileName']))
+            articleURLs[profile["profileName"]] = scrapeArticleURLs(profile['address'], profile['newsPath'], profile['scrapingTargets'], profile['profileName'])
 
     return articleURLs
 
