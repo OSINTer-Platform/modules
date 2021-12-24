@@ -59,7 +59,7 @@ def extractMetaInformation(pageSoup):
             "publish_date": ["meta[name=date]", "meta[name='DC.date.issued']", "meta[property='article:published_time']"],
             "title" : ["meta[property='og:title']"],
             "description" : ["p.article-details__description", "meta[property='og:description']"],
-            "image" : ["meta[property='og:image']"]}
+            "image_url" : ["meta[property='og:image']"]}
 
     OGTags = {}
 
