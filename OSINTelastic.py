@@ -38,3 +38,6 @@ class elasticDB():
             articleList.append(Article(**queryResult["_source"]))
 
         return articleList
+
+    def saveArticle(self, articleObject):
+        self.es.index(self.indexName, articleObject.as_dict())
