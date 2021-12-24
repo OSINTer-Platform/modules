@@ -8,18 +8,18 @@ class Article:
     description: str
     url: str
     profile: str
+    publish_date: datetime
     id: str = ""
     image_url: str = ""
     author: str = ""
     contents: str = ""
     tags: dict[str] = field(default_factory=dict)
     inserted_at: datetime = field(default=datetime.now(timezone.utc).astimezone())
-    publish_date: datetime = field(default=datetime.now(timezone.utc).astimezone())
 
     def as_dict(self):
         return { "title" : self.title,
                  "description" : self.description,
-                 "contents" : self.article_contents,
+                 "contents" : self.contents,
 
                  "url" : self.url,
                  "image_url" : self.image_url,
