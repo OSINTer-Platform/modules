@@ -1,8 +1,9 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, KW_ONLY
 from datetime import datetime, timezone
 
 @dataclass
 class Article:
+    _: KW_ONLY
     title: str 
     description: str
     url: str
@@ -10,7 +11,7 @@ class Article:
     id: str = ""
     image_url: str = ""
     author: str = ""
-    article_contents = ""
+    contents: str = ""
     tags: dict[str] = field(default_factory=dict)
     inserted_at: datetime = field(default=datetime.now(timezone.utc).astimezone())
     publish_date: datetime = field(default=datetime.now(timezone.utc).astimezone())
