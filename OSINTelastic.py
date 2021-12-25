@@ -1,5 +1,6 @@
 from OSINTmodules.OSINTobjects import Article
 from elasticsearch import Elasticsearch
+from elasticsearch.client import IndicesClient
 
 class elasticDB():
     def __init__(self, indexName):
@@ -41,3 +42,45 @@ class elasticDB():
 
     def saveArticle(self, articleObject):
         self.es.index(self.indexName, articleObject.as_dict())
+
+def configureElasticsearch(indexName):
+    es = Elasticsearch()
+
+    es.indices.delete(index=indexName, ignore=[400, 404])
+
+    indexConfig= {
+                  "settings": {
+                    "index.number_of_shards": 1
+                  },
+                  "mappings": {
+                    "dynamic" : "strict",
+                    "properties": {
+                      "title": {"type" : "text"},
+                      "description": {"type" : "text"},
+                      "contents": {"type" : "text"},
+
+                      "url": {"type" : "keyword"},
+                      "profile": {"type" : "keyword"},
+                      "image_url": {"type" : "keyword"},
+                      "author": {"type" : "keyword"},
+
+                      "inserted_at" : {"type" : "date"},
+                      "publish_date" : {"type" : "date"},
+
+                      "tags" : {
+                                  "type" : "object",
+                                  "enabled" : False,
+                                  "properties" : {
+                                      "manual" : {"type" : "object", "dynamic" : True},
+                                      "interresting" : {"type" : "object", "dynamic" : True},
+                                      "automatic" : {"type" : "keyword"}
+                                  }
+                               }
+
+                    }
+                  }
+                }
+
+    esIndexClient = IndicesClient(es)
+
+    esIndexClient.create(indexName, body=indexConfig)
