@@ -13,8 +13,8 @@ def initiateUserTable():
 
     cur.execute(''' CREATE TABLE users
                 (   username text NOT NULL PRIMARY KEY,
-                    saved_article_ids text,
-                    read_article_ids text,
+                    saved_article_ids text DEFAULT '',
+                    read_article_ids text DEFAULT '',
                     password_hash text NOT NULL,
                     id text NOT NULL    )
                 ''')
