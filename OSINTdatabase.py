@@ -44,23 +44,3 @@ def markArticle(osinter_user, column, articleID, add):
     conn.close()
 
     return True
-
-# Function for checking looping through a list (IDList) containing ID's of articles, and checking if they have been saved by [username]. Will return list consisting of true or false (true if it has been saved, false if not), each corresponding to the ID at that index in the IDList
-def checkIfArticleSaved(IDList, username):
-    conn = sqlite3.connect(DBName)
-    cur = conn.cursor()
-
-    cur.execute(f"SELECT saved_article_ids FROM {userTable} WHERE username = ?", (username,))
-    DBResults = cur.fetchall()
-
-    conn.close()
-
-    savedArticles = DBResults[0].split("|")
-
-    if savedArticles == [""]:
-        return [False] * len(IDList)
-
-    # The final list that will be returned that will consist of true and false.
-    IDSaved = [ ID in savedArticles for ID in IDList ]
-
-    return IDSaved
