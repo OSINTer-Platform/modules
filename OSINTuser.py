@@ -68,7 +68,8 @@ class User():
             for tableName in tableNames:
                 cur.execute(f"SELECT {tableName} FROM {userTable} WHERE username=?;", (self.username,))
 
-                currentResults = cur.fetchone()[0]
+                currentResults = cur.fetchone()[0].split("~")
+                currentResults.pop(0)
                 DBResults[tableName] = currentResults if currentResults else []
 
             cur.close()
