@@ -1,39 +1,40 @@
 import argon2
 import secrets
-from OSINTmodules.OSINTdatabase import returnArticleFilePathById
+import sqlite3
+
+userTable = "users"
+DBName = "./osinter_users.db"
 
 ph = argon2.PasswordHasher()
 
 class User():
-    def __init__(self, DBConnection, userTableName, username):
-        self.DBConnection = DBConnection
-        self.userTableName = userTableName
+    def __init__(self, username):
+        self.conn = sqlite3.connect(DBName)
         self.username = username
 
     def checkIfUserExists(self):
-        with self.DBConnection.cursor() as cur:
-            cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE username = %s);".format(self.userTableName), (self.username,))
-            if cur.fetchall()[0][0] == False:
-                return False
-            else:
-                return True
+        cur = self.conn.cursor()
+
+        cur.execute(f"SELECT EXISTS(SELECT 1 FROM {userTable} WHERE username = ?);", (self.username,))
+
+        exists = bool(cur.fetchone()[0])
+        cur.close()
+
+        return exists
 
     # Set the password hash for [username]
     def setPasswordHash(self, passwordHash):
-        if self.checkIfUserExists():
-            with self.DBConnection.cursor() as cur:
-                cur.execute("UPDATE {} SET password_hash=%s WHERE username=%s;".format(self.userTableName), (passwordHash, self.username))
-                self.DBConnection.commit()
-                return True
-        else:
-            return False
+        cur = self.conn.cursor()
+        cur.execute(f"UPDATE {userTable} SET password_hash=? WHERE username=?;", (passwordHash, self.username))
+        self.conn.commit()
+        cur.close()
 
     # Get the hash for the password for [username]
     def getPasswordHash(self):
         if self.checkIfUserExists():
-            with self.DBConnection.cursor() as cur:
-                cur.execute("SELECT password_hash FROM {} WHERE username=%s;".format(self.userTableName), (self.username,))
-                return cur.fetchall()[0][0]
+            cur = self.conn.cursor()
+            cur.execute(f"SELECT password_hash FROM {userTable} WHERE username=?;", (self.username,))
+            return cur.fetchone()[0]
         else:
             return False
 
@@ -61,23 +62,25 @@ class User():
     def getMarkedArticles(self):
         tableNames = ["saved_article_ids", "read_article_ids"]
         if self.checkIfUserExists():
-            with self.DBConnection.cursor() as cur:
-                DBResults = {}
-                for tableName in tableNames:
-                    cur.execute("SELECT {} FROM {} WHERE username=%s;".format(tableName, self.userTableName), (self.username,))
+            cur = self.conn.cursor()
 
-                    currentResults = cur.fetchall()[0][0]
-                    DBResults[tableName] = currentResults if currentResults else []
+            DBResults = {}
+            for tableName in tableNames:
+                cur.execute(f"SELECT {tableName} FROM {userTable} WHERE username=?;", (self.username,))
 
-                return DBResults
+                currentResults = cur.fetchone()[0]
+                DBResults[tableName] = currentResults if currentResults else []
+
+            cur.close()
+            return DBResults
         else:
             return { tableName:[] for tableName in tableNames}
 
     def get_id(self):
         if self.checkIfUserExists():
-            with self.DBConnection.cursor() as cur:
-                cur.execute("SELECT id FROM {} WHERE username=%s;".format(self.userTableName), (self.username,))
-                return cur.fetchall()[0][0]
+            cur = self.conn.cursor()
+            cur.execute(f"SELECT id FROM {userTable} WHERE username=?;", (self.username,))
+            return cur.fetchone()[0]
         else:
             return False
 
@@ -89,45 +92,53 @@ class User():
     def is_anonymous(self):
         return False
 
-def getUsernameFromID(connection, userTableName, userID):
-    with connection.cursor() as cur:
-        cur.execute("SELECT username FROM {} WHERE id = %s;".format(userTableName), (userID,))
-        username = cur.fetchall()
-        if username == []:
-            return False
-        else:
-            return username[0][0]
+def getUsernameFromID(userID):
+    conn = sqlite3.connect(DBName)
+    cur = conn.cursor()
 
-def getSavedArticlePaths(connection, username, userTableName, articleTableName):
-    with connection.cursor() as cur:
-        cur.execute("SELECT saved_article_ids FROM {} WHERE username = %s".format(userTableName), (username,))
+    cur.execute(f"SELECT username FROM {userTable} WHERE id = ?;", (userID,))
+    username = cur.fetchone()
 
-        savedArticles = cur.fetchall()[0][0]
+    conn.close()
 
-        if savedArticles == None:
-            return []
-
-        savedArticlePaths = []
-
-        for articleID in savedArticles:
-            savedArticlePaths.append(returnArticleFilePathById(connection, articleID, articleTableName))
-
-        return savedArticlePaths
-
-
-def createUser(connection, userTableName, username, password):
-    if User(connection, userTableName, username).checkIfUserExists():
+    if username == None:
         return False
     else:
-        with connection.cursor() as cur:
+        return username[0]
 
-            # Will generate ID for the new user, and make sure that it's unique
-            while True:
-                userID = secrets.token_urlsafe(128)[0:128]
-                cur.execute("SELECT EXISTS(SELECT 1 FROM {} WHERE id = %s);".format(userTableName), (userID,))
-                if cur.fetchall()[0][0] == False:
-                    break
+def getSavedArticles(username):
+    conn = sqlite3.connect(DBName)
+    cur = conn.cursor()
 
-            cur.execute("INSERT INTO {} (username, password_hash, id) VALUES (%s, %s, %s);".format(userTableName), (username, ph.hash(password), userID))
-        connection.commit()
+    cur.execute(f"SELECT saved_article_ids FROM {userTable} WHERE username = ?", (username,))
+
+    savedArticleIDs = cur.fetchone()
+
+    conn.close()
+
+    if savedArticleIDs == None:
+        return []
+    else:
+        return savedArticleIDs[0].split("|")
+
+def createUser(username, password):
+    conn = sqlite3.connect(DBName)
+
+    if User(username).checkIfUserExists():
+        conn.close()
+        return False
+    else:
+        cur = conn.cursor()
+        # Will generate ID for the new user, and make sure that it's unique
+        while True:
+            userID = secrets.token_urlsafe(128)[0:128]
+            cur.execute(f"SELECT EXISTS (SELECT 1 FROM {userTable} WHERE id = ?);", (userID,))
+            if cur.fetchone()[0] == 0:
+                break
+
+        cur.execute(f"INSERT INTO {userTable} (username, password_hash, id) VALUES (?, ?, ?);", (username, ph.hash(password), userID))
+
+        conn.commit()
+        conn.close()
+
         return True
