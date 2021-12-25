@@ -63,6 +63,7 @@ def configureElasticsearch(indexName):
 
                       "url": {"type" : "keyword"},
                       "profile": {"type" : "keyword"},
+                      "source": {"type" : "keyword"},
                       "image_url": {"type" : "keyword"},
                       "author": {"type" : "keyword"},
 

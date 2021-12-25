@@ -8,6 +8,7 @@ class Article:
     description: str
     url: str
     profile: str
+    source: str
     publish_date: datetime
     id: str = ""
     image_url: str = ""
@@ -27,6 +28,7 @@ class Article:
                  "image_url" : self.image_url,
                  "author" : self.author,
                  "profile" : self.profile,
+                 "source" : self.source,
 
                  "publish_date" : self.publish_date,
                  "inserted_at" : self.inserted_at,
