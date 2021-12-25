@@ -76,6 +76,24 @@ class User():
         else:
             return { tableName:[] for tableName in tableNames}
 
+    # Will mark or "unmark" an article for the current user based on whether [add] is true or false. articleTableName is the name of the table storing the articles (used for verifying that there exists a table with that name) and userTableName is the name of the table holding the user and their saved articles. Column is the name of the column which holds the marked articles of that type, so this is what differentiates whether the system for example saves the article or markes it as read.
+    def markArticle(self, column, articleID, add):
+
+        if self.checkIfUserExists():
+            cur = self.conn.cursor()
+            if add:
+                # Combines the array from the DB with the new ID, and takes all the uniqe entries from that so that duplicates are avoided
+                cur.execute(f"UPDATE {userTable} SET {column} = ({column} || ?) WHERE username = ?", ("~" + str(articleID), self.username))
+            else:
+                cur.execute(f"UPDATE {userTable} SET {column} = REPLACE({column}, ?, '') WHERE username = ?", ("~" + str(articleID), self.username))
+
+            self.conn.commit()
+            cur.close()
+            return True
+        else:
+            return False
+
+
     def get_id(self):
         if self.checkIfUserExists():
             cur = self.conn.cursor()
@@ -119,7 +137,7 @@ def getSavedArticles(username):
     if savedArticleIDs == None:
         return []
     else:
-        return savedArticleIDs[0].split("|")
+        return savedArticleIDs[0].split("~")
 
 def createUser(username, password):
     conn = sqlite3.connect(DBName)
