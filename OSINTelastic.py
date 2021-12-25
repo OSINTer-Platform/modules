@@ -27,7 +27,10 @@ class elasticDB():
 
         return [uniqueVal["key"] for uniqueVal in self.es.search(searchQ, self.indexName)["aggregations"]["profileNames"]["buckets"]]
 
-    def requestArticlesFromDB(self, profileList, limit=100, idList=None):
+    def requestArticlesFromDB(self, profileList=None, limit=100, idList=None):
+        if not profileList:
+            profileList = self.requestProfileListFromDB()
+
         if idList:
             searchQ = {"size" : int(limit), "sort": {"inserted_at" : "desc"}, "query" : { "bool" : { "must" : [ {"terms" : {"profile" : profileList}}, {"terms" : {"_id" : idList}} ] }}}
         else:
