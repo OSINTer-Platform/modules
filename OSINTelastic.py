@@ -36,7 +36,9 @@ class elasticDB():
         articleList = []
 
         for queryResult in self.es.search(searchQ, self.indexName)["hits"]["hits"]:
-            articleList.append(Article(**queryResult["_source"]))
+            currentArticle = Article(**queryResult["_source"])
+            currentArticle.id = queryResult["_id"]
+            articleList.append(currentArticle)
 
         return articleList
 
