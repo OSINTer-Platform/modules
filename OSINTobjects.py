@@ -15,6 +15,8 @@ class Article:
     contents: str = ""
     tags: dict[str] = field(default_factory=dict)
     inserted_at: datetime = field(default=datetime.now(timezone.utc).astimezone())
+    saved: bool = False
+    read: bool = False
 
     def as_dict(self):
         return { "title" : self.title,
