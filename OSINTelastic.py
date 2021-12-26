@@ -7,6 +7,17 @@ class elasticDB():
         self.indexName = indexName
         self.es = Elasticsearch()
 
+    def queryArticles(self, searchQ):
+        articleList = []
+
+        for queryResult in self.es.search(searchQ, self.indexName)["hits"]["hits"]:
+            currentArticle = Article(**queryResult["_source"])
+            currentArticle.id = queryResult["_id"]
+            articleList.append(currentArticle)
+
+        return articleList
+
+
     # Function for taking in a list of lists of articles with the first entry of each list being the name of the profile, and then removing all the articles that already has been saved in the database
     def filterArticleURLList(self, articleURLCollection):
         # The final list that will be returned in the same format as the articleURLCollection list, but with the already stored articles removed
@@ -36,14 +47,8 @@ class elasticDB():
         else:
             searchQ = {"size" : int(limit), "sort": {"inserted_at" : "desc"}, "query" : {"terms" : {"profile" : profileList}}}
 
-        articleList = []
+        return self.queryArticles(searchQ)
 
-        for queryResult in self.es.search(searchQ, self.indexName)["hits"]["hits"]:
-            currentArticle = Article(**queryResult["_source"])
-            currentArticle.id = queryResult["_id"]
-            articleList.append(currentArticle)
-
-        return articleList
 
     def saveArticle(self, articleObject):
         self.es.index(self.indexName, articleObject.as_dict())
