@@ -43,9 +43,26 @@ class elasticDB():
             profileList = self.requestProfileListFromDB()
 
         if idList:
-            searchQ = {"size" : int(limit), "sort": {"inserted_at" : "desc"}, "query" : { "bool" : { "must" : [ {"terms" : {"profile" : profileList}}, {"terms" : {"_id" : idList}} ] }}}
+            searchQ = {
+                      "size"  : int(limit),
+                      "sort"  : {
+                          "inserted_at" : "desc"
+                      },
+                      "query" : {
+                          "bool" : {
+                              "must" : [
+                                  { "terms" : {"profile" : profileList} },
+                                  { "terms" : {"_id" : idList} }
+                              ]
+                          }
+                      }
+                    }
         else:
-            searchQ = {"size" : int(limit), "sort": {"inserted_at" : "desc"}, "query" : {"terms" : {"profile" : profileList}}}
+            searchQ = {
+                      "size"  : int(limit),
+                      "sort"  : {"inserted_at" : "desc"},
+                      "query" : { "terms" : {"profile" : profileList} }
+                    }
 
         return self.queryArticles(searchQ)
 
