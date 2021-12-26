@@ -70,13 +70,26 @@ class elasticDB():
     def saveArticle(self, articleObject):
         self.es.index(self.indexName, articleObject.as_dict())
 
-    def searchArticles(self, text, limit=100):
+    def searchArticles(self, text, limit=100, profileList=None):
+        if not profileList:
+            profileList = self.requestProfileListFromDB()
+
         searchQ = {
                   "size" : int(limit),
                   "query": {
-                    "multi_match": {
-                      "query": text,
-                      "fields": ["title^5", "description^3", "contents"]
+                    "bool" : {
+                      "must" : {
+                        "multi_match": {
+                          "query"  : text,
+                          "type"   : "most_fields",
+                          "fields" : ["title^5", "description^3", "contents"]
+                        }
+                      },
+                      "filter" : {
+                          "terms" : {
+                              "profile" : profileList
+                          }
+                      }
                     }
                   }
                 }
