@@ -59,8 +59,7 @@ class User():
             except argon2.exceptions.VerifyMismatchError:
                 return False
 
-    def getMarkedArticles(self):
-        tableNames = ["saved_article_ids", "read_article_ids"]
+    def getMarkedArticles(self, tableNames=["saved_article_ids", "read_article_ids"]):
         if self.checkIfUserExists():
             cur = self.conn.cursor()
 
