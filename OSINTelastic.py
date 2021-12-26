@@ -53,6 +53,19 @@ class elasticDB():
     def saveArticle(self, articleObject):
         self.es.index(self.indexName, articleObject.as_dict())
 
+    def searchArticles(self, text, limit=100):
+        searchQ = {
+                  "size" : int(limit),
+                  "query": {
+                    "multi_match": {
+                      "query": text,
+                      "fields": ["title^5", "description^3", "contents"]
+                    }
+                  }
+                }
+
+        return self.queryArticles(searchQ)
+
 def configureElasticsearch(indexName):
     es = Elasticsearch()
 
