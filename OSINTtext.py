@@ -73,7 +73,8 @@ def locateObjectsOfInterrest(clearText):
         result =  [ result if type(result) != tuple else "".join(result) for result in objects[objectName]["pattern"].findall(clearText) ]
 
         if result != []:
-            results[objectName] = { "results" : result, "tag" : objects[objectName]["tag"] }
+            # Removing duplicates from result list by converting it to a set and then back to list
+            results[objectName] = { "results" : list(set(result)), "tag" : objects[objectName]["tag"] }
 
     return results
 
