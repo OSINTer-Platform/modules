@@ -1,3 +1,5 @@
+import os
+import sqlite3
 from OSINTmodules.OSINTprofiles import getProfiles
 
 def verifyProfiles(profiles, esClient):
@@ -14,12 +16,12 @@ def verifyProfiles(profiles, esClient):
 
     return True
 
-def initiateUserTable(DBName):
+def initiateUserDB(DBName, userTable):
     if not os.path.exists(DBName):
         conn = sqlite3.connect(DBName)
         cur = conn.cursor()
 
-        cur.execute(''' CREATE TABLE users
+        cur.execute(f''' CREATE TABLE {userTable}
                     (   username text NOT NULL PRIMARY KEY,
                         saved_article_ids text DEFAULT '',
                         read_article_ids text DEFAULT '',

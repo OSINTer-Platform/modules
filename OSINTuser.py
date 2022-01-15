@@ -125,7 +125,7 @@ def getUsernameFromID(userID, DBName, userTable):
 def createUser(username, password, DBName, userTable):
     conn = sqlite3.connect(DBName)
 
-    if User(username).checkIfUserExists():
+    if User(username, DBName, userTable).checkIfUserExists():
         conn.close()
         return False
     else:
