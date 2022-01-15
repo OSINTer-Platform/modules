@@ -15,9 +15,18 @@ class elasticDB():
         for queryResult in searchResults["hits"]["hits"]:
 
             if "highlight" in queryResult:
-                for fieldType in ["title", "description"]:
-                    if fieldType in queryResult["highlight"]:
-                        queryResult["_source"][fieldType] = " ... ".join(queryResult["highlight"][fieldType])
+                if "description" in queryResult["highlight"]:
+                    descriptionText = " ... ".join(queryResult["highlight"]["description"])
+                    if not descriptionText[0].isupper():
+                        descriptionText = "..." + descriptionText
+
+                    if not descriptionText[-1] == ".":
+                        descriptionText += "..."
+
+                    queryResult["_source"]["description"] = descriptionText
+
+                if "title" in queryResult["highlight"]:
+                    queryResult["_source"]["title"] = " ... ".join(queryResult["highlight"]["title"])
 
             currentArticle = Article(**queryResult["_source"])
             currentArticle.id = queryResult["_id"]
