@@ -3,9 +3,9 @@ from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 
 class elasticDB():
-    def __init__(self, indexName):
+    def __init__(self, addresses, indexName):
         self.indexName = indexName
-        self.es = Elasticsearch()
+        self.es = Elasticsearch(addresses)
 
     def queryArticles(self, searchQ):
         articleList = []
