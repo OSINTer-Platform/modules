@@ -87,9 +87,8 @@ class elasticDB():
                   "query": {
                     "bool" : {
                       "must" : {
-                        "multi_match": {
+                        "simple_query_string": {
                           "query"  : text,
-                          "type"   : "most_fields",
                           "fields" : ["title^5", "description^3", "contents"]
                         }
                       },
