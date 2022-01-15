@@ -96,8 +96,8 @@ class elasticDB():
 
         return self.queryArticles(searchQ)
 
-def configureElasticsearch(indexName):
-    es = Elasticsearch()
+def configureElasticsearch(address, indexName):
+    es = Elasticsearch(address)
 
     es.indices.delete(index=indexName, ignore=[400, 404])
 
