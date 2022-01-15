@@ -1,6 +1,5 @@
 from OSINTmodules.OSINTprofiles import getProfiles
 
-
 def verifyProfiles(profiles, esClient):
     # Getting the profiles that are stored in the database
     DBStoredProfiles = esClient.requestProfileListFromDB()
@@ -14,3 +13,19 @@ def verifyProfiles(profiles, esClient):
             return False
 
     return True
+
+def initiateUserTable(DBName):
+    if not os.path.exists(DBName):
+        conn = sqlite3.connect(DBName)
+        cur = conn.cursor()
+
+        cur.execute(''' CREATE TABLE users
+                    (   username text NOT NULL PRIMARY KEY,
+                        saved_article_ids text DEFAULT '',
+                        read_article_ids text DEFAULT '',
+                        password_hash text NOT NULL,
+                        id text NOT NULL    )
+                    ''')
+
+        conn.commit()
+        conn.close()
