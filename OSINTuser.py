@@ -2,20 +2,18 @@ import argon2
 import secrets
 import sqlite3
 
-userTable = "users"
-DBName = "./osinter_users.db"
-
 ph = argon2.PasswordHasher()
 
 class User():
-    def __init__(self, username):
+    def __init__(self, username, DBName, userTable):
         self.conn = sqlite3.connect(DBName)
         self.username = username
+        self.userTable = userTable
 
     def checkIfUserExists(self):
         cur = self.conn.cursor()
 
-        cur.execute(f"SELECT EXISTS(SELECT 1 FROM {userTable} WHERE username = ?);", (self.username,))
+        cur.execute(f"SELECT EXISTS(SELECT 1 FROM {self.userTable} WHERE username = ?);", (self.username,))
 
         exists = bool(cur.fetchone()[0])
         cur.close()
@@ -25,7 +23,7 @@ class User():
     # Set the password hash for [username]
     def setPasswordHash(self, passwordHash):
         cur = self.conn.cursor()
-        cur.execute(f"UPDATE {userTable} SET password_hash=? WHERE username=?;", (passwordHash, self.username))
+        cur.execute(f"UPDATE {self.userTable} SET password_hash=? WHERE username=?;", (passwordHash, self.username))
         self.conn.commit()
         cur.close()
 
@@ -33,7 +31,7 @@ class User():
     def getPasswordHash(self):
         if self.checkIfUserExists():
             cur = self.conn.cursor()
-            cur.execute(f"SELECT password_hash FROM {userTable} WHERE username=?;", (self.username,))
+            cur.execute(f"SELECT password_hash FROM {self.userTable} WHERE username=?;", (self.username,))
             return cur.fetchone()[0]
         else:
             return False
@@ -65,7 +63,7 @@ class User():
 
             DBResults = {}
             for tableName in tableNames:
-                cur.execute(f"SELECT {tableName} FROM {userTable} WHERE username=?;", (self.username,))
+                cur.execute(f"SELECT {tableName} FROM {self.userTable} WHERE username=?;", (self.username,))
 
                 currentResults = cur.fetchone()[0].split("~")
                 currentResults.pop(0)
@@ -83,9 +81,9 @@ class User():
             cur = self.conn.cursor()
             if add:
                 # Combines the array from the DB with the new ID, and takes all the uniqe entries from that so that duplicates are avoided
-                cur.execute(f"UPDATE {userTable} SET {column} = ({column} || ?) WHERE username = ?", ("~" + str(articleID), self.username))
+                cur.execute(f"UPDATE {self.userTable} SET {column} = ({column} || ?) WHERE username = ?", ("~" + str(articleID), self.username))
             else:
-                cur.execute(f"UPDATE {userTable} SET {column} = REPLACE({column}, ?, '') WHERE username = ?", ("~" + str(articleID), self.username))
+                cur.execute(f"UPDATE {self.userTable} SET {column} = REPLACE({column}, ?, '') WHERE username = ?", ("~" + str(articleID), self.username))
 
             self.conn.commit()
             cur.close()
@@ -97,7 +95,7 @@ class User():
     def get_id(self):
         if self.checkIfUserExists():
             cur = self.conn.cursor()
-            cur.execute(f"SELECT id FROM {userTable} WHERE username=?;", (self.username,))
+            cur.execute(f"SELECT id FROM {self.userTable} WHERE username=?;", (self.username,))
             return cur.fetchone()[0]
         else:
             return False
@@ -110,7 +108,7 @@ class User():
     def is_anonymous(self):
         return False
 
-def getUsernameFromID(userID):
+def getUsernameFromID(userID, DBName, userTable):
     conn = sqlite3.connect(DBName)
     cur = conn.cursor()
 
@@ -124,22 +122,7 @@ def getUsernameFromID(userID):
     else:
         return username[0]
 
-def getSavedArticles(username):
-    conn = sqlite3.connect(DBName)
-    cur = conn.cursor()
-
-    cur.execute(f"SELECT saved_article_ids FROM {userTable} WHERE username = ?", (username,))
-
-    savedArticleIDs = cur.fetchone()
-
-    conn.close()
-
-    if savedArticleIDs == None:
-        return []
-    else:
-        return savedArticleIDs[0].split("~")
-
-def createUser(username, password):
+def createUser(username, password, DBName, userTable):
     conn = sqlite3.connect(DBName)
 
     if User(username).checkIfUserExists():
