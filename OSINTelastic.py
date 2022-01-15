@@ -10,12 +10,14 @@ class elasticDB():
     def queryArticles(self, searchQ):
         articleList = []
 
-        for queryResult in self.es.search(searchQ, self.indexName)["hits"]["hits"]:
+        searchResults = self.es.search(searchQ, self.indexName)
+
+        for queryResult in searchResults["hits"]["hits"]:
             currentArticle = Article(**queryResult["_source"])
             currentArticle.id = queryResult["_id"]
             articleList.append(currentArticle)
 
-        return articleList
+        return {"articles" : articleList, "result_number" : searchResults["hits"]["total"]["value"]}
 
 
     # Function for taking in a list of lists of articles with the first entry of each list being the name of the profile, and then removing all the articles that already has been saved in the database
