@@ -13,6 +13,12 @@ class elasticDB():
         searchResults = self.es.search(searchQ, self.indexName)
 
         for queryResult in searchResults["hits"]["hits"]:
+
+            if "highlight" in queryResult:
+                for fieldType in ["title", "description"]:
+                    if fieldType in queryResult["highlight"]:
+                        queryResult["_source"][fieldType] = " ... ".join(queryResult["highlight"][fieldType])
+
             currentArticle = Article(**queryResult["_source"])
             currentArticle.id = queryResult["_id"]
             articleList.append(currentArticle)
@@ -92,6 +98,14 @@ class elasticDB():
                               "profile" : profileList
                           }
                       }
+                    }
+                  },
+                  "highlight" : {
+                    "pre_tags" : ["***"],
+                    "post_tags" : ["***"],
+                    "fields" : {
+                      "title" : {},
+                      "description": {}
                     }
                   }
                 }
