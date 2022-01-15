@@ -87,7 +87,7 @@ class elasticDB():
     def saveArticle(self, articleObject):
         self.es.index(self.indexName, articleObject.as_dict())
 
-    def searchArticles(self, text, limit=100, profileList=None):
+    def searchArticles(self, text, limit=100, profileList=None, firstDate=None, lastDate=None):
         if not profileList:
             profileList = self.requestProfileListFromDB()
 
@@ -101,11 +101,12 @@ class elasticDB():
                           "fields" : ["title^5", "description^3", "contents"]
                         }
                       },
-                      "filter" : {
-                          "terms" : {
+                      "filter" : [
+                          { "terms" : {
                               "profile" : profileList
+                            }
                           }
-                      }
+                      ]
                     }
                   },
                   "highlight" : {
@@ -117,6 +118,15 @@ class elasticDB():
                     }
                   }
                 }
+
+        if firstDate or lastDate:
+            searchQ["query"]["bool"]["filter"].append({"range" : {"publish_date" : {}}})
+
+        if firstDate:
+            searchQ["query"]["bool"]["filter"][-1]["range"]["publish_date"]["gte"] = firstDate.isoformat()
+
+        if lastDate:
+            searchQ["query"]["bool"]["filter"][-1]["range"]["publish_date"]["lte"] = lastDate.isoformat()
 
         return self.queryArticles(searchQ)
 
