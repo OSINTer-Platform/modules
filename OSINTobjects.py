@@ -1,10 +1,10 @@
-from dataclasses import dataclass, field, KW_ONLY
+from attrs import define, field
+
 from datetime import datetime, timezone
 
-@dataclass
+@define(kw_only=True)
 class Article:
-    _: KW_ONLY
-    title: str 
+    title: str
     description: str
     url: str
     profile: str
@@ -14,7 +14,7 @@ class Article:
     image_url: str = ""
     author: str = ""
     contents: str = ""
-    tags: dict[str] = field(default_factory=dict)
+    tags: dict = field(factory=dict)
     inserted_at: datetime = field(default=datetime.now(timezone.utc).astimezone())
     saved: bool = False
     read: bool = False
