@@ -60,7 +60,6 @@ class elasticDB():
 
     def searchArticles(self, paramaters):
         searchQ = {
-                  "sort"  : {"publish_date" : "desc"},
                   "query": {
                     "bool" : {
                       "filter" : []
@@ -78,6 +77,11 @@ class elasticDB():
 
         if "limit" in paramaters:
             searchQ["size"] = int(paramaters["limit"])
+
+        if "sorting" in paramaters:
+            searchQ["sort"] = paramaters["sorting"]
+        else:
+            searchQ["sort"] = {"publish_date" : "desc"}
 
         if "searchTerm" in paramaters:
             searchQ["query"]["bool"]["must"] = {"simple_query_string" : {"query" : paramaters["searchTerm"], "fields" : ["title^5", "description^3", "contents"]} }
