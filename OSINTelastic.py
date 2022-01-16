@@ -55,58 +55,15 @@ class elasticDB():
 
         return [uniqueVal["key"] for uniqueVal in self.es.search(searchQ, self.indexName)["aggregations"]["profileNames"]["buckets"]]
 
-    def requestArticlesFromDB(self, profileList=None, limit=100, idList=None):
-        if not profileList:
-            profileList = self.requestProfileListFromDB()
-
-        if idList:
-            searchQ = {
-                      "size"  : int(limit),
-                      "sort"  : {
-                          "inserted_at" : "desc"
-                      },
-                      "query" : {
-                          "bool" : {
-                              "must" : [
-                                  { "terms" : {"profile" : profileList} },
-                                  { "terms" : {"_id" : idList} }
-                              ]
-                          }
-                      }
-                    }
-        else:
-            searchQ = {
-                      "size"  : int(limit),
-                      "sort"  : {"inserted_at" : "desc"},
-                      "query" : { "terms" : {"profile" : profileList} }
-                    }
-
-        return self.queryArticles(searchQ)
-
-
     def saveArticle(self, articleObject):
         self.es.index(self.indexName, articleObject.as_dict())
 
-    def searchArticles(self, text, limit=100, profileList=None, firstDate=None, lastDate=None):
-        if not profileList:
-            profileList = self.requestProfileListFromDB()
-
+    def searchArticles(self, paramaters):
         searchQ = {
-                  "size" : int(limit),
+                  "sort"  : {"publish_date" : "desc"},
                   "query": {
                     "bool" : {
-                      "must" : {
-                        "simple_query_string": {
-                          "query"  : text,
-                          "fields" : ["title^5", "description^3", "contents"]
-                        }
-                      },
-                      "filter" : [
-                          { "terms" : {
-                              "profile" : profileList
-                            }
-                          }
-                      ]
+                      "filter" : []
                     }
                   },
                   "highlight" : {
@@ -119,14 +76,26 @@ class elasticDB():
                   }
                 }
 
-        if firstDate or lastDate:
+        if "limit" in paramaters:
+            searchQ["size"] = int(paramaters["limit"])
+
+        if "searchTerm" in paramaters:
+            searchQ["query"]["bool"]["must"] = {"simple_query_string" : {"query" : paramaters["searchTerm"], "fields" : ["title^5", "description^3", "contents"]} }
+
+        if "profiles" in paramaters:
+            searchQ["query"]["bool"]["filter"].append({ "terms" : { "profile" : paramaters["profiles"] } })
+
+        if "IDs" in paramaters:
+            searchQ["query"]["bool"]["filter"].append({ "terms" : { "_id" : paramaters["IDs"] } })
+
+        if "firstDate" in paramaters or "lastDate" in paramaters:
             searchQ["query"]["bool"]["filter"].append({"range" : {"publish_date" : {}}})
 
-        if firstDate:
-            searchQ["query"]["bool"]["filter"][-1]["range"]["publish_date"]["gte"] = firstDate.isoformat()
+        if "firstDate" in paramaters:
+            searchQ["query"]["bool"]["filter"][-1]["range"]["publish_date"]["gte"] = paramaters["firstDate"].isoformat()
 
-        if lastDate:
-            searchQ["query"]["bool"]["filter"][-1]["range"]["publish_date"]["lte"] = lastDate.isoformat()
+        if "lastDate" in paramaters:
+            searchQ["query"]["bool"]["filter"][-1]["range"]["publish_date"]["lte"] = paramaters["lastDate"].isoformat()
 
         return self.queryArticles(searchQ)
 
