@@ -106,8 +106,6 @@ class elasticDB():
 def configureElasticsearch(address, indexName):
     es = Elasticsearch(address)
 
-    es.indices.delete(index=indexName, ignore=[400, 404])
-
     indexConfig= {
                   "settings": {
                     "index.number_of_shards": 1
@@ -144,4 +142,4 @@ def configureElasticsearch(address, indexName):
 
     esIndexClient = IndicesClient(es)
 
-    esIndexClient.create(indexName, body=indexConfig)
+    esIndexClient.create(indexName, body=indexConfig, ignore=[400, 404])
