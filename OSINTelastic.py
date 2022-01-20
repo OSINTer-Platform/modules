@@ -7,6 +7,10 @@ class elasticDB():
         self.indexName = indexName
         self.es = Elasticsearch(addresses)
 
+    # Checking if the article is already stored in the es db using the URL as that is probably not going to change and is uniqe
+    def existsInDB(self, url):
+        return int(self.es.search(index=self.indexName, body={'query': { "term" : {"url": {"value" : url}}}})["hits"]["total"]["value"]) != 0
+
     def queryArticles(self, searchQ):
         articleList = []
 
@@ -43,8 +47,7 @@ class elasticDB():
         for profileName in articleURLCollection:
             filteredArticleURLDict[profileName] = []
             for URL in articleURLCollection[profileName]:
-                # Checking if the article is already stored in the es db using the URL as that is probably not going to change and is uniqe
-                if int(self.es.search(index=self.indexName, body={'query': { "term" : {"url": {"value" : URL}}}})["hits"]["total"]["value"]) == 0:
+                if not self.existsInDB(URL):
                     filteredArticleURLDict[profileName].append(URL)
 
         return filteredArticleURLDict
