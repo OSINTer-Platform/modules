@@ -7,9 +7,6 @@ from pathlib import Path
 # For manipulating lists in a way that's less memory intensive
 import itertools
 
-# The profiles mapping the different websites are in json format
-import json
-
 # Used to gather the urls from the articles, by reading a RSS feed
 import feedparser
 
@@ -103,16 +100,13 @@ def gatherArticleURLs(profiles):
 
     for profile in profiles:
 
-        # Parsing the json properly
-        profile = json.loads(profile)['source']
-
         # For those were the RSS feed is useful, that will be used
-        if profile['retrivalMethod'] == "rss":
-            articleURLs[profile["profileName"]] = RSSArticleURLs(profile['newsPath'], profile['profileName'])
+        if profile["source"]['retrivalMethod'] == "rss":
+            articleURLs[profile["source"]["profileName"]] = RSSArticleURLs(profile["source"]['newsPath'], profile["source"]['profileName'])
 
         # For basically everything else scraping will be used
-        elif profile['retrivalMethod'] == "scraping":
-            articleURLs[profile["profileName"]] = scrapeArticleURLs(profile['address'], profile['newsPath'], profile['scrapingTargets'], profile['profileName'])
+        elif profile["source"]['retrivalMethod'] == "scraping":
+            articleURLs[profile["source"]["profileName"]] = scrapeArticleURLs(profile["source"]['address'], profile["source"]['newsPath'], profile["source"]['scrapingTargets'], profile["source"]['profileName'])
 
     return articleURLs
 

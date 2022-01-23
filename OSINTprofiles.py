@@ -26,11 +26,11 @@ def getProfiles(profileName="", justNames=False):
         for profile in profileFiles:
 
             # Stripping any potential trailing or leading newlines
-            profiles.append(Path(profilePath + profile).read_text().strip())
+            profiles.append(json.loads(Path(profilePath + profile).read_text().strip()))
 
         return profiles
     else:
-        return Path(profilePath + profileName + ".profile").read_text().strip()
+        return json.loads(Path(profilePath + profileName + ".profile").read_text().strip())
 
 def collectWebsiteDetails(esClient):
     DBStoredProfiles = esClient.requestProfileListFromDB()
@@ -41,13 +41,12 @@ def collectWebsiteDetails(esClient):
     details = {}
 
     for profile in profiles:
-        currentProfile = json.loads(profile)
 
         if currentProfile['source']['profileName'] in DBStoredProfiles:
-            imageURL = currentProfile['source']['imageURL']
+            imageURL = profile['source']['imageURL']
 
-            details[currentProfile['source']['profileName']] = {
-                'name' : currentProfile['source']['name'],
+            details[profile['source']['profileName']] = {
+                'name' : profile['source']['name'],
                 'image' : imageURL
             }
 
