@@ -42,7 +42,7 @@ def collectWebsiteDetails(esClient):
 
     for profile in profiles:
 
-        if currentProfile['source']['profileName'] in DBStoredProfiles:
+        if profile['source']['profileName'] in DBStoredProfiles:
             imageURL = profile['source']['imageURL']
 
             details[profile['source']['profileName']] = {
