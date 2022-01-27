@@ -11,6 +11,17 @@ class elasticDB():
     def existsInDB(self, url):
         return int(self.es.search(index=self.indexName, body={'query': { "term" : {"url": {"value" : url}}}})["hits"]["total"]["value"]) != 0
 
+    def concatStrings(self, stringList):
+        finalString = " ... ".join(stringList)
+
+        if not finalString[0].isupper():
+            finalString = "..." + finalString
+
+        if not finalString[-1] in [".", "!", "?"]:
+            finalString += "..."
+
+        return finalString
+
     def queryArticles(self, searchQ):
         articleList = []
 
@@ -20,14 +31,8 @@ class elasticDB():
 
             if "highlight" in queryResult:
                 if "description" in queryResult["highlight"]:
-                    descriptionText = " ... ".join(queryResult["highlight"]["description"])
-                    if not descriptionText[0].isupper():
-                        descriptionText = "..." + descriptionText
 
-                    if not descriptionText[-1] == ".":
-                        descriptionText += "..."
-
-                    queryResult["_source"]["description"] = descriptionText
+                    queryResult["_source"]["description"] = self.concatStrings(queryResult["highlight"]["description"])
 
                 if "title" in queryResult["highlight"]:
                     queryResult["_source"]["title"] = " ... ".join(queryResult["highlight"]["title"])
