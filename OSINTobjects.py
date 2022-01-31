@@ -15,6 +15,7 @@ class Article:
     author: str = ""
     formatted_content: str = ""
     content: str = ""
+    summary: str = ""
     tags: dict = field(factory=dict)
     inserted_at: datetime = field(default=datetime.now(timezone.utc).astimezone())
     saved: bool = False
