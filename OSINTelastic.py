@@ -30,8 +30,10 @@ class elasticDB():
         for queryResult in searchResults["hits"]["hits"]:
 
             if "highlight" in queryResult:
-                if "description" in queryResult["highlight"]:
+                if "content" in queryResult["highlight"]:
+                    queryResult["_source"]["summary"] = self.concatStrings(queryResult["highlight"]["contents"])
 
+                if "description" in queryResult["highlight"]:
                     queryResult["_source"]["description"] = self.concatStrings(queryResult["highlight"]["description"])
 
                 if "title" in queryResult["highlight"]:
@@ -78,7 +80,8 @@ class elasticDB():
                     "post_tags" : ["***"],
                     "fields" : {
                       "title" : {},
-                      "description": {}
+                      "description": {},
+                      "content" : {}
                     }
                   }
                 }
