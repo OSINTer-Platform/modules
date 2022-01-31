@@ -13,7 +13,8 @@ class Article:
     id: str = ""
     image_url: str = ""
     author: str = ""
-    contents: str = ""
+    formatted_content: str = ""
+    content: str = ""
     tags: dict = field(factory=dict)
     inserted_at: datetime = field(default=datetime.now(timezone.utc).astimezone())
     saved: bool = False
@@ -22,7 +23,8 @@ class Article:
     def as_dict(self):
         return { "title" : self.title,
                  "description" : self.description,
-                 "contents" : self.contents,
+                 "content" : self.content
+                 "formatted_content" : self.formatted_content,
 
                  "url" : self.url,
                  "image_url" : self.image_url,

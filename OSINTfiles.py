@@ -19,7 +19,7 @@ def convertArticleToMD(article):
 
     articleFile.write("\n## Article:\n")
     articleFile.write(f"![Article Image]({article.image_url})" + '\n')
-    articleFile.write(article.contents)
+    articleFile.write(article.formatted_content)
 
     articleFile.write("\n##Tags:\n")
 

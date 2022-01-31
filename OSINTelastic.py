@@ -92,7 +92,7 @@ class elasticDB():
             searchQ["sort"] = {"publish_date" : "desc"}
 
         if "searchTerm" in paramaters:
-            searchQ["query"]["bool"]["must"] = {"simple_query_string" : {"query" : paramaters["searchTerm"], "fields" : ["title^5", "description^3", "contents"]} }
+            searchQ["query"]["bool"]["must"] = {"simple_query_string" : {"query" : paramaters["searchTerm"], "fields" : ["title^5", "description^3", "content"]} }
 
         if "profiles" in paramaters:
             searchQ["query"]["bool"]["filter"].append({ "terms" : { "profile" : paramaters["profiles"] } })
@@ -123,7 +123,8 @@ def configureElasticsearch(address, indexName):
                     "properties": {
                       "title": {"type" : "text"},
                       "description": {"type" : "text"},
-                      "contents": {"type" : "text"},
+                      "content": {"type" : "text"},
+                      "formatted_content" : {"type" : "text"},
 
                       "url": {"type" : "keyword"},
                       "profile": {"type" : "keyword"},
