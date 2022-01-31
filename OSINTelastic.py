@@ -31,7 +31,7 @@ class elasticDB():
 
             if "highlight" in queryResult:
                 if "content" in queryResult["highlight"]:
-                    queryResult["_source"]["summary"] = self.concatStrings(queryResult["highlight"]["contents"])
+                    queryResult["_source"]["summary"] = self.concatStrings(queryResult["highlight"]["content"])
 
                 if "description" in queryResult["highlight"]:
                     queryResult["_source"]["description"] = self.concatStrings(queryResult["highlight"]["description"])

@@ -24,7 +24,7 @@ class Article:
     def as_dict(self):
         return { "title" : self.title,
                  "description" : self.description,
-                 "content" : self.content
+                 "content" : self.content,
                  "formatted_content" : self.formatted_content,
 
                  "url" : self.url,
