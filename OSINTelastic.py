@@ -91,7 +91,7 @@ class elasticDB():
 
         if "sorting" in paramaters:
             searchQ["sort"] = paramaters["sorting"]
-        else:
+        elif not "searchTerm" in paramaters:
             searchQ["sort"] = {"publish_date" : "desc"}
 
         if "searchTerm" in paramaters:
