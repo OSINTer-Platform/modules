@@ -90,7 +90,7 @@ class elasticDB():
             searchQ["size"] = int(paramaters["limit"])
 
         if "sorting" in paramaters:
-            searchQ["sort"] = paramaters["sorting"]
+            searchQ["sort"] = { paramaters["sortBy"] : paramaters["sortOrder"] }
         elif not "searchTerm" in paramaters:
             searchQ["sort"] = {"publish_date" : "desc"}
 
