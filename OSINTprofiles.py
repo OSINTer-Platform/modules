@@ -50,4 +50,4 @@ def collectWebsiteDetails(esClient):
                 'image' : imageURL
             }
 
-    return details
+    return {source: details[source] for source in sorted(details)}
