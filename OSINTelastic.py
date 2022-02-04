@@ -70,6 +70,7 @@ class elasticDB():
 
     def searchArticles(self, paramaters):
         searchQ = {
+                  "size" : 50,
                   "query": {
                     "bool" : {
                       "filter" : []
