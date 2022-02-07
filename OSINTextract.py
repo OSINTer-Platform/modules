@@ -55,8 +55,8 @@ def extractArticleContent(selectors, soup, delimiter='\n'):
 # Function for scraping meta information (like title, author and publish date) from articles. This both utilizes the OG tags and LD+JSON data, and while the proccess for extracting the OG tags is fairly simply as those is (nearly) always following the same standard, the LD+JSON data is a little more complicated. Here the data isn't parsed as JSON, but rather as a string where the relevant pieces of information is extracted using regex. It's probably ugly and definitly not the officially "right" way of doing this, but different placement of the information in the JSON object on different websites using different attributes made parsing the information from a python JSON object near impossible. As such, be warned that this function is not for the faint of heart
 def extractMetaInformation(pageSoup):
     OGTagLocations = {
-            "author" : ["meta[name=author]"],
-            "publish_date": ["meta[name=date]", "meta[name='DC.date.issued']", "meta[property='article:published_time']"],
+            "author" : ["p.article-authors__list-items__name", "div[itemprop=author] > meta", "meta[name=author]"],
+            "publish_date": ["meta[itemprop=datePublished]", "meta[name=date]", "meta[name='DC.date.issued']", "meta[property='article:published_time']"],
             "title" : ["meta[property='og:title']"],
             "description" : ["p.article-details__description", "meta[property='og:description']"],
             "image_url" : ["meta[property='og:image']"]}
@@ -67,7 +67,7 @@ def extractMetaInformation(pageSoup):
         OGTags[tagKind] = None
         for selector in OGTagLocations[tagKind]:
             try:
-                if selector.startswith("meta"):
+                if "meta" in selector:
                     OGTags[tagKind] = pageSoup.select(selector)[0].get("content")
                 else:
                     OGTags[tagKind] = pageSoup.select(selector)[0].text
@@ -83,9 +83,10 @@ def extractMetaInformation(pageSoup):
             # Converting to and from JSON to standardize the format to avoid things like line breaks and excesive spaces at the end and start of line. Will also make sure there spaces in the right places between the keys and values so it isn't like "key" :"value" and "key  : "value" but rather "key": "value" and "key": "value".
             scriptTagString = json.dumps(json.loads("".join(scriptTag.contents)))
             for pattern in JSONPatterns:
-                articleDetailPatternMatch = JSONPatterns[pattern].search(scriptTagString)
-                if articleDetailPatternMatch != None:
-                    # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
-                    OGTags[pattern] = articleDetailPatternMatch.group(2)
+                if OGTags[pattern] == None:
+                    articleDetailPatternMatch = JSONPatterns[pattern].search(scriptTagString)
+                    if articleDetailPatternMatch != None:
+                        # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
+                        OGTags[pattern] = articleDetailPatternMatch.group(2)
 
     return OGTags
