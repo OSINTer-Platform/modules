@@ -53,7 +53,7 @@ def extractArticleContent(selectors, soup, delimiter='\n'):
 
 
 # Function for scraping meta information (like title, author and publish date) from articles. This both utilizes the OG tags and LD+JSON data, and while the proccess for extracting the OG tags is fairly simply as those is (nearly) always following the same standard, the LD+JSON data is a little more complicated. Here the data isn't parsed as JSON, but rather as a string where the relevant pieces of information is extracted using regex. It's probably ugly and definitly not the officially "right" way of doing this, but different placement of the information in the JSON object on different websites using different attributes made parsing the information from a python JSON object near impossible. As such, be warned that this function is not for the faint of heart
-def extractMetaInformation(pageSoup, scrapingTargets):
+def extractMetaInformation(pageSoup, scrapingTargets, siteURL):
     OGTags = {}
 
     for tagKind in scrapingTargets:
@@ -82,5 +82,8 @@ def extractMetaInformation(pageSoup, scrapingTargets):
                     if articleDetailPatternMatch != None:
                         # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
                         OGTags[pattern] = articleDetailPatternMatch.group(2)
+
+    if OGTags["image_url"] == None:
+        OGTags["image_url"] = f"{siteURL}/favicon.ico"
 
     return OGTags
