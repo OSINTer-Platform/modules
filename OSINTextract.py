@@ -53,26 +53,20 @@ def extractArticleContent(selectors, soup, delimiter='\n'):
 
 
 # Function for scraping meta information (like title, author and publish date) from articles. This both utilizes the OG tags and LD+JSON data, and while the proccess for extracting the OG tags is fairly simply as those is (nearly) always following the same standard, the LD+JSON data is a little more complicated. Here the data isn't parsed as JSON, but rather as a string where the relevant pieces of information is extracted using regex. It's probably ugly and definitly not the officially "right" way of doing this, but different placement of the information in the JSON object on different websites using different attributes made parsing the information from a python JSON object near impossible. As such, be warned that this function is not for the faint of heart
-def extractMetaInformation(pageSoup):
-    OGTagLocations = {
-            "author" : ["p.article-authors__list-items__name", "div[itemprop=author] > meta", "meta[name$=author]", "meta[name=author]"],
-            "publish_date": ["meta[itemprop=datePublished]", "meta[name=date]", "meta[name='DC.date.issued']", "meta[property='article:published_time']"],
-            "title" : ["meta[property='og:title']"],
-            "description" : ["p.article-details__description", "meta[property='og:description']"],
-            "image_url" : ["meta[property='og:image']"]}
-
+def extractMetaInformation(pageSoup, scrapingTargets):
     OGTags = {}
 
-    for tagKind in OGTagLocations:
+    for tagKind in scrapingTargets:
         OGTags[tagKind] = None
-        for selector in OGTagLocations[tagKind]:
-            try:
-                if "meta" in selector:
-                    OGTags[tagKind] = pageSoup.select(selector)[0].get("content")
-                else:
-                    OGTags[tagKind] = pageSoup.select(selector)[0].text
-            except IndexError:
-                pass
+        for selector in scrapingTargets[tagKind].split(";"):
+            if selector:
+                try:
+                    if "meta" in selector:
+                        OGTags[tagKind] = pageSoup.select(selector)[0].get("content")
+                    else:
+                        OGTags[tagKind] = pageSoup.select(selector)[0].text
+                except IndexError:
+                    pass
 
     if OGTags["author"] == None or OGTags["publish_date"] == None:
 
