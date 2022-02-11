@@ -37,5 +37,7 @@ class Article:
                  "publish_date" : self.publish_date,
                  "inserted_at" : self.inserted_at,
 
+                 "read_times" : self.read_times,
+
                  "tags" : self.tags
                }
