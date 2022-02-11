@@ -115,6 +115,15 @@ class elasticDB():
 
         return self.queryArticles(searchQ)
 
+    def incrementReadCounter(self, articleID):
+        incrementScript = {
+                    "script" : {
+                            "source" : "ctx._source.read_times += 1",
+                            "lang" : "painless"
+                        }
+                }
+        self.es.update(self.indexName, articleID, incrementScript)
+
 def configureElasticsearch(address, indexName):
     es = Elasticsearch(address)
 
