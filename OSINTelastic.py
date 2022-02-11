@@ -147,8 +147,8 @@ def configureElasticsearch(address, indexName):
                                       "interresting" : {"type" : "object", "dynamic" : True},
                                       "automatic" : {"type" : "keyword"}
                                   }
-                               }
-
+                               },
+                      "read_times" : {"type" :  "unsigned_long"}
                     }
                   }
                 }

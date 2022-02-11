@@ -20,6 +20,7 @@ class Article:
     inserted_at: datetime = field(default=datetime.now(timezone.utc).astimezone())
     saved: bool = False
     read: bool = False
+    read_times: int = 0
 
     def as_dict(self):
         return { "title" : self.title,
