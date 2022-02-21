@@ -23,7 +23,8 @@ class Article:
     read_times: int = 0
 
     def as_dict(self):
-        return { "title" : self.title,
+        return { "id" : self.id,
+                 "title" : self.title,
                  "description" : self.description,
                  "content" : self.content,
                  "formatted_content" : self.formatted_content,

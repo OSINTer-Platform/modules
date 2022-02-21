@@ -66,7 +66,18 @@ class elasticDB():
         return [uniqueVal["key"] for uniqueVal in self.es.search(searchQ, self.indexName)["aggregations"]["profileNames"]["buckets"]]
 
     def saveArticle(self, articleObject):
-        return self.es.index(self.indexName, articleObject.as_dict())["_id"]
+        articleDict = articleObject.as_dict()
+
+        if "id" in articleDict:
+            articleID = articleDict.pop("id")
+        else:
+            articleID = ""
+
+        if articleID:
+            return self.es.index(self.indexName, articleDict, id=articleID)["_id"]
+        else:
+            return self.es.index(self.indexName, articleDict)["_id"]
+
 
     def searchArticles(self, paramaters):
         searchQ = {
