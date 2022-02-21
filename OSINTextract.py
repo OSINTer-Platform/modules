@@ -63,6 +63,8 @@ def extractMetaInformation(pageSoup, scrapingTargets, siteURL):
                 try:
                     if "meta" in selector:
                         OGTags[tagKind] = pageSoup.select(selector)[0].get("content")
+                    elif "time" in selector:
+                        OGTags[tagKind] = pageSoup.select(selector)[0].get("datetime")
                     else:
                         OGTags[tagKind] = pageSoup.select(selector)[0].text
                 except IndexError:
