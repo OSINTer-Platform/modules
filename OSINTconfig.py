@@ -1,6 +1,7 @@
 import os
 import secrets
 from pathlib import Path
+import logging
 
 def loadSecretKey():
     if os.path.isfile("./secret.key"):
@@ -17,9 +18,27 @@ def loadElasticURL():
     else:
         return "http://localhost:9200"
 
+def loadLogger():
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+
+    printHandler = logging.StreamHandler()
+    fileHandler = logging.FileHandler('log')
+
+    loggerFormat = logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
+    printHandler.setFormatter(loggerFormat)
+    fileHandler.setFormatter(loggerFormat)
+
+    logger.addHandler(printHandler)
+    logger.addHandler(fileHandler)
+
+    return logger
+
 class backendConfig():
     ELASTICSEARCH_ARTICLE_INDEX = os.environ.get("ARTICLE_INDEX") or "osinter_articles"
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or loadElasticURL()
+
+    logger = loadLogger()
 
 class frontendConfig(backendConfig):
     DB_FILE_PATH = os.environ.get("DB_FILE_PATH") or "./osinter_users.db"
