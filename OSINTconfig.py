@@ -37,6 +37,7 @@ def loadLogger():
 class backendConfig():
     ELASTICSEARCH_ARTICLE_INDEX = os.environ.get("ARTICLE_INDEX") or "osinter_articles"
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or loadElasticURL()
+    ELASTICSEARCH_CERT_PATH = os.environ.get('ELASTICSEARCH_CERT_PATH') or "./.elasticsearch.crt" if os.path.isfile("./.elasticsearch.crt") else None
 
     logger = loadLogger()
 

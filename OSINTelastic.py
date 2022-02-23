@@ -3,9 +3,13 @@ from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 
 class elasticDB():
-    def __init__(self, addresses, indexName):
+    def __init__(self, addresses, certPath, indexName):
         self.indexName = indexName
-        self.es = Elasticsearch(addresses)
+
+        if certPath:
+            self.es = Elasticsearch(addresses, ca_certs=certPath)
+        else:
+            self.es = Elasticsearch(addresses, verify_certs=False)
 
     # Checking if the article is already stored in the es db using the URL as that is probably not going to change and is uniqe
     def existsInDB(self, url):
@@ -25,7 +29,7 @@ class elasticDB():
     def queryArticles(self, searchQ):
         articleList = []
 
-        searchResults = self.es.search(searchQ, self.indexName)
+        searchResults = self.es.search(**searchQ, index=self.indexName)
 
         for queryResult in searchResults["hits"]["hits"]:
 
@@ -63,7 +67,7 @@ class elasticDB():
     def requestProfileListFromDB(self):
         searchQ = {"size" : 0, "aggs" : {"profileNames" : {"terms" : { "field" : "profile",  "size" : 500 }}}}
 
-        return [uniqueVal["key"] for uniqueVal in self.es.search(searchQ, self.indexName)["aggregations"]["profileNames"]["buckets"]]
+        return [uniqueVal["key"] for uniqueVal in self.es.search(**searchQ, index=self.indexName)["aggregations"]["profileNames"]["buckets"]]
 
     def saveArticle(self, articleObject):
         articleDict = articleObject.as_dict()
@@ -74,9 +78,9 @@ class elasticDB():
             articleID = ""
 
         if articleID:
-            return self.es.index(self.indexName, articleDict, id=articleID)["_id"]
+            return self.es.index(index=self.indexName, document=articleDict, id=articleID)["_id"]
         else:
-            return self.es.index(self.indexName, articleDict)["_id"]
+            return self.es.index(index=self.indexName, document=articleDict)["_id"]
 
 
     def searchArticles(self, paramaters):
@@ -133,46 +137,44 @@ class elasticDB():
                             "lang" : "painless"
                         }
                 }
-        self.es.update(self.indexName, articleID, incrementScript)
+        self.es.update(index=self.indexName, id=articleID, script=incrementScript)
 
-def configureElasticsearch(address, indexName):
-    es = Elasticsearch(address)
+def configureElasticsearch(address, certPath, indexName):
+    if certPath:
+        es = Elasticsearch(address, ca_certs=certPath)
+    else:
+        es = Elasticsearch(address, verify_certs=False)
 
     indexConfig= {
-                  "settings": {
-                    "index.number_of_shards": 1
-                  },
-                  "mappings": {
-                    "dynamic" : "strict",
-                    "properties": {
-                      "title": {"type" : "text"},
-                      "description": {"type" : "text"},
-                      "content": {"type" : "text"},
-                      "formatted_content" : {"type" : "text"},
+                  "dynamic" : "strict",
+                  "properties": {
+                    "title": {"type" : "text"},
+                    "description": {"type" : "text"},
+                    "content": {"type" : "text"},
+                    "formatted_content" : {"type" : "text"},
 
-                      "url": {"type" : "keyword"},
-                      "profile": {"type" : "keyword"},
-                      "source": {"type" : "keyword"},
-                      "image_url": {"type" : "keyword"},
-                      "author": {"type" : "keyword"},
+                    "url": {"type" : "keyword"},
+                    "profile": {"type" : "keyword"},
+                    "source": {"type" : "keyword"},
+                    "image_url": {"type" : "keyword"},
+                    "author": {"type" : "keyword"},
 
-                      "inserted_at" : {"type" : "date"},
-                      "publish_date" : {"type" : "date"},
+                    "inserted_at" : {"type" : "date"},
+                    "publish_date" : {"type" : "date"},
 
-                      "tags" : {
-                                  "type" : "object",
-                                  "enabled" : False,
-                                  "properties" : {
-                                      "manual" : {"type" : "object", "dynamic" : True},
-                                      "interresting" : {"type" : "object", "dynamic" : True},
-                                      "automatic" : {"type" : "keyword"}
-                                  }
-                               },
-                      "read_times" : {"type" :  "unsigned_long"}
-                    }
+                    "tags" : {
+                                "type" : "object",
+                                "enabled" : False,
+                                "properties" : {
+                                    "manual" : {"type" : "object", "dynamic" : True},
+                                    "interresting" : {"type" : "object", "dynamic" : True},
+                                    "automatic" : {"type" : "keyword"}
+                                }
+                             },
+                    "read_times" : {"type" :  "unsigned_long"}
                   }
                 }
 
     esIndexClient = IndicesClient(es)
 
-    esIndexClient.create(indexName, body=indexConfig, ignore=[400, 404])
+    esIndexClient.create(index=indexName, mappings=indexConfig)
