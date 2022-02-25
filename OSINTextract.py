@@ -6,6 +6,9 @@ import json
 
 import re
 
+from dateutil.parser import parse
+from datetime import timezone
+
 
 # Used for matching the relevant information from LD+JSON
 JSONPatterns = {
@@ -87,5 +90,10 @@ def extractMetaInformation(pageSoup, scrapingTargets, siteURL):
 
     if OGTags["image_url"] == None:
         OGTags["image_url"] = f"{siteURL}/favicon.ico"
+
+    if OGTags["publish_date"]:
+        OGTags["publish_date"] = parse(OGTags["publish_date"]).astimezone(timezone.utc)
+    else:
+        OGTags["publish_date"] = datetime.now(timezone.utc)
 
     return OGTags

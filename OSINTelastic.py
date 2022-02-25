@@ -2,6 +2,8 @@ from OSINTmodules.OSINTobjects import Article
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 
+from datetime import datetime, timezone
+
 class elasticDB():
     def __init__(self, addresses, certPath, indexName):
         self.indexName = indexName
@@ -43,6 +45,9 @@ class elasticDB():
                 if "title" in queryResult["highlight"]:
                     queryResult["_source"]["title"] = " ... ".join(queryResult["highlight"]["title"])
 
+            for timeValue in ["publish_date", "inserted_at"]:
+                queryResult["_source"][timeValue] = datetime.strptime(queryResult["_source"][timeValue], "%Y-%m-%dT%H:%M:%S%z")
+
             currentArticle = Article(**queryResult["_source"])
             currentArticle.id = queryResult["_id"]
             articleList.append(currentArticle)
@@ -71,6 +76,9 @@ class elasticDB():
 
     def saveArticle(self, articleObject):
         articleDict = articleObject.as_dict()
+
+        for timeValue in ["publish_date", "inserted_at"]:
+            articleDict[timeValue] = articleDict[timeValue].strftime("%Y-%m-%dT%H:%M:%S%z")
 
         if "id" in articleDict:
             articleID = articleDict.pop("id")

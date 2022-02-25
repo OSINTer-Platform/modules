@@ -17,7 +17,7 @@ class Article:
     content: str = ""
     summary: str = ""
     tags: dict = field(factory=dict)
-    inserted_at: datetime = field(default=datetime.now(timezone.utc).astimezone())
+    inserted_at: datetime = field(default=datetime.now(timezone.utc))
     saved: bool = False
     read: bool = False
     read_times: int = 0
