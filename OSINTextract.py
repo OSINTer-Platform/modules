@@ -7,7 +7,7 @@ import json
 import re
 
 from dateutil.parser import parse
-from datetime import timezone
+from datetime import timezone, datetime
 
 
 # Used for matching the relevant information from LD+JSON
