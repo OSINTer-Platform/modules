@@ -128,7 +128,7 @@ def scrapePageDynamic(pageURL, scrapingTypes, loadTime=3, headless=True):
     for scrapingType in scrapingTypes:
         currentType = scrapingType.split(":")
         if currentType[0] == "JS":
-            driver.execute_script(Path(f"./OSINTJSInjection/{currentType[1]}.js").read_text())
+            driver.execute_script(Path(f"./OSINTprofiles/OSINTJSInjection/{currentType[1]}.js").read_text())
             while driver.execute_script("return document.osinterReady") == False:
                 time.sleep(1)
 
