@@ -80,7 +80,11 @@ def extractMetaInformation(pageSoup, scrapingTargets, siteURL):
 
         for scriptTag in JSONScriptTags:
             # Converting to and from JSON to standardize the format to avoid things like line breaks and excesive spaces at the end and start of line. Will also make sure there spaces in the right places between the keys and values so it isn't like "key" :"value" and "key  : "value" but rather "key": "value" and "key": "value".
-            scriptTagString = json.dumps(json.loads("".join(scriptTag.contents)))
+            try:
+                scriptTagString = json.dumps(json.loads("".join(scriptTag.contents)))
+            except json.decoder.JSONDecodeError:
+                pass
+
             for pattern in JSONPatterns:
                 if OGTags[pattern] == None:
                     articleDetailPatternMatch = JSONPatterns[pattern].search(scriptTagString)
