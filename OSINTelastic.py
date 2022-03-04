@@ -140,10 +140,8 @@ class elasticDB():
 
     def incrementReadCounter(self, articleID):
         incrementScript = {
-                    "script" : {
                             "source" : "ctx._source.read_times += 1",
                             "lang" : "painless"
-                        }
                 }
         self.es.update(index=self.indexName, id=articleID, script=incrementScript)
 
