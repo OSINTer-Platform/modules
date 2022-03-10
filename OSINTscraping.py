@@ -7,9 +7,6 @@ from pathlib import Path
 # For manipulating lists in a way that's less memory intensive
 import itertools
 
-# The profiles mapping the different websites are in json format
-import json
-
 # Used to gather the urls from the articles, by reading a RSS feed
 import feedparser
 
@@ -75,18 +72,12 @@ def scrapeWebSoup(URL):
 # Scraping targets is element and class of element in which the target url is stored, and the profileName is prepended on the list, to be able to find the profile again when it's needed for scraping
 def scrapeArticleURLs(rootURL, frontPageURL, scrapingTargets, profileName):
 
-    # List for holding the urls for the articles
-    articleURLCollection = [profileName]
-
     # Getting a soup for the website
-    frontPageSoup = scrapeWebSoup(frontPageURL).select(scrapingTargets["containerList"])[0] if scrapingTargets["containerList"] != "" else scrapeWebSoup(frontPageURL)
+    frontPageSoup = scrapeWebSoup(frontPageURL).select(scrapingTargets["containerList"])[0] if scrapingTargets["containerList"] != [] else scrapeWebSoup(frontPageURL)
 
     articleURLs = [ catURL(rootURL, link.get("href") if scrapingTargets["linkContainers"] == "" else link.select(scrapingTargets["links"])[0].get("href")) for link in itertools.islice(frontPageSoup.select(scrapingTargets["linkContainers"] if scrapingTargets["linkContainers"] != "" else scrapingTargets["links"]), 10) ]
 
-
-    articleURLCollection.extend(articleURLs)
-
-    return articleURLCollection
+    return articleURLs
 
 # Function for scraping a list of recent articles using the url to a RSS feed
 def RSSArticleURLs(RSSURL, profileName):
@@ -94,7 +85,7 @@ def RSSArticleURLs(RSSURL, profileName):
     RSSFeed = feedparser.parse(RSSURL)
 
     # List for holding the urls from the RSS feed
-    articleURLs = [profileName]
+    articleURLs = []
 
     # Extracting the urls only, as these are the only relevant information. Also only take the first 10, if more is given to only get the newest articles
     for entry in itertools.islice(RSSFeed.entries, 10):
@@ -105,20 +96,17 @@ def RSSArticleURLs(RSSURL, profileName):
 # Function for gathering list of URLs for articles from newssite
 def gatherArticleURLs(profiles):
 
-    articleURLs = list()
+    articleURLs = {}
 
     for profile in profiles:
 
-        # Parsing the json properly
-        profile = json.loads(profile)['source']
-
         # For those were the RSS feed is useful, that will be used
-        if profile['retrivalMethod'] == "rss":
-            articleURLs.append(RSSArticleURLs(profile['newsPath'], profile['profileName']))
+        if profile["source"]['retrivalMethod'] == "rss":
+            articleURLs[profile["source"]["profileName"]] = RSSArticleURLs(profile["source"]['newsPath'], profile["source"]['profileName'])
 
         # For basically everything else scraping will be used
-        elif profile['retrivalMethod'] == "scraping":
-            articleURLs.append(scrapeArticleURLs(profile['address'], profile['newsPath'], profile['scrapingTargets'], profile['profileName']))
+        elif profile["source"]['retrivalMethod'] == "scraping":
+            articleURLs[profile["source"]["profileName"]] = scrapeArticleURLs(profile["source"]['address'], profile["source"]['newsPath'], profile["source"]['scrapingTargets'], profile["source"]['profileName'])
 
     return articleURLs
 
@@ -140,7 +128,9 @@ def scrapePageDynamic(pageURL, scrapingTypes, loadTime=3, headless=True):
     for scrapingType in scrapingTypes:
         currentType = scrapingType.split(":")
         if currentType[0] == "JS":
-            driver.execute_script(Path(f"./OSINTJSInjection/{currentType[1]}.js").read_text())
+            driver.execute_script(Path(f"./OSINTprofiles/OSINTJSInjection/{currentType[1]}.js").read_text())
+            while driver.execute_script("return document.osinterReady") == False:
+                time.sleep(1)
 
     # Getting the source code for the page
     pageSource = driver.page_source

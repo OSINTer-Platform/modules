@@ -6,9 +6,6 @@ from pathlib import Path
 
 import json
 
-from OSINTmodules.OSINTdatabase import requestProfileListFromDB
-
-
 # Function for reading all profile files and returning the content in a list if profileName is left empty, returning the contents of one profile if it isn't or simply just return the names of the available profile if profileName is left empty and justNames is set to true
 def getProfiles(profileName="", justNames=False):
 
@@ -29,30 +26,28 @@ def getProfiles(profileName="", justNames=False):
         for profile in profileFiles:
 
             # Stripping any potential trailing or leading newlines
-            profiles.append(Path(profilePath + profile).read_text().strip())
+            profiles.append(json.loads(Path(profilePath + profile).read_text().strip()))
 
         return profiles
     else:
-        return Path(profilePath + profileName + ".profile").read_text().strip()
+        return json.loads(Path(profilePath + profileName + ".profile").read_text().strip())
 
-def collectWebsiteDetails(connection, tableName):
+def collectWebsiteDetails(esClient):
+    DBStoredProfiles = esClient.requestProfileListFromDB()
+
     profiles = getProfiles()
-
-    # For cross-checking to make sure to only include profiles that also has been scraped some articles from
-    DBStoredProfiles = requestProfileListFromDB(connection, tableName)
 
     # The final list of all the website information
     details = {}
 
     for profile in profiles:
-        currentProfile = json.loads(profile)
 
-        if currentProfile['source']['profileName'] in DBStoredProfiles:
-            imageURL = currentProfile['source']['imageURL']
+        if profile['source']['profileName'] in DBStoredProfiles:
+            imageURL = profile['source']['imageURL']
 
-            details[currentProfile['source']['profileName']] = {
-                'name' : currentProfile['source']['name'],
+            details[profile['source']['profileName']] = {
+                'name' : profile['source']['name'],
                 'image' : imageURL
             }
 
-    return details
+    return {source: details[source] for source in sorted(details)}

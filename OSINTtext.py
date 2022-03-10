@@ -14,6 +14,10 @@ def cleanText(clearText):
     cleanClearText = unicodedata.normalize("NFKD", clearText)
     # Remove line endings
     cleanClearText = re.sub(r'\n', ' ', cleanClearText)
+
+    return cleanClearText
+
+def tokenizeText(cleanClearText):
     # Removing all contractions and "'s" created in english by descriping possession
     cleanClearText = re.sub(r'(?:\'|’)\S*', '', cleanClearText)
     # Remove punctuation
@@ -26,6 +30,7 @@ def cleanText(clearText):
     clearTextList = cleanClearText.split(" ")
 
     return clearTextList
+
 
 # Function for taking in a list of words, and generating tags based on that. Does this by finding the words that doesn't appear in a wordlist (which means they probably have some technical relevans) and then sort them by how often they're used. The input should be cleaned with cleanText
 def generateTags(clearTextList):
@@ -73,7 +78,8 @@ def locateObjectsOfInterrest(clearText):
         result =  [ result if type(result) != tuple else "".join(result) for result in objects[objectName]["pattern"].findall(clearText) ]
 
         if result != []:
-            results[objectName] = { "results" : result, "tag" : objects[objectName]["tag"] }
+            # Removing duplicates from result list by converting it to a set and then back to list
+            results[objectName] = { "results" : list(set(result)), "tag" : objects[objectName]["tag"] }
 
     return results
 

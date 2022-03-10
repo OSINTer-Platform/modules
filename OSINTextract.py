@@ -6,6 +6,9 @@ import json
 
 import re
 
+from dateutil.parser import parse
+from datetime import timezone, datetime
+
 
 # Used for matching the relevant information from LD+JSON
 JSONPatterns = {
@@ -53,26 +56,22 @@ def extractArticleContent(selectors, soup, delimiter='\n'):
 
 
 # Function for scraping meta information (like title, author and publish date) from articles. This both utilizes the OG tags and LD+JSON data, and while the proccess for extracting the OG tags is fairly simply as those is (nearly) always following the same standard, the LD+JSON data is a little more complicated. Here the data isn't parsed as JSON, but rather as a string where the relevant pieces of information is extracted using regex. It's probably ugly and definitly not the officially "right" way of doing this, but different placement of the information in the JSON object on different websites using different attributes made parsing the information from a python JSON object near impossible. As such, be warned that this function is not for the faint of heart
-def extractMetaInformation(pageSoup):
-    OGTagLocations = {
-            "author" : ["meta[name=author]"],
-            "publish_date": ["meta[name=date]", "meta[name='DC.date.issued']", "meta[property='article:published_time']"],
-            "title" : ["meta[property='og:title']"],
-            "description" : ["p.article-details__description", "meta[property='og:description']"],
-            "image" : ["meta[property='og:image']"]}
-
+def extractMetaInformation(pageSoup, scrapingTargets, siteURL):
     OGTags = {}
 
-    for tagKind in OGTagLocations:
+    for tagKind in scrapingTargets:
         OGTags[tagKind] = None
-        for selector in OGTagLocations[tagKind]:
-            try:
-                if selector.startswith("meta"):
-                    OGTags[tagKind] = pageSoup.select(selector)[0].get("content")
-                else:
-                    OGTags[tagKind] = pageSoup.select(selector)[0].text
-            except IndexError:
-                pass
+        for selector in scrapingTargets[tagKind].split(";"):
+            if selector:
+                try:
+                    if "meta" in selector:
+                        OGTags[tagKind] = pageSoup.select(selector)[0].get("content")
+                    elif "time" in selector:
+                        OGTags[tagKind] = pageSoup.select(selector)[0].get("datetime")
+                    else:
+                        OGTags[tagKind] = pageSoup.select(selector)[0].text
+                except IndexError:
+                    pass
 
     if OGTags["author"] == None or OGTags["publish_date"] == None:
 
@@ -81,11 +80,24 @@ def extractMetaInformation(pageSoup):
 
         for scriptTag in JSONScriptTags:
             # Converting to and from JSON to standardize the format to avoid things like line breaks and excesive spaces at the end and start of line. Will also make sure there spaces in the right places between the keys and values so it isn't like "key" :"value" and "key  : "value" but rather "key": "value" and "key": "value".
-            scriptTagString = json.dumps(json.loads("".join(scriptTag.contents)))
+            try:
+                scriptTagString = json.dumps(json.loads("".join(scriptTag.contents)))
+            except json.decoder.JSONDecodeError:
+                pass
+
             for pattern in JSONPatterns:
-                articleDetailPatternMatch = JSONPatterns[pattern].search(scriptTagString)
-                if articleDetailPatternMatch != None:
-                    # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
-                    OGTags[pattern] = articleDetailPatternMatch.group(2)
+                if OGTags[pattern] == None:
+                    articleDetailPatternMatch = JSONPatterns[pattern].search(scriptTagString)
+                    if articleDetailPatternMatch != None:
+                        # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
+                        OGTags[pattern] = articleDetailPatternMatch.group(2)
+
+    if OGTags["image_url"] == None:
+        OGTags["image_url"] = f"{siteURL}/favicon.ico"
+
+    if OGTags["publish_date"]:
+        OGTags["publish_date"] = parse(OGTags["publish_date"]).astimezone(timezone.utc)
+    else:
+        OGTags["publish_date"] = datetime.now(timezone.utc)
 
     return OGTags

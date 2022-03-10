@@ -22,18 +22,6 @@ def printDebug(message, timeStamp=True):
     elif debugMessages:
         print(message)
 
-def createNewsSiteFolder(newsSite):
-    if not os.path.isdir(Path("./articles/" + newsSite)):
-        try:
-            os.mkdir(Path("./articles/" + newsSite), mode=0o750)
-        except:
-            raise Exception("Apparently {} couldn't get the needed folder created for storing MD files, exiting".format(newsSite))
-    else:
-        try:
-            os.chmod(Path("./articles/" + newsSite), 0o750)
-        except:
-            raise Exception("Failed to set the 750 permissions on articles/{}, either remove the folder or set the right perms yourself and try again.".format(newsSite))
-
 def checkIfURL(URL):
     if re.match(r"https?:\/\/.*\..*", URL):
         return True
@@ -46,13 +34,6 @@ def catURL(rootURL, relativePath):
         return relativePath
     else:
         return rootURL[:-1] + relativePath
-
-# Function for taking an arbitrary string and convert it into one that can safely be used as a filename and for removing spaces as those can be a headache to deal with
-def fileSafeString(unsafeString):
-    allowedCharacthers = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
-    unsafeString = unsafeString.strip().replace(" ", "-")
-    safeString = ''.join(c for c in unsafeString if c in allowedCharacthers)
-    return safeString
 
 # The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from OSINTtext will return (tag). [proximity] is optional, and if not specified 30 is the default value
 def decodeKeywordsFile(filePath):
