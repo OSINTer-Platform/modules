@@ -35,8 +35,8 @@ class Article:
                  "profile" : self.profile,
                  "source" : self.source,
 
-                 "publish_date" : self.publish_date,
-                 "inserted_at" : self.inserted_at,
+                 "publish_date" : self.publish_date.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                 "inserted_at" : self.inserted_at.strftime("%Y-%m-%dT%H:%M:%S%z"),
 
                  "read_times" : self.read_times,
 

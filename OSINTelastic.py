@@ -77,9 +77,6 @@ class elasticDB():
     def saveArticle(self, articleObject):
         articleDict = articleObject.as_dict()
 
-        for timeValue in ["publish_date", "inserted_at"]:
-            articleDict[timeValue] = articleDict[timeValue].strftime("%Y-%m-%dT%H:%M:%S%z")
-
         if "id" in articleDict:
             articleID = articleDict.pop("id")
         else:
