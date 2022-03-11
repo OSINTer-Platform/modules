@@ -152,7 +152,7 @@ class elasticDB():
 def configureElasticsearch(configOptions):
     es = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    indexConfig= {
+    articleIndexConfig = {
                   "dynamic" : "strict",
                   "properties": {
                     "title": {"type" : "text"},
@@ -182,6 +182,17 @@ def configureElasticsearch(configOptions):
                   }
                 }
 
+    userIndexConfig = {
+                  "dynamic" : "strict",
+                  "properties" : {
+                      "username" : {"type" : "text"},
+                      "password_hash" : {"type" : "text"},
+                      "read_article_ids" : {"type" : "text"},
+                      "saved_article_ids" : {"type" : "text"}
+                  }
+            }
+
     esIndexClient = IndicesClient(es)
 
-    esIndexClient.create(index=configOptions.ELASTICSEARCH_ARTICLE_INDEX, mappings=indexConfig, ignore=[400])
+    esIndexClient.create(index=configOptions.ELASTICSEARCH_ARTICLE_INDEX, mappings=articleIndexConfig, ignore=[400])
+    esIndexClient.create(index=configOptions.ELASTICSEARCH_USER_INDEX, mappings=userIndexConfig, ignore=[400])
