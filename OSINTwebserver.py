@@ -6,7 +6,7 @@ from OSINTmodules.OSINTprofiles import getProfiles
 
 def verifyProfiles(profiles, esClient):
     # Getting the profiles that are stored in the database
-    DBStoredProfiles = esClient.requestProfileListFromDB()
+    DBStoredProfiles = esClient.requestSourceCategoryListFromDB()
 
     # Getting the names of the locally avaiable profiles stored in the json files
     localProfiles = getProfiles(justNames = True)
