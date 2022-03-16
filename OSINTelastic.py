@@ -181,10 +181,10 @@ def configureElasticsearch(configOptions):
     userIndexConfig = {
                   "dynamic" : "strict",
                   "properties" : {
-                      "username" : {"type" : "text"},
-                      "password_hash" : {"type" : "text"},
-                      "read_article_ids" : {"type" : "text"},
-                      "saved_article_ids" : {"type" : "text"}
+                      "username" : {"type" : "keyword"},
+                      "password_hash" : {"type" : "keyword"},
+                      "read_article_ids" : {"type" : "keyword"},
+                      "saved_article_ids" : {"type" : "keyword"}
                   }
             }
 
