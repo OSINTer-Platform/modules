@@ -138,6 +138,26 @@ class elasticDB():
 
         return self.queryDocuments(searchQ)
 
+    def getLastDocument(self, sourceCategory=None):
+        searchQ = {
+                  "size" : 1,
+                  "sort" : {
+                      "publish_date" : "desc"
+                  }
+              }
+
+        if sourceCategory and isinstance(sourceCategory, list):
+            searchQ["query"] = { "terms" : { self.sourceCategory : sourceCategory } }
+        elif sourceCategory:
+            searchQ["query"] = { "term" : { self.sourceCategory : sourceCategory } }
+
+        results = self.queryDocuments(searchQ)
+
+        if results["result_number"]:
+            return results["documents"][0]
+        else:
+            return None
+
     def incrementReadCounter(self, documentID):
         incrementScript = {
                             "source" : "ctx._source.read_times += 1",
