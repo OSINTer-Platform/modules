@@ -53,7 +53,7 @@ class elasticDB():
 
             if "highlight" in queryResult:
                 for fieldType in self.searchFields:
-                    if fieldType in queryResult[fieldType]:
+                    if fieldType in queryResult["highlight"]:
                         queryResult["_source"][fieldType] = self.concatStrings(queryResult["highlight"][fieldType])
 
             for timeValue in ["publish_date", "inserted_at"]:
