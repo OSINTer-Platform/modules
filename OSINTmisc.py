@@ -1,26 +1,8 @@
 # For checking if string matches regex
 import re
 
-import os
-
-# For getting the current date and time for logging and verbose output
-from datetime import datetime
-
 from pathlib import Path
 
-
-try:
-    # For if the user wants verbose output
-    from __main__ import debugMessages
-except:
-    debugMessages = True
-
-
-def printDebug(message, timeStamp=True):
-    if debugMessages and timeStamp:
-        print(datetime.now().strftime("[%d/%m/%Y-%H:%M:%S]") + " " + message)
-    elif debugMessages:
-        print(message)
 
 def checkIfURL(URL):
     if re.match(r"https?:\/\/.*\..*", URL):
