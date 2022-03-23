@@ -18,7 +18,7 @@ def returnArticleDBConn(configOptions):
 def returnTweetDBConn(configOptions):
     DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    return elasticDB(DBConn, configOptions.ELASTICSEARCH_TWEET_INDEX, "twitter_id", "author", ["content"], Tweet)
+    return elasticDB(DBConn, configOptions.ELASTICSEARCH_TWEET_INDEX, "twitter_id", "author_details.username", ["content"], Tweet)
 
 class elasticDB():
     def __init__(self, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass):
