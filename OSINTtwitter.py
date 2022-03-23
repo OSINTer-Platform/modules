@@ -71,4 +71,7 @@ def processTweetData(tweetData):
 
             tweet.pop("entities")
 
+        tweet["content"] = tweet.pop("text")
+        tweet["twitter_id"] = tweet.pop("id")
+
     return tweets
