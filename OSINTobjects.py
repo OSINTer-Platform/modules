@@ -48,14 +48,13 @@ class Article:
 @define(kw_only=True)
 class Tweet:
     twitter_id: str
-    url: str
     content: str
 
     hashtags: list = field(factory=list)
     mentions: list = field(factory=list)
 
     author_details: dict
-    OG: dict
+    OG: dict = field(factory=dict)
 
     publish_date: datetime
     inserted_at: datetime = field(default=datetime.now(timezone.utc))
@@ -66,7 +65,6 @@ class Tweet:
 
     def as_dict(self):
         return { "twitter_id" : self.twitter_id,
-                 "url" : self.url,
                  "content" : self.content,
 
                  "hashtags" : self.hashtags,

@@ -177,27 +177,36 @@ def configureElasticsearch(configOptions):
         "ELASTICSEARCH_TWEET_INDEX" : {
                       "dynamic" : "strict",
                       "properties": {
-                        "title": {"type" : "text"},
-                        "description": {"type" : "text"},
+                        "twitter_id": {"type" : "keyword"},
                         "content": {"type" : "text"},
-                        "formatted_content" : {"type" : "text"},
 
-                        "url": {"type" : "keyword"},
-                        "profile": {"type" : "keyword"},
-                        "source": {"type" : "keyword"},
-                        "image_url": {"type" : "keyword"},
-                        "author": {"type" : "keyword"},
+                        "hashtags": {"type" : "keyword"},
+                        "mentions": {"type" : "keyword"},
 
                         "inserted_at" : {"type" : "date"},
                         "publish_date" : {"type" : "date"},
 
-                        "tags" : {
+                        "author_details" : {
                                     "type" : "object",
-                                    "enabled" : False,
+                                    "enabled" : True,
                                     "properties" : {
-                                        "manual" : {"type" : "object", "dynamic" : True},
-                                        "interresting" : {"type" : "object", "dynamic" : True},
-                                        "automatic" : {"type" : "keyword"}
+                                        "author_id": {"type" : "keyword"},
+                                        "name": {"type" : "keyword"},
+                                        "username": {"type" : "keyword"}
+
+                                    }
+                                 },
+
+                        "OG" : {
+                                    "type" : "object",
+                                    "enabled" : True,
+                                    "properties" : {
+                                        "url": {"type" : "keyword"},
+                                        "image_url": {"type" : "keyword"},
+
+                                        "title": {"type" : "text"},
+                                        "description": {"type" : "text"},
+                                        "content": {"type" : "text"},
                                     }
                                  },
                         "read_times" : {"type" :  "unsigned_long"}
