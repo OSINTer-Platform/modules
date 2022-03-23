@@ -143,7 +143,7 @@ class elasticDB():
 
         return self.queryDocuments(searchQ)
 
-    def getLastDocument(self, sourceCategory=None):
+    def getLastDocument(self, sourceCategoryValue=None):
         searchQ = {
                   "size" : 1,
                   "sort" : {
@@ -151,10 +151,12 @@ class elasticDB():
                   }
               }
 
-        if sourceCategory and isinstance(sourceCategory, list):
-            searchQ["query"] = { "terms" : { self.sourceCategory : sourceCategory } }
-        elif sourceCategory:
-            searchQ["query"] = { "term" : { self.sourceCategory : sourceCategory } }
+        if sourceCategoryValue and isinstance(sourceCategoryValue, list):
+            searchQ["query"] = { "terms" : { self.sourceCategory : sourceCategoryValue } }
+        elif sourceCategoryValue:
+            searchQ["query"] = { "term" : { self.sourceCategory : sourceCategoryValue } }
+        else:
+            searchQ["query"] = { "term" : { "" : "" } }
 
         results = self.queryDocuments(searchQ)
 
