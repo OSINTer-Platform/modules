@@ -168,47 +168,48 @@ class elasticDB():
 def configureElasticsearch(configOptions):
     es = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    articleIndexConfig = {
-                  "dynamic" : "strict",
-                  "properties": {
-                    "title": {"type" : "text"},
-                    "description": {"type" : "text"},
-                    "content": {"type" : "text"},
-                    "formatted_content" : {"type" : "text"},
+    indexConfigs = {
+        "ELASTICSEARCH_ARTICLE_INDEX" : {
+                      "dynamic" : "strict",
+                      "properties": {
+                        "title": {"type" : "text"},
+                        "description": {"type" : "text"},
+                        "content": {"type" : "text"},
+                        "formatted_content" : {"type" : "text"},
 
-                    "url": {"type" : "keyword"},
-                    "profile": {"type" : "keyword"},
-                    "source": {"type" : "keyword"},
-                    "image_url": {"type" : "keyword"},
-                    "author": {"type" : "keyword"},
+                        "url": {"type" : "keyword"},
+                        "profile": {"type" : "keyword"},
+                        "source": {"type" : "keyword"},
+                        "image_url": {"type" : "keyword"},
+                        "author": {"type" : "keyword"},
 
-                    "inserted_at" : {"type" : "date"},
-                    "publish_date" : {"type" : "date"},
+                        "inserted_at" : {"type" : "date"},
+                        "publish_date" : {"type" : "date"},
 
-                    "tags" : {
-                                "type" : "object",
-                                "enabled" : False,
-                                "properties" : {
-                                    "manual" : {"type" : "object", "dynamic" : True},
-                                    "interresting" : {"type" : "object", "dynamic" : True},
-                                    "automatic" : {"type" : "keyword"}
-                                }
-                             },
-                    "read_times" : {"type" :  "unsigned_long"}
-                  }
+                        "tags" : {
+                                    "type" : "object",
+                                    "enabled" : False,
+                                    "properties" : {
+                                        "manual" : {"type" : "object", "dynamic" : True},
+                                        "interresting" : {"type" : "object", "dynamic" : True},
+                                        "automatic" : {"type" : "keyword"}
+                                    }
+                                 },
+                        "read_times" : {"type" :  "unsigned_long"}
+                },
+
+        "ELASTICSEARCH_USER_INDEX" : {
+                      "dynamic" : "strict",
+                      "properties" : {
+                          "username" : {"type" : "keyword"},
+                          "password_hash" : {"type" : "keyword"},
+                          "read_article_ids" : {"type" : "keyword"},
+                          "saved_article_ids" : {"type" : "keyword"}
+                      }
                 }
-
-    userIndexConfig = {
-                  "dynamic" : "strict",
-                  "properties" : {
-                      "username" : {"type" : "keyword"},
-                      "password_hash" : {"type" : "keyword"},
-                      "read_article_ids" : {"type" : "keyword"},
-                      "saved_article_ids" : {"type" : "keyword"}
-                  }
-            }
+        }
 
     esIndexClient = IndicesClient(es)
 
-    esIndexClient.create(index=configOptions.ELASTICSEARCH_ARTICLE_INDEX, mappings=articleIndexConfig, ignore=[400])
-    esIndexClient.create(index=configOptions.ELASTICSEARCH_USER_INDEX, mappings=userIndexConfig, ignore=[400])
+    for indexName in indexConfigs:
+        esIndexClient.create(index=configOptions[indexName], mappings=indexConfigs[indexName], ignore=[400])

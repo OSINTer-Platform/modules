@@ -42,5 +42,8 @@ class backendConfig():
 
     logger = loadLogger()
 
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 class frontendConfig(backendConfig):
     SECRET_KEY = os.environ.get('SECRET_KEY') or loadSecretKey()
