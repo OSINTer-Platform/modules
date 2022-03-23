@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from searchtweets import load_credentials, collect_results, gen_request_parameters
 
@@ -37,7 +37,8 @@ def processTweetData(tweetData):
         tweet["author_details"] = {"author_id" : authorID}
         tweet["author_details"].update(authors[authorID])
 
-        tweet["publish_date"] = datetime.strptime(tweet.pop("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ")
+        tweet["publish_date"] = datetime.strptime(tweet.pop("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+
 
         if "entities" in tweet:
             entitySpecs = {
