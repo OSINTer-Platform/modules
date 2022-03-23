@@ -27,8 +27,6 @@ from OSINTmodules.OSINTmisc import catURL
 # Used for selecting a random elemen from browserHeaders list
 import random
 
-from searchtweets import load_credentials, collect_results
-
 # Used for simulating an actual browser when scraping for OGTags, stolen from here
 browserHeadersList = [
         # Firefox 77 Mac
@@ -111,35 +109,6 @@ def gatherArticleURLs(profiles):
             articleURLs[profile["source"]["profileName"]] = scrapeArticleURLs(profile["source"]['address'], profile["source"]['newsPath'], profile["source"]['scrapingTargets'], profile["source"]['profileName'])
 
     return articleURLs
-
-def gatherTweets(credentials, author, lastTweetID=None):
-
-    queryParams = {
-            "tweet_fields" : "created_at",
-            "user_fields" : "username",
-            "expansions" : "author_id",
-            "results_per_call" : 10,
-            "granularity" : None
-            }
-
-    if lastTweetID:
-        query = gen_request_parameters(f"from:{author}", since_id=lastTweetID, **queryParams)
-    else:
-        query = gen_request_parameters(f"from:{author}", **queryParams)
-
-
-    tweetData = collect_results(query, max_tweets=10, result_stream_args=credentials)
-
-    tweets = tweetData[0]["data"]
-    authors = { authorBlock.pop("id"):authorBlock for authorBlock in tweetData[0]["includes"]["users"] }
-
-    for tweet in tweets:
-        authorID = tweet.pop("author_id")
-        tweet["author_details"] = {"author_id" : authorID}
-        tweet["author_details"].update(authors[authorID])
-
-    return tweets
-
 
 def scrapePageDynamic(pageURL, scrapingTypes, loadTime=3, headless=True):
 
