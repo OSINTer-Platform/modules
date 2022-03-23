@@ -4,14 +4,21 @@ from elasticsearch.client import IndicesClient
 
 from datetime import datetime, timezone
 
-class elasticDB():
-    def __init__(self, addresses, certPath, indexName):
-        self.indexName = indexName
+def createESConn(addresses, certPath=None):
+    if certPath:
+        return Elasticsearch(addresses, ca_certs=certPath)
+    else:
+        return Elasticsearch(addresses, verify_certs=False)
 
-        if certPath:
-            self.es = Elasticsearch(addresses, ca_certs=certPath)
-        else:
-            self.es = Elasticsearch(addresses, verify_certs=False)
+def returnArticleDBConn(configOptions):
+    DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
+
+    return elasticDB(DBConn, configOptions.ELASTICSEARCH_ARTICLE_INDEX)
+
+class elasticDB():
+    def __init__(self, esConn, indexName):
+        self.indexName = indexName
+        self.es = esConn
 
     # Checking if the article is already stored in the es db using the URL as that is probably not going to change and is uniqe
     def existsInDB(self, url):
@@ -142,13 +149,10 @@ class elasticDB():
                 }
         self.es.update(index=self.indexName, id=articleID, script=incrementScript)
 
-def configureElasticsearch(address, certPath, indexName):
-    if certPath:
-        es = Elasticsearch(address, ca_certs=certPath)
-    else:
-        es = Elasticsearch(address, verify_certs=False)
+def configureElasticsearch(configOptions):
+    es = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    indexConfig= {
+    articleIndexConfig = {
                   "dynamic" : "strict",
                   "properties": {
                     "title": {"type" : "text"},
@@ -178,6 +182,17 @@ def configureElasticsearch(address, certPath, indexName):
                   }
                 }
 
+    userIndexConfig = {
+                  "dynamic" : "strict",
+                  "properties" : {
+                      "username" : {"type" : "text"},
+                      "password_hash" : {"type" : "text"},
+                      "read_article_ids" : {"type" : "text"},
+                      "saved_article_ids" : {"type" : "text"}
+                  }
+            }
+
     esIndexClient = IndicesClient(es)
 
-    esIndexClient.create(index=indexName, mappings=indexConfig)
+    esIndexClient.create(index=configOptions.ELASTICSEARCH_ARTICLE_INDEX, mappings=articleIndexConfig, ignore=[400])
+    esIndexClient.create(index=configOptions.ELASTICSEARCH_USER_INDEX, mappings=userIndexConfig, ignore=[400])
