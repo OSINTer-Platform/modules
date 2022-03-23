@@ -1,4 +1,4 @@
-from OSINTmodules.OSINTobjects import Article
+from OSINTmodules.OSINTobjects import Article, Tweet
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 
@@ -13,16 +13,30 @@ def createESConn(addresses, certPath=None):
 def returnArticleDBConn(configOptions):
     DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    return elasticDB(DBConn, configOptions.ELASTICSEARCH_ARTICLE_INDEX)
+    return elasticDB(DBConn, configOptions.ELASTICSEARCH_ARTICLE_INDEX, "url", "profile", ["title^5", "description^3", "content"], Article)
+
+def returnTweetDBConn(configOptions):
+    DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
+
+    return elasticDB(DBConn, configOptions.ELASTICSEARCH_TWEET_INDEX, "twitter_id", "author_details.username", ["content"], Tweet)
 
 class elasticDB():
-    def __init__(self, esConn, indexName):
+    def __init__(self, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass):
         self.indexName = indexName
         self.es = esConn
+        self.uniqueField = uniqueField
+        self.sourceCategory = sourceCategory
+        self.weightedSearchFields = weightedSearchFields
 
-    # Checking if the article is already stored in the es db using the URL as that is probably not going to change and is uniqe
-    def existsInDB(self, url):
-        return int(self.es.search(index=self.indexName, body={'query': { "term" : {"url": {"value" : url}}}})["hits"]["total"]["value"]) != 0
+        self.searchFields = []
+        for fieldType in weightedSearchFields:
+            self.searchFields.append(fieldType.split("^")[0])
+
+        self.documentObjectClass = documentObjectClass
+
+    # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
+    def existsInDB(self, token):
+        return int(self.es.search(index=self.indexName, body={'query': { "term" : {self.uniqueField: {"value" : token}}}})["hits"]["total"]["value"]) != 0
 
     def concatStrings(self, stringList):
         finalString = " ... ".join(stringList)
@@ -35,67 +49,58 @@ class elasticDB():
 
         return finalString
 
-    def queryArticles(self, searchQ):
-        articleList = []
+    def queryDocuments(self, searchQ):
+        documentList = []
 
         searchResults = self.es.search(**searchQ, index=self.indexName)
 
         for queryResult in searchResults["hits"]["hits"]:
 
             if "highlight" in queryResult:
-                if "content" in queryResult["highlight"]:
-                    queryResult["_source"]["summary"] = self.concatStrings(queryResult["highlight"]["content"])
-
-                if "description" in queryResult["highlight"]:
-                    queryResult["_source"]["description"] = self.concatStrings(queryResult["highlight"]["description"])
-
-                if "title" in queryResult["highlight"]:
-                    queryResult["_source"]["title"] = " ... ".join(queryResult["highlight"]["title"])
+                for fieldType in self.searchFields:
+                    if fieldType in queryResult["highlight"]:
+                        queryResult["_source"][fieldType] = self.concatStrings(queryResult["highlight"][fieldType])
 
             for timeValue in ["publish_date", "inserted_at"]:
                 queryResult["_source"][timeValue] = datetime.strptime(queryResult["_source"][timeValue], "%Y-%m-%dT%H:%M:%S%z")
 
-            currentArticle = Article(**queryResult["_source"])
-            currentArticle.id = queryResult["_id"]
-            articleList.append(currentArticle)
+            currentDocument = self.documentObjectClass(**queryResult["_source"])
+            currentDocument.id = queryResult["_id"]
+            documentList.append(currentDocument)
 
-        return {"articles" : articleList, "result_number" : searchResults["hits"]["total"]["value"]}
+        return {"documents" : documentList, "result_number" : searchResults["hits"]["total"]["value"]}
 
 
-    # Function for taking in a list of lists of articles with the first entry of each list being the name of the profile, and then removing all the articles that already has been saved in the database
-    def filterArticleURLList(self, articleURLCollection):
-        # The final list that will be returned in the same format as the articleURLCollection list, but with the already stored articles removed
-        filteredArticleURLDict = {}
+    # Function for taking in a list of lists of documents with the first entry of each list being the name of the profile, and then removing all the documents that already has been saved in the database
+    def filterDocumentList(self, documentAttributeList):
+        filteredDocumentList = []
+        for attr in documentAttributeList:
+            if not self.existsInDB(attr):
+                filteredDocumentList.append(attr)
 
-        for profileName in articleURLCollection:
-            filteredArticleURLDict[profileName] = []
-            for URL in articleURLCollection[profileName]:
-                if not self.existsInDB(URL):
-                    filteredArticleURLDict[profileName].append(URL)
-
-        return filteredArticleURLDict
+        return filteredDocumentList
 
     # Function for getting each unique profile in the DB
-    def requestProfileListFromDB(self):
-        searchQ = {"size" : 0, "aggs" : {"profileNames" : {"terms" : { "field" : "profile",  "size" : 500 }}}}
+    def requestSourceCategoryListFromDB(self):
+        searchQ = {"size" : 0, "aggs" : {"sourceCategory" : {"terms" : { "field" : self.sourceCategory,  "size" : 500 }}}}
 
-        return [uniqueVal["key"] for uniqueVal in self.es.search(**searchQ, index=self.indexName)["aggregations"]["profileNames"]["buckets"]]
+        return [uniqueVal["key"] for uniqueVal in self.es.search(**searchQ, index=self.indexName)["aggregations"]["sourceCategory"]["buckets"]]
 
-    def saveArticle(self, articleObject):
-        articleDict = articleObject.as_dict()
+    def saveDocument(self, documentObjectClass):
+        documentDict = documentObjectClass.as_dict()
 
-        if "id" in articleDict:
-            articleID = articleDict.pop("id")
+        if "id" in documentDict:
+            documentID = documentDict.pop("id")
         else:
-            articleID = ""
+            documentID = ""
 
-        if articleID:
-            return self.es.index(index=self.indexName, document=articleDict, id=articleID)["_id"]
+        if documentID:
+            return self.es.index(index=self.indexName, document=documentDict, id=documentID)["_id"]
         else:
-            return self.es.index(index=self.indexName, document=articleDict)["_id"]
+            return self.es.index(index=self.indexName, document=documentDict)["_id"]
 
 
-    def searchArticles(self, paramaters):
+    def searchDocuments(self, paramaters):
         searchQ = {
                   "size" : 50,
                   "query": {
@@ -106,13 +111,9 @@ class elasticDB():
                   "highlight" : {
                     "pre_tags" : ["***"],
                     "post_tags" : ["***"],
-                    "fields" : {
-                      "title" : {},
-                      "description": {},
-                      "content" : {}
+                    "fields" : { fieldType:{} for fieldType in self.searchFields }
                     }
                   }
-                }
 
         if "limit" in paramaters:
             searchQ["size"] = int(paramaters["limit"])
@@ -123,10 +124,10 @@ class elasticDB():
             searchQ["sort"] = {"publish_date" : "desc"}
 
         if "searchTerm" in paramaters:
-            searchQ["query"]["bool"]["must"] = {"simple_query_string" : {"query" : paramaters["searchTerm"], "fields" : ["title^5", "description^3", "content"]} }
+            searchQ["query"]["bool"]["must"] = {"simple_query_string" : {"query" : paramaters["searchTerm"], "fields" : self.weightedSearchFields} }
 
-        if "profiles" in paramaters:
-            searchQ["query"]["bool"]["filter"].append({ "terms" : { "profile" : paramaters["profiles"] } })
+        if "sourceCategory" in paramaters:
+            searchQ["query"]["bool"]["filter"].append({ "terms" : { self.sourceCategory : paramaters["sourceCategory"] } })
 
         if "IDs" in paramaters:
             searchQ["query"]["bool"]["filter"].append({ "terms" : { "_id" : paramaters["IDs"] } })
@@ -140,59 +141,122 @@ class elasticDB():
         if "lastDate" in paramaters:
             searchQ["query"]["bool"]["filter"][-1]["range"]["publish_date"]["lte"] = paramaters["lastDate"].isoformat()
 
-        return self.queryArticles(searchQ)
+        return self.queryDocuments(searchQ)
 
-    def incrementReadCounter(self, articleID):
+    def getLastDocument(self, sourceCategoryValue=None):
+        searchQ = {
+                  "size" : 1,
+                  "sort" : {
+                      "publish_date" : "desc"
+                  }
+              }
+
+        if sourceCategoryValue and isinstance(sourceCategoryValue, list):
+            searchQ["query"] = { "terms" : { self.sourceCategory : sourceCategoryValue } }
+        elif sourceCategoryValue:
+            searchQ["query"] = { "term" : { self.sourceCategory : sourceCategoryValue } }
+        else:
+            searchQ["query"] = { "term" : { "" : "" } }
+
+        results = self.queryDocuments(searchQ)
+
+        if results["result_number"]:
+            return results["documents"][0]
+        else:
+            return None
+
+    def incrementReadCounter(self, documentID):
         incrementScript = {
                             "source" : "ctx._source.read_times += 1",
                             "lang" : "painless"
                 }
-        self.es.update(index=self.indexName, id=articleID, script=incrementScript)
+        self.es.update(index=self.indexName, id=documentID, script=incrementScript)
 
 def configureElasticsearch(configOptions):
     es = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    articleIndexConfig = {
-                  "dynamic" : "strict",
-                  "properties": {
-                    "title": {"type" : "text"},
-                    "description": {"type" : "text"},
-                    "content": {"type" : "text"},
-                    "formatted_content" : {"type" : "text"},
+    indexConfigs = {
+        "ELASTICSEARCH_TWEET_INDEX" : {
+                      "dynamic" : "strict",
+                      "properties": {
+                        "twitter_id": {"type" : "keyword"},
+                        "content": {"type" : "text"},
 
-                    "url": {"type" : "keyword"},
-                    "profile": {"type" : "keyword"},
-                    "source": {"type" : "keyword"},
-                    "image_url": {"type" : "keyword"},
-                    "author": {"type" : "keyword"},
+                        "hashtags": {"type" : "keyword"},
+                        "mentions": {"type" : "keyword"},
 
-                    "inserted_at" : {"type" : "date"},
-                    "publish_date" : {"type" : "date"},
+                        "inserted_at" : {"type" : "date"},
+                        "publish_date" : {"type" : "date"},
 
-                    "tags" : {
-                                "type" : "object",
-                                "enabled" : False,
-                                "properties" : {
-                                    "manual" : {"type" : "object", "dynamic" : True},
-                                    "interresting" : {"type" : "object", "dynamic" : True},
-                                    "automatic" : {"type" : "keyword"}
-                                }
-                             },
-                    "read_times" : {"type" :  "unsigned_long"}
-                  }
+                        "author_details" : {
+                                    "type" : "object",
+                                    "enabled" : True,
+                                    "properties" : {
+                                        "author_id": {"type" : "keyword"},
+                                        "name": {"type" : "keyword"},
+                                        "username": {"type" : "keyword"}
+
+                                    }
+                                 },
+
+                        "OG" : {
+                                    "type" : "object",
+                                    "enabled" : True,
+                                    "properties" : {
+                                        "url": {"type" : "keyword"},
+                                        "image_url": {"type" : "keyword"},
+
+                                        "title": {"type" : "text"},
+                                        "description": {"type" : "text"},
+                                        "content": {"type" : "text"}
+                                    }
+                                 },
+                        "read_times" : {"type" :  "unsigned_long"}
+                      }
+                    },
+
+        "ELASTICSEARCH_ARTICLE_INDEX" : {
+                      "dynamic" : "strict",
+                      "properties": {
+                        "title": {"type" : "text"},
+                        "description": {"type" : "text"},
+                        "content": {"type" : "text"},
+                        "formatted_content" : {"type" : "text"},
+
+                        "url": {"type" : "keyword"},
+                        "profile": {"type" : "keyword"},
+                        "source": {"type" : "keyword"},
+                        "image_url": {"type" : "keyword"},
+                        "author": {"type" : "keyword"},
+
+                        "inserted_at" : {"type" : "date"},
+                        "publish_date" : {"type" : "date"},
+
+                        "tags" : {
+                                    "type" : "object",
+                                    "enabled" : False,
+                                    "properties" : {
+                                        "manual" : {"type" : "object", "dynamic" : True},
+                                        "interresting" : {"type" : "object", "dynamic" : True},
+                                        "automatic" : {"type" : "keyword"}
+                                    }
+                                 },
+                        "read_times" : {"type" :  "unsigned_long"}
+                },
+        },
+
+        "ELASTICSEARCH_USER_INDEX" : {
+                      "dynamic" : "strict",
+                      "properties" : {
+                          "username" : {"type" : "keyword"},
+                          "password_hash" : {"type" : "keyword"},
+                          "read_article_ids" : {"type" : "keyword"},
+                          "saved_article_ids" : {"type" : "keyword"}
                 }
-
-    userIndexConfig = {
-                  "dynamic" : "strict",
-                  "properties" : {
-                      "username" : {"type" : "text"},
-                      "password_hash" : {"type" : "text"},
-                      "read_article_ids" : {"type" : "text"},
-                      "saved_article_ids" : {"type" : "text"}
-                  }
-            }
+        }
+    }
 
     esIndexClient = IndicesClient(es)
 
-    esIndexClient.create(index=configOptions.ELASTICSEARCH_ARTICLE_INDEX, mappings=articleIndexConfig, ignore=[400])
-    esIndexClient.create(index=configOptions.ELASTICSEARCH_USER_INDEX, mappings=userIndexConfig, ignore=[400])
+    for indexName in indexConfigs:
+        esIndexClient.create(index=configOptions[indexName], mappings=indexConfigs[indexName], ignore=[400])

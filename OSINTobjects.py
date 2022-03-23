@@ -2,6 +2,8 @@ from attrs import define, field
 
 from datetime import datetime, timezone
 
+dateFormat = "%Y-%m-%dT%H:%M:%S%z"
+
 @define(kw_only=True)
 class Article:
     title: str
@@ -35,10 +37,46 @@ class Article:
                  "profile" : self.profile,
                  "source" : self.source,
 
-                 "publish_date" : self.publish_date.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                 "inserted_at" : self.inserted_at.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                 "publish_date" : self.publish_date.strftime(dateFormat),
+                 "inserted_at" : self.inserted_at.strftime(dateFormat),
 
                  "read_times" : self.read_times,
 
                  "tags" : self.tags
+               }
+
+@define(kw_only=True)
+class Tweet:
+    twitter_id: str
+    content: str
+
+    hashtags: list = field(factory=list)
+    mentions: list = field(factory=list)
+
+    author_details: dict
+    OG: dict = field(factory=dict)
+
+    publish_date: datetime
+    inserted_at: datetime = field(default=datetime.now(timezone.utc))
+
+    read_times: int = 0
+
+    id: str = ""
+
+    def as_dict(self):
+        return { "twitter_id" : self.twitter_id,
+                 "content" : self.content,
+
+                 "hashtags" : self.hashtags,
+                 "mentions" : self.mentions,
+
+                 "author_details" : self.author_details,
+                 "OG" : self.OG,
+
+                 "publish_date" : self.publish_date.strftime(dateFormat),
+                 "inserted_at" : self.inserted_at.strftime(dateFormat),
+
+                 "read_times" : self.read_times,
+
+                 "id" : self.id
                }

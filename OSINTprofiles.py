@@ -33,7 +33,7 @@ def getProfiles(profileName="", justNames=False):
         return json.loads(Path(profilePath + profileName + ".profile").read_text().strip())
 
 def collectWebsiteDetails(esClient):
-    DBStoredProfiles = esClient.requestProfileListFromDB()
+    DBStoredProfiles = esClient.requestSourceCategoryListFromDB()
 
     profiles = getProfiles()
 
