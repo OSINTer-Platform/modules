@@ -208,7 +208,7 @@ def configureElasticsearch(configOptions):
 
                                         "title": {"type" : "text"},
                                         "description": {"type" : "text"},
-                                        "content": {"type" : "text"},
+                                        "content": {"type" : "text"}
                                     }
                                  },
                         "read_times" : {"type" :  "unsigned_long"}
@@ -243,6 +243,7 @@ def configureElasticsearch(configOptions):
                                  },
                         "read_times" : {"type" :  "unsigned_long"}
                 },
+        },
 
         "ELASTICSEARCH_USER_INDEX" : {
                       "dynamic" : "strict",
@@ -251,9 +252,9 @@ def configureElasticsearch(configOptions):
                           "password_hash" : {"type" : "keyword"},
                           "read_article_ids" : {"type" : "keyword"},
                           "saved_article_ids" : {"type" : "keyword"}
-                      }
                 }
         }
+    }
 
     esIndexClient = IndicesClient(es)
 
