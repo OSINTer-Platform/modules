@@ -1,4 +1,4 @@
-from OSINTmodules.OSINTobjects import Article
+from OSINTmodules.OSINTobjects import Article, Tweet
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 
@@ -14,6 +14,11 @@ def returnArticleDBConn(configOptions):
     DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
     return elasticDB(DBConn, configOptions.ELASTICSEARCH_ARTICLE_INDEX, "url", "profile", ["title^5", "description^3", "content"], Article)
+
+def returnTweetDBConn(configOptions):
+    DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
+
+    return elasticDB(DBConn, configOptions.ELASTICSEARCH_TWEET_INDEX, "twitter_id", "author", ["content"], Tweet)
 
 class elasticDB():
     def __init__(self, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass):
@@ -169,6 +174,36 @@ def configureElasticsearch(configOptions):
     es = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
     indexConfigs = {
+        "ELASTICSEARCH_TWEET_INDEX" : {
+                      "dynamic" : "strict",
+                      "properties": {
+                        "title": {"type" : "text"},
+                        "description": {"type" : "text"},
+                        "content": {"type" : "text"},
+                        "formatted_content" : {"type" : "text"},
+
+                        "url": {"type" : "keyword"},
+                        "profile": {"type" : "keyword"},
+                        "source": {"type" : "keyword"},
+                        "image_url": {"type" : "keyword"},
+                        "author": {"type" : "keyword"},
+
+                        "inserted_at" : {"type" : "date"},
+                        "publish_date" : {"type" : "date"},
+
+                        "tags" : {
+                                    "type" : "object",
+                                    "enabled" : False,
+                                    "properties" : {
+                                        "manual" : {"type" : "object", "dynamic" : True},
+                                        "interresting" : {"type" : "object", "dynamic" : True},
+                                        "automatic" : {"type" : "keyword"}
+                                    }
+                                 },
+                        "read_times" : {"type" :  "unsigned_long"}
+                      }
+                    },
+
         "ELASTICSEARCH_ARTICLE_INDEX" : {
                       "dynamic" : "strict",
                       "properties": {
