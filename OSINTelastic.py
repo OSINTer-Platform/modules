@@ -241,7 +241,8 @@ def configureElasticsearch(configOptions):
                                         "automatic" : {"type" : "keyword"}
                                     }
                                  },
-                        "read_times" : {"type" :  "unsigned_long"}
+                        "read_times" : {"type" :  "unsigned_long"},
+                        "similar" : {"type" : "keyword"}
                 },
         },
 

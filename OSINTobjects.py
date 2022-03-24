@@ -23,6 +23,7 @@ class Article:
     saved: bool = False
     read: bool = False
     read_times: int = 0
+    similar: list = field(factory=list)
 
     def as_dict(self):
         return { "id" : self.id,
@@ -42,7 +43,9 @@ class Article:
 
                  "read_times" : self.read_times,
 
-                 "tags" : self.tags
+                 "tags" : self.tags,
+
+                 "similar" : self.similar
                }
 
 @define(kw_only=True)
