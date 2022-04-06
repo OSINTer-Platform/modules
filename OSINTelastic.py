@@ -100,20 +100,22 @@ class elasticDB():
             return self.es.index(index=self.indexName, document=documentDict)["_id"]
 
 
-    def searchDocuments(self, paramaters):
+    def searchDocuments(self, paramaters, highlight=True):
         searchQ = {
                   "size" : 50,
                   "query": {
                     "bool" : {
                       "filter" : []
                     }
-                  },
-                  "highlight" : {
-                    "pre_tags" : ["***"],
-                    "post_tags" : ["***"],
-                    "fields" : { fieldType:{} for fieldType in self.searchFields }
-                    }
                   }
+                }
+
+        if highlight:
+            searchQ["highlight"] = {
+                      "pre_tags" : ["***"],
+                      "post_tags" : ["***"],
+                      "fields" : { fieldType:{} for fieldType in self.searchFields }
+                      }
 
         if "limit" in paramaters:
             searchQ["size"] = int(paramaters["limit"])
