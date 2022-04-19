@@ -93,23 +93,6 @@ def RSSArticleURLs(RSSURL, profileName):
 
     return articleURLs
 
-# Function for gathering list of URLs for articles from newssite
-def gatherArticleURLs(profiles):
-
-    articleURLs = {}
-
-    for profile in profiles:
-
-        # For those were the RSS feed is useful, that will be used
-        if profile["source"]['retrivalMethod'] == "rss":
-            articleURLs[profile["source"]["profileName"]] = RSSArticleURLs(profile["source"]['newsPath'], profile["source"]['profileName'])
-
-        # For basically everything else scraping will be used
-        elif profile["source"]['retrivalMethod'] == "scraping":
-            articleURLs[profile["source"]["profileName"]] = scrapeArticleURLs(profile["source"]['address'], profile["source"]['newsPath'], profile["source"]['scrapingTargets'], profile["source"]['profileName'])
-
-    return articleURLs
-
 def scrapePageDynamic(pageURL, scrapingTypes, loadTime=3, headless=True):
 
     # Setting the options for running the browser driver headlessly so it doesn't pop up when running the script
