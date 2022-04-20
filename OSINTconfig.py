@@ -42,23 +42,28 @@ def loadLogger():
 
     return logger
 
-class backendConfig():
+class baseConfig():
     def __init__(self):
         self.ELASTICSEARCH_ARTICLE_INDEX = os.environ.get("ARTICLE_INDEX") or "osinter_articles"
         self.ELASTICSEARCH_TWEET_INDEX = os.environ.get("TWEET_INDEX") or "osinter_tweets"
         self.ELASTICSEARCH_USER_INDEX = os.environ.get("USER_INDEX") or "osinter_users"
         self.ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or loadElasticURL()
         self.ELASTICSEARCH_CERT_PATH = os.environ.get('ELASTICSEARCH_CERT_PATH') or "./.elasticsearch.crt" if os.path.isfile("./.elasticsearch.crt") else None
-        self.TWITTER_CREDENTIAL_PATH = os.environ.get('TWITTER_CREDENTIAL_PATH') or "./.twitter_keys.yaml" if os.path.isfile("./.twitter_keys.yaml") else None
-
-        self.logger = loadLogger()
 
         self.esTweetClient = returnTweetDBConn(self)
         self.esArticleClient = returnArticleDBConn(self)
 
+class backendConfig(baseConfig):
+    def __init__(self):
+        baseConfig.__init__(self)
+        self.TWITTER_CREDENTIAL_PATH = os.environ.get('TWITTER_CREDENTIAL_PATH') or "./.twitter_keys.yaml" if os.path.isfile("./.twitter_keys.yaml") else None
+
+        self.logger = loadLogger()
+
     def __getitem__(self, item):
         return getattr(self, item)
 
-class frontendConfig(backendConfig):
+class frontendConfig(baseConfig):
     def __init__(self):
+        baseConfig.__init__(self)
         SECRET_KEY = os.environ.get('SECRET_KEY') or loadSecretKey()
