@@ -3,6 +3,8 @@ import secrets
 from pathlib import Path
 import logging
 
+from OSINTmodules.OSINTelastic import returnTweetDBConn, returnArticleDBConn
+
 def loadSecretKey():
     if os.path.isfile("./secret.key"):
         return Path("./secret.key").read_text()
@@ -51,6 +53,8 @@ class backendConfig():
 
         self.logger = loadLogger()
 
+        self.esTweetClient = returnTweetDBConn(self)
+        self.esArticleClient = returnArticleDBConn(self)
 
     def __getitem__(self, item):
         return getattr(self, item)
