@@ -4,8 +4,24 @@ from datetime import datetime, timezone
 
 dateFormat = "%Y-%m-%dT%H:%M:%S%z"
 
+class base():
+    def as_dict(self):
+        object_dict = {}
+
+        for attr in dir(self):
+            attrValue = getattr(self, attr)
+            if not attr.startswith("__") and not callable(getattr(self, attr)) and attrValue:
+                if isinstance(attrValue, datetime):
+                    object_dict[attr] = attrValue.strftime(dateFormat)
+                else:
+                    object_dict[attr] = attrValue
+
+        return object_dict
+
+
+
 @define(kw_only=True)
-class Article:
+class Article(base):
     title: str
     description: str
     url: str
@@ -25,31 +41,8 @@ class Article:
     read_times: int = 0
     similar: list = field(factory=list)
 
-    def as_dict(self):
-        return { "id" : self.id,
-                 "title" : self.title,
-                 "description" : self.description,
-                 "content" : self.content,
-                 "formatted_content" : self.formatted_content,
-
-                 "url" : self.url,
-                 "image_url" : self.image_url,
-                 "author" : self.author,
-                 "profile" : self.profile,
-                 "source" : self.source,
-
-                 "publish_date" : self.publish_date.strftime(dateFormat),
-                 "inserted_at" : self.inserted_at.strftime(dateFormat),
-
-                 "read_times" : self.read_times,
-
-                 "tags" : self.tags,
-
-                 "similar" : self.similar
-               }
-
 @define(kw_only=True)
-class Tweet:
+class Tweet(base):
     twitter_id: str
     content: str
 
@@ -65,21 +58,3 @@ class Tweet:
     read_times: int = 0
 
     id: str = ""
-
-    def as_dict(self):
-        return { "twitter_id" : self.twitter_id,
-                 "content" : self.content,
-
-                 "hashtags" : self.hashtags,
-                 "mentions" : self.mentions,
-
-                 "author_details" : self.author_details,
-                 "OG" : self.OG,
-
-                 "publish_date" : self.publish_date.strftime(dateFormat),
-                 "inserted_at" : self.inserted_at.strftime(dateFormat),
-
-                 "read_times" : self.read_times,
-
-                 "id" : self.id
-               }
