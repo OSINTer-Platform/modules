@@ -16,12 +16,12 @@ def createESConn(addresses, certPath=None):
 def returnArticleDBConn(configOptions):
     DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    return elasticDB(DBConn, configOptions.ELASTICSEARCH_ARTICLE_INDEX, "url", "profile", ["title^5", "description^3", "content"], Article)
+    return elasticDB(DBConn, configOptions.ELASTICSEARCH_ARTICLE_INDEX, "url", "profile", ["title^5", "description^3", "content"], Article, ["title", "description", "url", "profile", "source", "publish_date", "inserted_at"])
 
 def returnTweetDBConn(configOptions):
     DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    return elasticDB(DBConn, configOptions.ELASTICSEARCH_TWEET_INDEX, "twitter_id", "author_details.username", ["content"], Tweet)
+    return elasticDB(DBConn, configOptions.ELASTICSEARCH_TWEET_INDEX, "twitter_id", "author_details.username", ["content"], Tweet, ["twitter_id", "content", "author_details", "publish_date", "inserted_at"])
 
 @define(kw_only=True)
 class searchQuery():
@@ -34,6 +34,7 @@ class searchQuery():
     lastDate: Optional[datetime] = None
     IDs: list = field(factory=list)
     highlight: bool = False
+    complete: bool = True # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
 
     def generateESQuery(self, esClient):
         query = {
@@ -51,6 +52,9 @@ class searchQuery():
                       "post_tags" : ["***"],
                       "fields" : { fieldType:{} for fieldType in esClient.searchFields }
             }
+
+        if not self.complete:
+            query["source"] = esClient.essentialFields
 
         if self.sortBy and self.sortOrder:
             query["sort"] = { self.sortBy : self.sortOrder }
@@ -78,12 +82,13 @@ class searchQuery():
         return query
 
 class elasticDB():
-    def __init__(self, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass):
+    def __init__(self, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass, essentialFields):
         self.indexName = indexName
         self.es = esConn
         self.uniqueField = uniqueField
         self.sourceCategory = sourceCategory
         self.weightedSearchFields = weightedSearchFields
+        self.essentialFields = essentialFields
 
         self.searchFields = []
         for fieldType in weightedSearchFields:
