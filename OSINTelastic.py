@@ -111,7 +111,8 @@ class elasticDB():
 
         return finalString
 
-    def queryDocuments(self, searchQ: Optional[searchQuery] = None):
+    # return_object decides whether to return list of objects of class self.documentObjectClass or list of dictionaries
+    def queryDocuments(self, searchQ: Optional[searchQuery] = None, *, return_object = True):
         documentList = []
 
         if searchQ:
@@ -129,8 +130,12 @@ class elasticDB():
             for timeValue in ["publish_date", "inserted_at"]:
                 queryResult["_source"][timeValue] = datetime.strptime(queryResult["_source"][timeValue], "%Y-%m-%dT%H:%M:%S%z")
 
-            currentDocument = self.documentObjectClass(**queryResult["_source"])
-            currentDocument.id = queryResult["_id"]
+            if return_object:
+                currentDocument = self.documentObjectClass(**queryResult["_source"])
+                currentDocument.id = queryResult["_id"]
+            else:
+                currentDocument = queryResult["_source"]
+                currentDocument["id"] = queryResult["_id"]
             documentList.append(currentDocument)
 
         return {"documents" : documentList, "result_number" : searchResults["hits"]["total"]["value"]}
