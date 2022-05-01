@@ -25,7 +25,7 @@ def returnTweetDBConn(configOptions):
 
 @define(kw_only=True)
 class searchQuery():
-    limit: int = 50
+    limit: int = 10_000
     sortBy: str = ""
     sortOrder: str = ""
     searchTerm: str = ""
@@ -112,7 +112,7 @@ class elasticDB():
         if searchQ:
             searchResults = self.es.search(**searchQ.generateESQuery(self), index=self.indexName)
         else:
-            searchResults = self.es.search(**searchQuery(limit = 10_000).generateESQuery(self), index=self.indexName)
+            searchResults = self.es.search(**searchQuery().generateESQuery(self), index=self.indexName)
 
         for queryResult in searchResults["hits"]["hits"]:
 
