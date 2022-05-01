@@ -106,10 +106,13 @@ class elasticDB():
 
         return finalString
 
-    def queryDocuments(self, searchQ: searchQuery):
+    def queryDocuments(self, searchQ: Optional[searchQuery] = None):
         documentList = []
 
-        searchResults = self.es.search(searchQ.generateESQuery(), index=self.indexName)
+        if searchQ:
+            searchResults = self.es.search(**searchQ.generateESQuery(self), index=self.indexName)
+        else:
+            searchResults = self.es.search(**searchQuery(limit = 10_000).generateESQuery(self), index=self.indexName)
 
         for queryResult in searchResults["hits"]["hits"]:
 
