@@ -2,6 +2,9 @@ from OSINTmodules.OSINTobjects import Article, Tweet
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 
+from attrs import define, field
+from typing import Optional
+
 from datetime import datetime, timezone
 
 def createESConn(addresses, certPath=None):
@@ -19,6 +22,60 @@ def returnTweetDBConn(configOptions):
     DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
     return elasticDB(DBConn, configOptions.ELASTICSEARCH_TWEET_INDEX, "twitter_id", "author_details.username", ["content"], Tweet)
+
+@define(kw_only=True)
+class searchQuery():
+    limit: int = 50
+    sortBy: str = ""
+    sortOrder: str = ""
+    searchTerm: str = ""
+    sourceCategory: str = ""
+    firstDate: Optional[datetime] = None
+    lastDate: Optional[datetime] = None
+    IDs: list = field(factory=list)
+    highlight: bool = False
+
+    def generateESQuery(self, esClient):
+        query = {
+                  "size" : self.limit,
+                  "query": {
+                    "bool" : {
+                      "filter" : []
+                    }
+                  }
+                }
+
+        if self.highlight:
+            query["highlight"] = {
+                      "pre_tags" : ["***"],
+                      "post_tags" : ["***"],
+                      "fields" : { fieldType:{} for fieldType in esClient.searchFields }
+            }
+
+        if self.sortBy and self.sortOrder:
+            query["sort"] = { self.sortBy : self.sortOrder }
+        elif not self.searchTerm:
+            query["sort"] = {"publish_date" : "desc"}
+
+        if self.searchTerm:
+            query["query"]["bool"]["must"] = {"simple_query_string" : {"query" : self.searchTerm, "fields" : esClient.weightedSearchFields} }
+
+        if self.sourceCategory:
+            query["query"]["bool"]["filter"].append({ "terms" : { esClient.sourceCategory : self.sourceCategory } })
+
+        if len(self.IDs) > 0:
+            query["query"]["bool"]["filter"].append({ "terms" : { "_id" : self.IDs } })
+
+        if self.firstDate or self.lastDate:
+            query["query"]["bool"]["filter"].append({"range" : {"publish_date" : {}}})
+
+        if self.firstDate:
+            query["query"]["bool"]["filter"][-1]["range"]["publish_date"]["gte"] = self.firstDate.isoformat()
+
+        if self.lastDate:
+            query["query"]["bool"]["filter"][-1]["range"]["publish_date"]["lte"] = self.lastDate.isoformat()
+
+        return query
 
 class elasticDB():
     def __init__(self, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass):
@@ -49,10 +106,10 @@ class elasticDB():
 
         return finalString
 
-    def queryDocuments(self, searchQ):
+    def queryDocuments(self, searchQ: searchQuery):
         documentList = []
 
-        searchResults = self.es.search(**searchQ, index=self.indexName)
+        searchResults = self.es.search(searchQ.generateESQuery(), index=self.indexName)
 
         for queryResult in searchResults["hits"]["hits"]:
 
@@ -98,52 +155,6 @@ class elasticDB():
             return self.es.index(index=self.indexName, document=documentDict, id=documentID)["_id"]
         else:
             return self.es.index(index=self.indexName, document=documentDict)["_id"]
-
-
-    def searchDocuments(self, paramaters, highlight=True):
-        searchQ = {
-                  "size" : 50,
-                  "query": {
-                    "bool" : {
-                      "filter" : []
-                    }
-                  }
-                }
-
-        if highlight:
-            searchQ["highlight"] = {
-                      "pre_tags" : ["***"],
-                      "post_tags" : ["***"],
-                      "fields" : { fieldType:{} for fieldType in self.searchFields }
-                      }
-
-        if "limit" in paramaters:
-            searchQ["size"] = int(paramaters["limit"])
-
-        if "sortBy" in paramaters and "sortOrder" in paramaters:
-            searchQ["sort"] = { paramaters["sortBy"] : paramaters["sortOrder"] }
-        elif not "searchTerm" in paramaters:
-            searchQ["sort"] = {"publish_date" : "desc"}
-
-        if "searchTerm" in paramaters:
-            searchQ["query"]["bool"]["must"] = {"simple_query_string" : {"query" : paramaters["searchTerm"], "fields" : self.weightedSearchFields} }
-
-        if "sourceCategory" in paramaters:
-            searchQ["query"]["bool"]["filter"].append({ "terms" : { self.sourceCategory : paramaters["sourceCategory"] } })
-
-        if "IDs" in paramaters:
-            searchQ["query"]["bool"]["filter"].append({ "terms" : { "_id" : paramaters["IDs"] } })
-
-        if "firstDate" in paramaters or "lastDate" in paramaters:
-            searchQ["query"]["bool"]["filter"].append({"range" : {"publish_date" : {}}})
-
-        if "firstDate" in paramaters:
-            searchQ["query"]["bool"]["filter"][-1]["range"]["publish_date"]["gte"] = paramaters["firstDate"].isoformat()
-
-        if "lastDate" in paramaters:
-            searchQ["query"]["bool"]["filter"][-1]["range"]["publish_date"]["lte"] = paramaters["lastDate"].isoformat()
-
-        return self.queryDocuments(searchQ)
 
     def getLastDocument(self, sourceCategoryValue=None):
         searchQ = {
