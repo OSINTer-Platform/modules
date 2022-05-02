@@ -26,8 +26,8 @@ def loadLogger():
 
     logHandlers = {
         "printHandler" : logging.StreamHandler(),
-        "fileHandler" : logging.FileHandler('info.log'),
-        "errorHandler" : logging.FileHandler('error.log')
+        "fileHandler" : logging.FileHandler('logs/info.log'),
+        "errorHandler" : logging.FileHandler('logs/error.log')
     }
 
     logHandlers["printHandler"].setLevel(logging.DEBUG)
