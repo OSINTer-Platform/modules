@@ -16,12 +16,28 @@ def createESConn(addresses, certPath=None):
 def returnArticleDBConn(configOptions):
     DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    return elasticDB(DBConn, configOptions.ELASTICSEARCH_ARTICLE_INDEX, "url", "profile", ["title^5", "description^3", "content"], Article, ["title", "description", "url", "profile", "source", "publish_date", "inserted_at"])
+    return elasticDB(
+                esConn = DBConn,
+                indexName = configOptions.ELASTICSEARCH_ARTICLE_INDEX,
+                uniqueField = "url",
+                sourceCategory = "profile",
+                weightedSearchFields = ["title^5", "description^3", "content"],
+                documentObjectClass = Article,
+                essentialFields = ["title", "description", "url", "profile", "source", "publish_date", "inserted_at"]
+           )
 
 def returnTweetDBConn(configOptions):
     DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
 
-    return elasticDB(DBConn, configOptions.ELASTICSEARCH_TWEET_INDEX, "twitter_id", "author_details.username", ["content"], Tweet, ["twitter_id", "content", "author_details", "publish_date", "inserted_at"])
+    return elasticDB(
+                esConn = DBConn,
+                indexName = configOptions.ELASTICSEARCH_TWEET_INDEX,
+                uniqueField = "twitter_id",
+                sourceCategory = "author_details.username",
+                weightedSearchFields = ["content"],
+                documentObjectClass = Tweet,
+                essentialFields = ["twitter_id", "content", "author_details", "publish_date", "inserted_at"]
+           )
 
 @define(kw_only=True)
 class searchQuery():
@@ -82,7 +98,7 @@ class searchQuery():
         return query
 
 class elasticDB():
-    def __init__(self, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass, essentialFields):
+    def __init__(self, *, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass, essentialFields):
         self.indexName = indexName
         self.es = esConn
         self.uniqueField = uniqueField
