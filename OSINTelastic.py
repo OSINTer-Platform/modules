@@ -147,9 +147,6 @@ class elasticDB():
                     if fieldType in queryResult["highlight"]:
                         queryResult["_source"][fieldType] = self.concatStrings(queryResult["highlight"][fieldType])
 
-            for timeValue in ["publish_date", "inserted_at"]:
-                queryResult["_source"][timeValue] = datetime.strptime(queryResult["_source"][timeValue], "%Y-%m-%dT%H:%M:%S%z")
-
             if return_object:
                 try:
                     currentDocument = self.documentObjectClass(**queryResult["_source"])
@@ -159,6 +156,7 @@ class elasticDB():
             else:
                 currentDocument = queryResult["_source"]
                 currentDocument["id"] = queryResult["_id"]
+
             documentList.append(currentDocument)
 
         return {"documents" : documentList, "result_number" : searchResults["hits"]["total"]["value"]}
