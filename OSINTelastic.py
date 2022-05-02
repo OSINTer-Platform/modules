@@ -23,7 +23,8 @@ def returnArticleDBConn(configOptions):
                 sourceCategory = "profile",
                 weightedSearchFields = ["title^5", "description^3", "content"],
                 documentObjectClass = Article,
-                essentialFields = ["title", "description", "url", "profile", "source", "publish_date", "inserted_at"]
+                essentialFields = ["title", "description", "url", "profile", "source", "publish_date", "inserted_at"],
+                logger = configOptions.logger
            )
 
 def returnTweetDBConn(configOptions):
@@ -36,7 +37,8 @@ def returnTweetDBConn(configOptions):
                 sourceCategory = "author_details.username",
                 weightedSearchFields = ["content"],
                 documentObjectClass = Tweet,
-                essentialFields = ["twitter_id", "content", "author_details", "publish_date", "inserted_at"]
+                essentialFields = ["twitter_id", "content", "author_details", "publish_date", "inserted_at"],
+                logger = configOptions.logger
            )
 
 @define(kw_only=True)
@@ -98,7 +100,7 @@ class searchQuery():
         return query
 
 class elasticDB():
-    def __init__(self, *, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass, essentialFields):
+    def __init__(self, *, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass, essentialFields, logger):
         self.indexName = indexName
         self.es = esConn
         self.uniqueField = uniqueField
@@ -111,6 +113,7 @@ class elasticDB():
             self.searchFields.append(fieldType.split("^")[0])
 
         self.documentObjectClass = documentObjectClass
+        self.logger = logger
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
     def existsInDB(self, token):
