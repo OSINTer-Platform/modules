@@ -1,6 +1,7 @@
 from OSINTmodules.OSINTobjects import Article, Tweet
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
+from pydantic import ValidationError
 
 from attrs import define, field
 from typing import Optional
@@ -150,7 +151,10 @@ class elasticDB():
                 queryResult["_source"][timeValue] = datetime.strptime(queryResult["_source"][timeValue], "%Y-%m-%dT%H:%M:%S%z")
 
             if return_object:
-                currentDocument = self.documentObjectClass(**queryResult["_source"])
+                try:
+                    currentDocument = self.documentObjectClass(**queryResult["_source"])
+                except ValidationError as e:
+                    self.logger.error(f'Encountered problem with article with ID "{queryResult["_id"]}" and title "{queryResult["_source"]["title"]}", skipping for now. Error: {e}')
                 currentDocument.id = queryResult["_id"]
             else:
                 currentDocument = queryResult["_source"]
