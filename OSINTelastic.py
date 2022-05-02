@@ -180,7 +180,7 @@ class elasticDB():
         return [uniqueVal["key"] for uniqueVal in self.es.search(**searchQ, index=self.indexName)["aggregations"]["sourceCategory"]["buckets"]]
 
     def saveDocument(self, documentObjectClass):
-        documentDict = documentObjectClass.as_dict()
+        documentDict = { key:value for key, value in documentObjectClass.dict().items() if value is not None }
 
         if "id" in documentDict:
             documentID = documentDict.pop("id")
