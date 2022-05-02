@@ -1,10 +1,11 @@
 from OSINTmodules.OSINTobjects import Article, Tweet
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
-from pydantic import ValidationError
 
-from attrs import define, field
-from typing import Optional
+from pydantic import ValidationError, BaseModel
+from fastapi import Query
+
+from typing import Optional, List
 
 from datetime import datetime, timezone
 
@@ -42,16 +43,15 @@ def returnTweetDBConn(configOptions):
                 logger = configOptions.logger
            )
 
-@define(kw_only=True)
-class searchQuery():
+class searchQuery(BaseModel):
     limit: int = 10_000
-    sortBy: str = ""
-    sortOrder: str = ""
-    searchTerm: str = ""
-    sourceCategory: str = ""
+    sortBy: Optional[str] = None
+    sortOrder: Optional[str] = None
+    searchTerm: Optional[str] = None
+    sourceCategory: Optional[str] = None
     firstDate: Optional[datetime] = None
     lastDate: Optional[datetime] = None
-    IDs: list = field(factory=list)
+    IDs: List[str] = Query([])
     highlight: bool = False
     complete: bool = True # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
 
