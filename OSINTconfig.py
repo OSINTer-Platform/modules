@@ -50,6 +50,8 @@ class baseConfig():
         self.ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or loadElasticURL()
         self.ELASTICSEARCH_CERT_PATH = os.environ.get('ELASTICSEARCH_CERT_PATH') or "./.elasticsearch.crt" if os.path.isfile("./.elasticsearch.crt") else None
 
+        self.logger = loadLogger()
+
         self.esTweetClient = returnTweetDBConn(self)
         self.esArticleClient = returnArticleDBConn(self)
 
@@ -58,7 +60,6 @@ class backendConfig(baseConfig):
         baseConfig.__init__(self)
         self.TWITTER_CREDENTIAL_PATH = os.environ.get('TWITTER_CREDENTIAL_PATH') or "./.twitter_keys.yaml" if os.path.isfile("./.twitter_keys.yaml") else None
 
-        self.logger = loadLogger()
 
     def __getitem__(self, item):
         return getattr(self, item)
