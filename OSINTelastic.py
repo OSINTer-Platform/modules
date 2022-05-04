@@ -2,8 +2,8 @@ from OSINTmodules.OSINTobjects import Article, Tweet
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 
-from pydantic import ValidationError, BaseModel
-from fastapi import Query
+from pydantic import ValidationError
+from dataclasses import dataclass
 
 from typing import Optional, List
 
@@ -43,17 +43,18 @@ def returnTweetDBConn(configOptions):
                 logger = configOptions.logger
            )
 
-class searchQuery(BaseModel):
+@dataclass
+class searchQuery():
     limit: int = 10_000
     sortBy: Optional[str] = None
     sortOrder: Optional[str] = None
     searchTerm: Optional[str] = None
-    sourceCategory: Optional[str] = None
     firstDate: Optional[datetime] = None
     lastDate: Optional[datetime] = None
-    IDs: List[str] = Query([])
+    sourceCategory: Optional[List[str]] = None
+    IDs: Optional[List[str]] = None
     highlight: bool = False
-    complete: bool = True # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
+    complete: bool = False # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
 
     def generateESQuery(self, esClient):
         query = {
@@ -86,7 +87,7 @@ class searchQuery(BaseModel):
         if self.sourceCategory:
             query["query"]["bool"]["filter"].append({ "terms" : { esClient.sourceCategory : self.sourceCategory } })
 
-        if len(self.IDs) > 0:
+        if self.IDs:
             query["query"]["bool"]["filter"].append({ "terms" : { "_id" : self.IDs } })
 
         if self.firstDate or self.lastDate:
