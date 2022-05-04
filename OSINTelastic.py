@@ -85,7 +85,7 @@ class searchQuery():
             query["query"]["bool"]["must"] = {"simple_query_string" : {"query" : self.searchTerm, "fields" : esClient.weightedSearchFields} }
 
         if self.sourceCategory:
-            query["query"]["bool"]["filter"].append({ "terms" : { esClient.sourceCategory : self.sourceCategory } })
+            query["query"]["bool"]["filter"].append({ "terms" : { esClient.sourceCategory : [ source.lower() for source in self.sourceCategory ] } })
 
         if self.IDs:
             query["query"]["bool"]["filter"].append({ "terms" : { "_id" : self.IDs } })
