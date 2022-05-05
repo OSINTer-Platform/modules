@@ -33,8 +33,8 @@ class Tweet(BaseModel):
     twitter_id: str
     content: str
 
-    hashtags: List[str]
-    mentions: List[str]
+    hashtags: List[str] = []
+    mentions: List[str] = []
 
     author_details: Dict[str, str] = {}
     OG: Dict[str, str] = {}
