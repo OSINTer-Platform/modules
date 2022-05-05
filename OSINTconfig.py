@@ -55,14 +55,13 @@ class baseConfig():
         self.esTweetClient = returnTweetDBConn(self)
         self.esArticleClient = returnArticleDBConn(self)
 
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 class backendConfig(baseConfig):
     def __init__(self):
         baseConfig.__init__(self)
         self.TWITTER_CREDENTIAL_PATH = os.environ.get('TWITTER_CREDENTIAL_PATH') or "./.twitter_keys.yaml" if os.path.isfile("./.twitter_keys.yaml") else None
-
-
-    def __getitem__(self, item):
-        return getattr(self, item)
 
 class frontendConfig(baseConfig):
     def __init__(self):
