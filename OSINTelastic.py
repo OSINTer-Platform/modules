@@ -1,4 +1,4 @@
-from OSINTmodules.OSINTobjects import Article, Tweet
+from OSINTmodules.OSINTobjects import BaseArticle, FullArticle, BaseTweet, FullTweet
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 
@@ -24,7 +24,7 @@ def returnArticleDBConn(configOptions):
                 uniqueField = "url",
                 sourceCategory = "profile",
                 weightedSearchFields = ["title^5", "description^3", "content"],
-                documentObjectClass = Article,
+                documentObjectClasses = {"full" : FullArticle, "base" : BaseArticle},
                 essentialFields = ["title", "description", "url", "profile", "source", "publish_date", "inserted_at"],
                 logger = configOptions.logger
            )
@@ -38,7 +38,7 @@ def returnTweetDBConn(configOptions):
                 uniqueField = "twitter_id",
                 sourceCategory = "author_details.username",
                 weightedSearchFields = ["content"],
-                documentObjectClass = Tweet,
+                documentObjectClasses = {"full" : FullTweet, "base" : BaseTweet},
                 essentialFields = ["twitter_id", "content", "author_details", "publish_date", "inserted_at"],
                 logger = configOptions.logger
            )
@@ -102,7 +102,7 @@ class searchQuery():
         return query
 
 class elasticDB():
-    def __init__(self, *, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClass, essentialFields, logger):
+    def __init__(self, *, esConn, indexName, uniqueField, sourceCategory, weightedSearchFields, documentObjectClasses, essentialFields, logger):
         self.indexName = indexName
         self.es = esConn
         self.uniqueField = uniqueField
@@ -114,7 +114,7 @@ class elasticDB():
         for fieldType in weightedSearchFields:
             self.searchFields.append(fieldType.split("^")[0])
 
-        self.documentObjectClass = documentObjectClass
+        self.documentObjectClasses = documentObjectClasses
         self.logger = logger
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
@@ -132,14 +132,19 @@ class elasticDB():
 
         return finalString
 
-    # return_object decides whether to return list of objects of class self.documentObjectClass or list of dictionaries
+    # return_object decides whether to return list of objects of class self.documentObjectClasses or list of dictionaries
     def queryDocuments(self, searchQ: Optional[searchQuery] = None, *, return_object = True):
         documentList = []
+        if searchQ and searchQ.complete:
+            documentObjectClass = self.documentObjectClasses["full"]
+        else:
+            documentObjectClass = self.documentObjectClasses["base"]
 
         if searchQ:
             searchResults = self.es.search(**searchQ.generateESQuery(self), index=self.indexName)
         else:
             searchResults = self.es.search(**searchQuery().generateESQuery(self), index=self.indexName)
+
 
         for queryResult in searchResults["hits"]["hits"]:
 
@@ -150,7 +155,7 @@ class elasticDB():
 
             if return_object:
                 try:
-                    currentDocument = self.documentObjectClass(**queryResult["_source"])
+                    currentDocument = documentObjectClass(**queryResult["_source"])
                 except ValidationError as e:
                     self.logger.error(f'Encountered problem with article with ID "{queryResult["_id"]}" and title "{queryResult["_source"]["title"]}", skipping for now. Error: {e}')
                 currentDocument.id = queryResult["_id"]
@@ -178,8 +183,8 @@ class elasticDB():
 
         return [uniqueVal["key"] for uniqueVal in self.es.search(**searchQ, index=self.indexName)["aggregations"]["sourceCategory"]["buckets"]]
 
-    def saveDocument(self, documentObjectClass):
-        documentDict = { key:value for key, value in documentObjectClass.dict().items() if value is not None }
+    def saveDocument(self, documentObject):
+        documentDict = { key:value for key, value in documentObject.dict().items() if value is not None }
 
         if "id" in documentDict:
             documentID = documentDict.pop("id")

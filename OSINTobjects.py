@@ -2,14 +2,17 @@ from pydantic import BaseModel, HttpUrl
 from typing import Dict, List, Union, Optional
 from datetime import datetime, timezone
 
-class Article(BaseModel):
+class BaseArticle(BaseModel):
     title: str
     description: str
     url: HttpUrl
     profile: str
     source: str
     publish_date: datetime
+    inserted_at: datetime = datetime.now(timezone.utc)
     id: Optional[str] = None
+
+class FullArticle(BaseArticle):
     image_url: Optional[HttpUrl] = None
     author: Optional[str] = None
     formatted_content: Optional[str] = None
@@ -23,25 +26,24 @@ class Article(BaseModel):
                              ]
                    ]
           ] = {}
-    inserted_at: datetime = datetime.now(timezone.utc)
-    saved: Optional[bool] = None
-    read: Optional[bool] = None
     read_times: int = 0
     similar: List[int] = None
 
-class Tweet(BaseModel):
+
+class BaseTweet(BaseModel):
     twitter_id: str
     content: str
 
+    publish_date: datetime
+    inserted_at: datetime = datetime.now(timezone.utc)
+
+    id: Optional[str] = None
+
+class FullTweet(BaseTweet):
     hashtags: List[str] = []
     mentions: List[str] = []
 
     author_details: Dict[str, str] = {}
     OG: Dict[str, str] = {}
 
-    publish_date: datetime
-    inserted_at: datetime = datetime.now(timezone.utc)
-
     read_times: int = 0
-
-    id: Optional[str] = None
