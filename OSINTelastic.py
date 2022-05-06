@@ -16,10 +16,8 @@ def createESConn(addresses, certPath=None):
         return Elasticsearch(addresses, verify_certs=False)
 
 def returnArticleDBConn(configOptions):
-    DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
-
     return elasticDB(
-                esConn = DBConn,
+                esConn = configOptions.es_conn,
                 indexName = configOptions.ELASTICSEARCH_ARTICLE_INDEX,
                 uniqueField = "url",
                 sourceCategory = "profile",
@@ -30,10 +28,8 @@ def returnArticleDBConn(configOptions):
            )
 
 def returnTweetDBConn(configOptions):
-    DBConn = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
-
     return elasticDB(
-                esConn = DBConn,
+                esConn = configOptions.es_conn,
                 indexName = configOptions.ELASTICSEARCH_TWEET_INDEX,
                 uniqueField = "twitter_id",
                 sourceCategory = "author_details.username",
@@ -226,7 +222,7 @@ class elasticDB():
         self.es.update(index=self.indexName, id=documentID, script=incrementScript)
 
 def configureElasticsearch(configOptions):
-    es = createESConn(configOptions.ELASTICSEARCH_URL, configOptions.ELASTICSEARCH_CERT_PATH)
+    es = configOptions.es_conn
 
     indexConfigs = {
         "ELASTICSEARCH_TWEET_INDEX" : {

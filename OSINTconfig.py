@@ -3,7 +3,7 @@ import secrets
 from pathlib import Path
 import logging
 
-from OSINTmodules.OSINTelastic import returnTweetDBConn, returnArticleDBConn
+from OSINTmodules.OSINTelastic import returnTweetDBConn, returnArticleDBConn, createESConn
 
 def loadSecretKey():
     if os.path.isfile("./secret.key"):
@@ -51,6 +51,8 @@ class baseConfig():
         self.ELASTICSEARCH_CERT_PATH = os.environ.get('ELASTICSEARCH_CERT_PATH') or "./.elasticsearch.crt" if os.path.isfile("./.elasticsearch.crt") else None
 
         self.logger = loadLogger()
+
+        self.es_conn = createESConn(self.ELASTICSEARCH_URL, self.ELASTICSEARCH_CERT_PATH)
 
         self.esTweetClient = returnTweetDBConn(self)
         self.esArticleClient = returnArticleDBConn(self)
