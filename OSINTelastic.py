@@ -301,8 +301,10 @@ def configureElasticsearch(configOptions):
                           "username" : {"type" : "keyword"},
                           "password_hash" : {"type" : "keyword"},
                           "read_article_ids" : {"type" : "keyword"},
-                          "saved_article_ids" : {"type" : "keyword"}
-                }
+                          "feeds" : {
+                            "type" : "flattened"
+                          }
+                      }
         }
     }
 
