@@ -6,6 +6,7 @@ class BaseArticle(BaseModel):
     title: str
     description: str
     url: HttpUrl
+    image_url: HttpUrl
     profile: str
     source: str
     publish_date: datetime
@@ -13,7 +14,6 @@ class BaseArticle(BaseModel):
     id: Optional[str] = None
 
 class FullArticle(BaseArticle):
-    image_url: Optional[HttpUrl] = None
     author: Optional[str] = None
     formatted_content: Optional[str] = None
     content: Optional[str] = None

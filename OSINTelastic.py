@@ -23,7 +23,7 @@ def returnArticleDBConn(configOptions):
                 sourceCategory = "profile",
                 weightedSearchFields = ["title^5", "description^3", "content"],
                 documentObjectClasses = {"full" : FullArticle, "base" : BaseArticle},
-                essentialFields = ["title", "description", "url", "profile", "source", "publish_date", "inserted_at"],
+                essentialFields = ["title", "description", "url", "image_url", "profile", "source", "publish_date", "inserted_at"],
                 logger = configOptions.logger
            )
 
