@@ -46,11 +46,16 @@ def extractArticleContent(selectors, soup, delimiter='\n'):
 
     assembledText = ""
     assembledClearText = ""
+    textTagTypes = ["p", "span"] + [f"h{i}" for i in range(1, 7)]
 
-    # Loop through all the <p> tags, extract the text and add them to string with newline in between
-    for element in textList:
-        assembledClearText = assembledClearText + element.get_text() + delimiter
-        assembledText = assembledText + str(element) + delimiter
+    for textSoup in textList:
+
+        for textTag in textSoup.find_all(textTagTypes):
+            if textTag.string:
+                textTag.string.replace_with(textTag.string.strip())
+
+        assembledClearText = assembledClearText + textSoup.get_text() + delimiter
+        assembledText = assembledText + str(textSoup) + delimiter
 
     return assembledText, assembledClearText
 
