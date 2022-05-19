@@ -128,8 +128,7 @@ class elasticDB():
 
         return finalString
 
-    # return_object decides whether to return list of objects of class self.documentObjectClasses or list of dictionaries
-    def queryDocuments(self, searchQ: Optional[searchQuery] = None, *, return_object = True):
+    def queryDocuments(self, searchQ: Optional[searchQuery] = None):
         documentList = []
         if searchQ and searchQ.complete:
             documentObjectClass = self.documentObjectClasses["full"]
@@ -149,17 +148,12 @@ class elasticDB():
                     if fieldType in queryResult["highlight"]:
                         queryResult["_source"][fieldType] = self.concatStrings(queryResult["highlight"][fieldType])
 
-            if return_object:
-                try:
-                    currentDocument = documentObjectClass(**queryResult["_source"])
-                except ValidationError as e:
-                    self.logger.error(f'Encountered problem with article with ID "{queryResult["_id"]}" and title "{queryResult["_source"]["title"]}", skipping for now. Error: {e}')
+            try:
+                currentDocument = documentObjectClass(**queryResult["_source"])
                 currentDocument.id = queryResult["_id"]
-            else:
-                currentDocument = queryResult["_source"]
-                currentDocument["id"] = queryResult["_id"]
-
-            documentList.append(currentDocument)
+                documentList.append(currentDocument)
+            except ValidationError as e:
+                self.logger.error(f'Encountered problem with article with ID "{queryResult["_id"]}" and title "{queryResult["_source"]["title"]}", skipping for now. Error: {e}')
 
         return {"documents" : documentList, "result_number" : searchResults["hits"]["total"]["value"]}
 
