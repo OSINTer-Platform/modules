@@ -2,6 +2,7 @@ from pydantic import BaseModel, HttpUrl
 from typing import Dict, List, Union, Optional
 from datetime import datetime, timezone
 
+
 class BaseArticle(BaseModel):
     title: str
     description: str
@@ -13,19 +14,21 @@ class BaseArticle(BaseModel):
     inserted_at: datetime = datetime.now(timezone.utc)
     id: Optional[str] = None
 
+
 class FullArticle(BaseArticle):
     author: Optional[str] = None
     formatted_content: Optional[str] = None
     content: Optional[str] = None
     summary: Optional[str] = None
-    tags: Optional[Dict[str, Union[ List[str],
-                           Dict[str, Union[ List[str],
-                                            Dict[str, Union [List[str], bool] ]
-                                              ]
-                                    ]
-                             ]
-                   ]
-          ] = {}
+    tags: Optional[
+        Dict[
+            str,
+            Union[
+                List[str],
+                Dict[str, Union[List[str], Dict[str, Union[List[str], bool]]]],
+            ],
+        ]
+    ] = {}
     read_times: int = 0
     similar: List[int] = None
 
@@ -38,6 +41,7 @@ class BaseTweet(BaseModel):
     inserted_at: datetime = datetime.now(timezone.utc)
 
     id: Optional[str] = None
+
 
 class FullTweet(BaseTweet):
     hashtags: List[str] = []
