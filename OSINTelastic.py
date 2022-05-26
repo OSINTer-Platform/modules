@@ -352,6 +352,12 @@ def configureElasticsearch(configOptions):
                 "password_hash": {"type": "keyword"},
                 "read_article_ids": {"type": "keyword"},
                 "feeds": {"type": "flattened"},
+                "collections": {
+                    "type": "object",
+                    "enabled": False,
+                    "dynamic": True,
+                    "properties": {"Read Later": {"type": "keyword"}},
+                },
             },
         },
     }
