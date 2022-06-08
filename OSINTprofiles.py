@@ -53,6 +53,7 @@ def collectWebsiteDetails(esClient):
             details[profile["source"]["profileName"]] = {
                 "name": profile["source"]["name"],
                 "image": imageURL,
+                "url": profile["source"]["address"],
             }
 
     return {source: details[source] for source in sorted(details)}
