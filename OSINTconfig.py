@@ -107,3 +107,5 @@ class frontendConfig(baseConfig):
         )
 
         self.JWT_ALGORITHMS = (os.environ.get("JWT_ALGORITHMS") or "HS256").split(" ")
+
+        self.HTTPS = os.environ.get("ENABLE_HTTPS") or False
