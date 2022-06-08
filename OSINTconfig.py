@@ -97,7 +97,13 @@ class frontendConfig(baseConfig):
     def __init__(self):
         baseConfig.__init__(self)
         self.SECRET_KEY = os.environ.get("SECRET_KEY") or loadSecretKey()
+
         self.ACCESS_TOKEN_EXPIRE_HOURS = int(
             os.environ.get("ACCESS_TOKEN_EXPIRE_HOURS") or 24
         )
+
+        self.REMEMBER_ACCESS_TOKEN_EXPIRE_HOURS = int(
+            os.environ.get("REMEMBER_ACCESS_TOKEN_EXPIRE_HOURS") or 24 * 30
+        )
+
         self.JWT_ALGORITHMS = (os.environ.get("JWT_ALGORITHMS") or "HS256").split(" ")
