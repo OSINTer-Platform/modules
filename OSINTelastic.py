@@ -350,6 +350,7 @@ def configureElasticsearch(configOptions):
             "properties": {
                 "username": {"type": "keyword"},
                 "password_hash": {"type": "keyword"},
+                "email_hash": {"type": "keyword"},
                 "read_article_ids": {"type": "keyword"},
                 "feeds": {"type": "flattened"},
                 "collections": {
