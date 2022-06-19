@@ -351,13 +351,15 @@ def configureElasticsearch(configOptions):
                 "username": {"type": "keyword"},
                 "password_hash": {"type": "keyword"},
                 "email_hash": {"type": "keyword"},
-                "read_article_ids": {"type": "keyword"},
                 "feeds": {"type": "flattened"},
                 "collections": {
                     "type": "object",
                     "enabled": False,
                     "dynamic": True,
-                    "properties": {"Read Later": {"type": "keyword"}},
+                    "properties": {
+                        "Read Later": {"type": "keyword"},
+                        "Already Read": {"type": "keyword"},
+                    },
                 },
             },
         },
