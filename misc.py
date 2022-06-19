@@ -1,7 +1,27 @@
 # For checking if string matches regex
 import re
 
+import os
 from pathlib import Path
+
+def createFolder(folderName):
+    if not os.path.isdir(Path("./" + folderName)):
+        try:
+            os.mkdir(Path("./" + folderName), mode=0o750)
+        except:
+            # This shoudln't ever be reached, as it would imply that the folder doesn't exist, but the script also is unable to create it. Could possibly be missing read permissions if the scripts catches this exception
+            raise Exception(
+                "The folder {} couldn't be created, exiting".format(folderName)
+            )
+    else:
+        try:
+            os.chmod(Path("./" + folderName), 0o750)
+        except:
+            raise Exception(
+                "Failed to set the 750 permissions on {}, either remove the folder or set the right perms yourself and try again.".format(
+                    folderName
+                )
+            )
 
 
 def checkIfURL(URL):
