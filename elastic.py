@@ -1,4 +1,4 @@
-from OSINTmodules.OSINTobjects import BaseArticle, FullArticle, BaseTweet, FullTweet
+from modules.objects import BaseArticle, FullArticle, BaseTweet, FullTweet
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 

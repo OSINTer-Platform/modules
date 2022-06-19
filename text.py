@@ -125,7 +125,7 @@ def locateObjectsOfInterrest(clearText):
     return results
 
 
-# The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from OSINTtext will return (tag). [proximity] is optional, and if not specified 30 is the default value
+# The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from text will return (tag). [proximity] is optional, and if not specified 30 is the default value
 def locateKeywords(keywords, clearText):
 
     manualTags = []

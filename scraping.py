@@ -22,7 +22,7 @@ from selenium.webdriver.firefox.options import Options
 # For parsing html
 from bs4 import BeautifulSoup
 
-from OSINTmodules.OSINTmisc import catURL
+from modules.misc import catURL
 
 # Used for selecting a random elemen from browserHeaders list
 import random
@@ -143,9 +143,7 @@ def scrapePageDynamic(pageURL, scrapingTypes, loadTime=3, headless=True):
         currentType = scrapingType.split(":")
         if currentType[0] == "JS":
             driver.execute_script(
-                Path(
-                    f"./OSINTprofiles/OSINTJSInjection/{currentType[1]}.js"
-                ).read_text()
+                Path(f"./profiles/JSInjection/{currentType[1]}.js").read_text()
             )
             while driver.execute_script("return document.osinterReady") == False:
                 time.sleep(1)

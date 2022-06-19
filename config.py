@@ -3,7 +3,7 @@ import secrets
 from pathlib import Path
 import logging
 
-from OSINTmodules.OSINTelastic import (
+from modules.elastic import (
     returnTweetDBConn,
     returnArticleDBConn,
     createESConn,

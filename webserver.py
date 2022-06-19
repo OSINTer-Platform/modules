@@ -2,7 +2,7 @@ from feedgen.feed import FeedGenerator
 
 import os
 import sqlite3
-from OSINTmodules.OSINTprofiles import getProfiles
+from modules.profiles import getProfiles
 
 
 def verifyProfiles(profiles, esClient):

@@ -9,7 +9,7 @@ import json
 # Function for reading all profile files and returning the content in a list if profileName is left empty, returning the contents of one profile if it isn't or simply just return the names of the available profile if profileName is left empty and justNames is set to true
 def getProfiles(profileName="", justNames=False):
 
-    profilePath = "./OSINTprofiles/profiles/"
+    profilePath = "./profiles/profiles/"
 
     if profileName == "":
         # Listing all the profiles by getting the OS indepentent path to profiles folder and listing files in it, and then only choosing those files that end in a .profile
