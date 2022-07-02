@@ -2,14 +2,15 @@ from feedgen.feed import FeedGenerator
 
 import os
 import sqlite3
-from OSINTmodules.OSINTprofiles import getProfiles
+from modules.profiles import getProfiles
+
 
 def verifyProfiles(profiles, esClient):
     # Getting the profiles that are stored in the database
-    DBStoredProfiles = esClient.requestProfileListFromDB()
+    DBStoredProfiles = esClient.requestSourceCategoryListFromDB()
 
     # Getting the names of the locally avaiable profiles stored in the json files
-    localProfiles = getProfiles(justNames = True)
+    localProfiles = getProfiles(justNames=True)
 
     # Looping through the profiles we want to confirm are matching those stored
     for profile in profiles:
@@ -18,27 +19,31 @@ def verifyProfiles(profiles, esClient):
 
     return True
 
+
 def initiateUserDB(DBName, userTable):
     if not os.path.exists(DBName):
         conn = sqlite3.connect(DBName)
         cur = conn.cursor()
 
-        cur.execute(f''' CREATE TABLE {userTable}
+        cur.execute(
+            f""" CREATE TABLE {userTable}
                     (   username text NOT NULL PRIMARY KEY,
                         saved_article_ids text DEFAULT '',
                         read_article_ids text DEFAULT '',
                         password_hash text NOT NULL,
                         id text NOT NULL    )
-                    ''')
+                    """
+        )
 
         conn.commit()
         conn.close()
 
+
 def generateRSSFeed(articleList):
     fg = FeedGenerator()
-    fg.title('OSINTer feed')
-    fg.description('An RSS feed from the OSINTer project')
-    fg.link(href='https://github.com/bertmad3400/OSINTer')
+    fg.title("OSINTer feed")
+    fg.description("An RSS feed from the OSINTer project")
+    fg.link(href="https://github.com/bertmad3400/OSINTer")
     fg.logo("https://raw.githubusercontent.com/bertmad3400/OSINTer/master/logo.png")
     fg.language("en")
 

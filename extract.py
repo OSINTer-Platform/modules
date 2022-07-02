@@ -12,9 +12,9 @@ from datetime import timezone, datetime
 
 # Used for matching the relevant information from LD+JSON
 JSONPatterns = {
-        "publish_date":  re.compile(r'("datePublished": ")(.*?)(?=")'),
-        "author":       re.compile(r'("@type": "Person",.*?"name": ")(.*?)(?=")')
-        }
+    "publish_date": re.compile(r'("datePublished": ")(.*?)(?=")'),
+    "author": re.compile(r'("@type": "Person",.*?"name": ")(.*?)(?=")'),
+}
 
 # Function for using the class of a container along with the element type and class of desired html tag (stored in the contentDetails variable) to extract that specific tag. Data is found under the "scraping" class in the profiles.
 def locateContent(CSSSelector, soup, recursive=True):
@@ -22,6 +22,7 @@ def locateContent(CSSSelector, soup, recursive=True):
         return soup.select(CSSSelector, recursive=recursive)
     except:
         return BeautifulSoup("Unknown", "html.parser")
+
 
 # Function used for removing certain tags with or without class from a soup. Takes in a list of element tag and class in the format: "tag,class;tag,class;..."
 def cleanSoup(soup, removeSelectors):
@@ -32,7 +33,7 @@ def cleanSoup(soup, removeSelectors):
     return soup
 
 
-def extractArticleContent(selectors, soup, delimiter='\n'):
+def extractArticleContent(selectors, soup, delimiter="\n"):
 
     # Clean the textlist for unwanted html elements
     if selectors["remove"] != "":
@@ -42,7 +43,9 @@ def extractArticleContent(selectors, soup, delimiter='\n'):
         textList = locateContent(selectors["container"], soup, recursive=True)
 
     if textList == "Unknown":
-        raise Exception("Wasn't able to fetch the text for the following soup:" + str(soup))
+        raise Exception(
+            "Wasn't able to fetch the text for the following soup:" + str(soup)
+        )
 
     assembledText = ""
     assembledClearText = ""
@@ -81,7 +84,7 @@ def extractMetaInformation(pageSoup, scrapingTargets, siteURL):
     if OGTags["author"] == None or OGTags["publish_date"] == None:
 
         # Use ld+json to extract extra information not found in the meta OG tags like author and publish date
-        JSONScriptTags = pageSoup.find_all("script", {"type":"application/ld+json"})
+        JSONScriptTags = pageSoup.find_all("script", {"type": "application/ld+json"})
 
         for scriptTag in JSONScriptTags:
             # Converting to and from JSON to standardize the format to avoid things like line breaks and excesive spaces at the end and start of line. Will also make sure there spaces in the right places between the keys and values so it isn't like "key" :"value" and "key  : "value" but rather "key": "value" and "key": "value".
@@ -92,7 +95,9 @@ def extractMetaInformation(pageSoup, scrapingTargets, siteURL):
 
             for pattern in JSONPatterns:
                 if OGTags[pattern] == None:
-                    articleDetailPatternMatch = JSONPatterns[pattern].search(scriptTagString)
+                    articleDetailPatternMatch = JSONPatterns[pattern].search(
+                        scriptTagString
+                    )
                     if articleDetailPatternMatch != None:
                         # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
                         OGTags[pattern] = articleDetailPatternMatch.group(2)
