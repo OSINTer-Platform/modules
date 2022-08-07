@@ -69,6 +69,7 @@ class searchQuery:
     sourceCategory: Optional[List[str]] = None
     IDs: Optional[List[str]] = None
     highlight: bool = False
+    highlightSymbol: str = "**"
     complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
 
     def generateESQuery(self, esClient):
@@ -76,8 +77,8 @@ class searchQuery:
 
         if self.highlight:
             query["highlight"] = {
-                "pre_tags": ["***"],
-                "post_tags": ["***"],
+                "pre_tags": [self.highlightSymbol],
+                "post_tags": [self.highlightSymbol],
                 "fields": {fieldType: {} for fieldType in esClient.searchFields},
             }
 
