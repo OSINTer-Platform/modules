@@ -218,11 +218,41 @@ class elasticDB:
         if not searchQ:
             searchQ = searchQuery()
 
-        search_results = self.es.search(
-            **searchQ.generateESQuery(self), index=self.indexName
-        )
+        if searchQ.limit <= 10_000:
+            search_results = self.es.search(
+                **searchQ.generateESQuery(self), index=self.indexName
+            )
 
-        return self._process_search_results(searchQ.complete, search_results)
+            return self._process_search_results(searchQ.complete, search_results)
+        else:
+
+            pit_id = self.es.open_point_in_time(index=self.indexName, keep_alive="1m")[
+                "id"
+            ]
+
+            documents = []
+            search_after = None
+            prior_limit = searchQ.limit
+
+            while True:
+                searchQ.limit = 10_000 if prior_limit >= 10_000 or prior_limit == 0 else prior_limit
+
+                search_results = self.es.search(**searchQ.generateESQuery(self), pit={"id" : pit_id, "keep_alive" : "1m"}, search_after=search_after)
+
+                returned_documents = self._process_search_results(searchQ.complete, search_results)["documents"]
+
+                documents.extend(returned_documents)
+
+                if len(returned_documents) < 10_000 or prior_limit < 0:
+                    break
+
+                search_after = search_results["hits"]["hits"][-1]["sort"]
+                pit_id = search_results["pit_id"]
+
+                if prior_limit > 0:
+                    prior_limit -= 10_000
+
+            return {"documents" : documents, "result_number" : len(documents)}
 
     # Function for taking in a list of lists of documents with the first entry of each list being the name of the profile, and then removing all the documents that already has been saved in the database
     def filterDocumentList(self, documentAttributeList):
