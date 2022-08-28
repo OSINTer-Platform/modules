@@ -73,7 +73,11 @@ class searchQuery:
     complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
 
     def generateESQuery(self, esClient):
-        query = {"size": self.limit, "query": {"bool": {"filter": []}}}
+        query = {
+            "size": self.limit,
+            "sort": ["_doc"],
+            "query": {"bool": {"filter": []}},
+        }
 
         if self.highlight:
             query["highlight"] = {
@@ -85,18 +89,18 @@ class searchQuery:
         if not self.complete:
             query["source"] = esClient.essentialFields
 
-        if self.sortBy and self.sortOrder:
-            query["sort"] = {self.sortBy: self.sortOrder}
-        elif not self.searchTerm:
-            query["sort"] = {"publish_date": "desc"}
-
         if self.searchTerm:
+            query["sort"].insert(0, "_score")
+
             query["query"]["bool"]["must"] = {
                 "simple_query_string": {
                     "query": self.searchTerm,
                     "fields": esClient.weightedSearchFields,
                 }
             }
+
+        if self.sortBy and self.sortOrder:
+            query["sort"].insert(0, {self.sortBy: self.sortOrder})
 
         if self.sourceCategory:
             query["query"]["bool"]["filter"].append(
