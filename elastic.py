@@ -5,7 +5,7 @@ from elasticsearch.client import IndicesClient
 from pydantic import ValidationError
 from dataclasses import dataclass
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from datetime import datetime, timezone
 
@@ -24,7 +24,7 @@ def returnArticleDBConn(configOptions):
         uniqueField="url",
         sourceCategory="profile",
         weightedSearchFields=["title^5", "description^3", "content"],
-        documentObjectClasses={"full": FullArticle, "base": BaseArticle},
+        document_object_classes={"full": FullArticle, "base": BaseArticle},
         essentialFields=[
             "title",
             "description",
@@ -46,7 +46,7 @@ def returnTweetDBConn(configOptions):
         uniqueField="twitter_id",
         sourceCategory="author_details.username",
         weightedSearchFields=["content"],
-        documentObjectClasses={"full": FullTweet, "base": BaseTweet},
+        document_object_classes={"full": FullTweet, "base": BaseTweet},
         essentialFields=[
             "twitter_id",
             "content",
@@ -141,7 +141,7 @@ class elasticDB:
         uniqueField,
         sourceCategory,
         weightedSearchFields,
-        documentObjectClasses,
+        document_object_classes,
         essentialFields,
         logger,
     ):
@@ -156,7 +156,7 @@ class elasticDB:
         for fieldType in weightedSearchFields:
             self.searchFields.append(fieldType.split("^")[0])
 
-        self.documentObjectClasses = documentObjectClasses
+        self.document_object_classes = document_object_classes
         self.logger = logger
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
@@ -182,44 +182,47 @@ class elasticDB:
 
         return finalString
 
-    def queryDocuments(self, searchQ: Optional[searchQuery] = None):
-        documentList = []
-        if searchQ and searchQ.complete:
-            documentObjectClass = self.documentObjectClasses["full"]
+    def _process_search_results(self, complete: bool, search_results: Dict[Any, Any]):
+        document_list = []
+
+        if complete:
+            document_object_class = self.document_object_classes["full"]
         else:
-            documentObjectClass = self.documentObjectClasses["base"]
+            document_object_class = self.document_object_classes["base"]
 
-        if searchQ:
-            searchResults = self.es.search(
-                **searchQ.generateESQuery(self), index=self.indexName
-            )
-        else:
-            searchResults = self.es.search(
-                **searchQuery().generateESQuery(self), index=self.indexName
-            )
+        for query_result in search_results["hits"]["hits"]:
 
-        for queryResult in searchResults["hits"]["hits"]:
-
-            if "highlight" in queryResult:
-                for fieldType in self.searchFields:
-                    if fieldType in queryResult["highlight"]:
-                        queryResult["_source"][fieldType] = self.concatStrings(
-                            queryResult["highlight"][fieldType]
+            if "highlight" in query_result:
+                for field_type in self.searchFields:
+                    if field_type in query_result["highlight"]:
+                        query_result["_source"][field_type] = self.concatStrings(
+                            query_result["highlight"][field_type]
                         )
 
             try:
-                currentDocument = documentObjectClass(**queryResult["_source"])
-                currentDocument.id = queryResult["_id"]
-                documentList.append(currentDocument)
+                current_document = document_object_class(**query_result["_source"])
+                current_document.id = query_result["_id"]
+                document_list.append(current_document)
             except ValidationError as e:
                 self.logger.error(
-                    f'Encountered problem with article with ID "{queryResult["_id"]}" and title "{queryResult["_source"]["title"]}", skipping for now. Error: {e}'
+                    f'Encountered problem with article with ID "{query_result["_id"]}" and title "{query_result["_source"]["title"]}", skipping for now. Error: {e}'
                 )
 
         return {
-            "documents": documentList,
-            "result_number": searchResults["hits"]["total"]["value"],
+            "documents": document_list,
+            "result_number": search_results["hits"]["total"]["value"],
         }
+
+    def queryDocuments(self, searchQ: Optional[searchQuery] = None):
+
+        if not searchQ:
+            searchQ = searchQuery()
+
+        search_results = self.es.search(
+            **searchQ.generateESQuery(self), index=self.indexName
+        )
+
+        return self._process_search_results(searchQ.complete, search_results)
 
     # Function for taking in a list of lists of documents with the first entry of each list being the name of the profile, and then removing all the documents that already has been saved in the database
     def filterDocumentList(self, documentAttributeList):
