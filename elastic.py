@@ -277,7 +277,7 @@ class ElasticDB:
             "size": 0,
             "aggs": {
                 "source_category": {
-                    "terms": {"field": self.source_category, "size": 500}
+                    "terms": {"field": self.source_category, "size": 10_000}
                 }
             },
         }
