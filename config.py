@@ -112,6 +112,3 @@ class FrontendConfig(BaseConfig):
 
         self.HTTPS = os.environ.get("ENABLE_HTTPS") or False
         self.EMAIL_SERVER_AVAILABLE = os.environ.get("EMAIL_SERVER_AVAILABLE") or False
-
-        self.FRONTEND_PATH = os.environ.get("FRONTEND_PATH") or "./webfrontend/public"
-        self.BLOG_PATH = os.environ.get("BLOG_PATH") or "./blog/build"
