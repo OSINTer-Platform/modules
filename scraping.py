@@ -22,13 +22,13 @@ from selenium.webdriver.firefox.options import Options
 # For parsing html
 from bs4 import BeautifulSoup
 
-from modules.misc import catURL
+from modules.misc import cat_url
 
 # Used for selecting a random elemen from browserHeaders list
 import random
 
 # Used for simulating an actual browser when scraping for OGTags, stolen from here
-browserHeadersList = [
+browser_headers_list = [
     # Firefox 77 Mac
     {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:77.0) Gecko/20100101 Firefox/77.0",
@@ -61,96 +61,92 @@ browserHeadersList = [
 ]
 
 # Simple function for scraping static page and converting it to a soup
-def scrapeWebSoup(URL):
-    currentHeaders = random.choice(browserHeadersList)
-    pageSource = requests.get(URL, headers=currentHeaders)
-    if pageSource.status_code != 200:
-        print(
-            "Error: Status code "
-            + str(pageSource.status_code)
-            + ", skipping URL: "
-            + URL
-        )
+def scrape_web_soup(url):
+    current_headers = random.choice(browser_headers_list)
+    page_source = requests.get(url, headers=current_headers)
+    if page_source.status_code != 200:
+        print(f"Error: Status code {page_source.status_code}, skipping URL {url}")
         return None
-    return BeautifulSoup(pageSource.content, "html.parser")
+    return BeautifulSoup(page_source.content, "html.parser")
 
 
-# Scraping targets is element and class of element in which the target url is stored, and the profileName is prepended on the list, to be able to find the profile again when it's needed for scraping
-def scrapeArticleURLs(rootURL, frontPageURL, scrapingTargets, profileName):
+# Scraping targets is element and class of element in which the target url is stored, and the profile_name is prepended on the list, to be able to find the profile again when it's needed for scraping
+def scrape_article_urls(root_url, front_page_url, scraping_targets, profile_name):
 
+    print(scraping_targets["container_list"])
     # Getting a soup for the website
-    frontPageSoup = (
-        scrapeWebSoup(frontPageURL).select(scrapingTargets["containerList"])[0]
-        if scrapingTargets["containerList"] != []
-        else scrapeWebSoup(frontPageURL)
+    front_page_soup = (
+        scrape_web_soup(front_page_url).select(scraping_targets["container_list"])[0]
+        if scraping_targets["container_list"] != []
+        else scrape_web_soup(front_page_url)
     )
 
-    articleURLs = [
-        catURL(
-            rootURL,
+    article_urls = [
+        cat_url(
+            root_url,
             link.get("href")
-            if scrapingTargets["linkContainers"] == ""
-            else link.select(scrapingTargets["links"])[0].get("href"),
+            if scraping_targets["link_containers"] == ""
+            else link.select(scraping_targets["links"])[0].get("href"),
         )
         for link in itertools.islice(
-            frontPageSoup.select(
-                scrapingTargets["linkContainers"]
-                if scrapingTargets["linkContainers"] != ""
-                else scrapingTargets["links"]
+            front_page_soup.select(
+                scraping_targets["link_containers"]
+                if scraping_targets["link_containers"] != ""
+                else scraping_targets["links"]
             ),
             10,
         )
     ]
 
-    return articleURLs
+    return article_urls
 
 
 # Function for scraping a list of recent articles using the url to a RSS feed
-def RSSArticleURLs(RSSURL, profileName):
+def get_article_urls_from_rss(rss_url, profile_name):
     # Parse the whole RSS feed
-    RSSFeed = feedparser.parse(RSSURL)
+    rss_feed = feedparser.parse(rss_url)
 
     # List for holding the urls from the RSS feed
-    articleURLs = []
+    article_urls = []
 
     # Extracting the urls only, as these are the only relevant information. Also only take the first 10, if more is given to only get the newest articles
-    for entry in itertools.islice(RSSFeed.entries, 10):
-        articleURLs.append(entry.id)
+    for entry in itertools.islice(rss_feed.entries, 10):
+        article_urls.append(entry.id)
 
-    return articleURLs
+    return article_urls
 
 
-def scrapePageDynamic(pageURL, scrapingTypes, loadTime=3, headless=True):
+def scrape_page_dynamic(page_url, scraping_types, load_time=3, headless=True):
 
     # Setting the options for running the browser driver headlessly so it doesn't pop up when running the script
-    driverOptions = Options()
-    driverOptions.headless = headless
+    driver_options = Options()
+    driver_options.headless = headless
 
     # Setup the webdriver with options
     driver = webdriver.Firefox(
-        options=driverOptions,
+        options=driver_options,
         executable_path=Path("./tools/geckodriver").resolve(),
         log_path=Path("./logs/geckodriver.log").resolve(),
     )
 
     # Actually scraping the page
-    driver.get(pageURL)
+    driver.get(page_url)
 
     # Sleeping a pre-specified time to let the driver actually render the page properly
-    time.sleep(loadTime)
+    time.sleep(load_time)
 
-    for scrapingType in scrapingTypes:
-        currentType = scrapingType.split(":")
-        if currentType[0] == "JS":
+    for scraping_type in scraping_types:
+        current_type = scraping_type.split(":")
+        if current_type[0] == "JS":
             driver.execute_script(
-                Path(f"./profiles/JSInjection/{currentType[1]}.js").read_text()
+                Path(f"./profiles/js_injections/{current_type[1]}.js").read_text()
             )
             while driver.execute_script("return document.osinterReady") == False:
                 time.sleep(1)
 
     # Getting the source code for the page
-    pageSource = driver.page_source
+    page_source = driver.page_source
 
     driver.quit()
 
-    return pageSource
+    return page_source

@@ -9,60 +9,60 @@ from collections import Counter
 
 
 # Function for taking in text from article (or basically any source) and outputting a list of words cleaned for punctuation, sole numbers, double spaces and other things so that it can be used for text analyssis
-def cleanText(clearText):
+def clean_text(clear_text):
     # Normalizing the text, to remove weird characthers that sometimes pop up in webarticles
-    cleanClearText = unicodedata.normalize("NFKD", clearText)
+    clean_clear_text = unicodedata.normalize("NFKD", clear_text)
     # Remove line endings
-    cleanClearText = re.sub(r"\n", " ", cleanClearText)
+    clean_clear_text = re.sub(r"\n", " ", clean_clear_text)
 
-    return cleanClearText
+    return clean_clear_text
 
 
-def tokenizeText(cleanClearText):
+def tokenize_text(clean_clear_text):
     # Removing all contractions and "'s" created in english by descriping possession
-    cleanClearText = re.sub(r"(?:\'|’)\S*", "", cleanClearText)
+    clean_clear_text = re.sub(r"(?:\'|’)\S*", "", clean_clear_text)
     # Remove punctuation
-    cleanClearText = re.sub(
-        r'\s(?:,|\.|"|\'|\/|\\|:|-)+|(?:,|\.|"|\'|\/|\\|:|-)+\s', " ", cleanClearText
+    clean_clear_text = re.sub(
+        r'\s(?:,|\.|"|\'|\/|\\|:|-)+|(?:,|\.|"|\'|\/|\\|:|-)+\s', " ", clean_clear_text
     )
-    cleanClearText = re.sub(r"(?:\{.*\})|(?:\(\d{1,3}\))", "", cleanClearText)
+    clean_clear_text = re.sub(r"(?:\{.*\})|(?:\(\d{1,3}\))", "", clean_clear_text)
     # Remove all "words" where the word doesn't have any letters in it. This will remove "-", "3432" (words consisting purely of letters) and double spaces.
-    cleanClearText = re.sub(r"\s[^a-zA-Z]*\s", " ", cleanClearText)
+    clean_clear_text = re.sub(r"\s[^a-zA-Z]*\s", " ", clean_clear_text)
 
     # Converting the cleaned cleartext to a list
-    clearTextList = cleanClearText.split(" ")
+    clear_text_list = clean_clear_text.split(" ")
 
-    return clearTextList
+    return clear_text_list
 
 
 # Function for taking in a list of words, and generating tags based on that. Does this by finding the words that doesn't appear in a wordlist (which means they probably have some technical relevans) and then sort them by how often they're used. The input should be cleaned with cleanText
-def generateTags(clearTextList):
+def generate_tags(clear_text_list):
 
     # List containing words that doesn't exist in the wordlist
-    uncommonWords = list()
+    uncommon_words = list()
 
     # Generating set of all words in the wordlist
     wordlist = set(line.strip() for line in open("./tools/wordlist.txt", "r"))
 
     # Find all the words that doesn't exist in the normal english dictionary (since those are the names and special words that we want to use as tags)
-    for word in clearTextList:
+    for word in clear_text_list:
         if word.lower() not in wordlist and word != "":
-            uncommonWords.append(word)
+            uncommon_words.append(word)
 
     # Take the newly found words, sort by them by frequency and take the 10 most used
-    sortedByFreq = [word for word in Counter(uncommonWords).most_common(10)]
+    words_sorted_by_freq = [word for word in Counter(uncommon_words).most_common(10)]
 
     # only use those who have 3 mentions or more
-    tagList = list()
-    for wordCount in sortedByFreq:
-        if wordCount[1] > 2:
-            tagList.append(wordCount[0].capitalize())
+    tag_list = list()
+    for word_count in words_sorted_by_freq:
+        if word_count[1] > 2:
+            tag_list.append(word_count[0].capitalize())
 
-    return tagList
+    return tag_list
 
 
 # Function for locating interresting bits and pieces in an article like ip adresses and emails
-def locateObjectsOfInterrest(clearText):
+def locate_objects_of_interrest(clear_text):
     objects = {
         "ipv4-adresses": {
             "pattern": re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b"),
@@ -107,50 +107,50 @@ def locateObjectsOfInterrest(clearText):
         },
     }
     results = {}
-    for objectName in objects:
+    for object_name in objects:
 
         # Sometimes the regex's will return a tuple of the result split up based on the groups in the regex. This will combine each of the, before reuniting them as a list
         result = [
             result if type(result) != tuple else "".join(result)
-            for result in objects[objectName]["pattern"].findall(clearText)
+            for result in objects[object_name]["pattern"].findall(clear_text)
         ]
 
         if result != []:
             # Removing duplicates from result list by converting it to a set and then back to list
-            results[objectName] = {
+            results[object_name] = {
                 "results": list(set(result)),
-                "tag": objects[objectName]["tag"],
+                "tag": objects[object_name]["tag"],
             }
 
     return results
 
 
 # The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from text will return (tag). [proximity] is optional, and if not specified 30 is the default value
-def locateKeywords(keywords, clearText):
+def locate_keywords(keywords, clear_text):
 
-    manualTags = []
-    for keywordCollection in keywords:
+    manual_tags = []
+    for keyword_collection in keywords:
         for match in re.finditer(
-            keywordCollection["keywords"].pop(0), clearText.lower()
+            keyword_collection["keywords"].pop(0), clear_text.lower()
         ):
 
-            currentPos = [
-                match.span()[0] - keywordCollection["proximity"],
-                match.span()[1] + keywordCollection["proximity"],
+            current_pos = [
+                match.span()[0] - keyword_collection["proximity"],
+                match.span()[1] + keyword_collection["proximity"],
             ]
-            scanResults = []
+            scan_results = []
 
-            for keyword in keywordCollection["keywords"]:
-                currentPattern = re.compile(keyword)
+            for keyword in keyword_collection["keywords"]:
+                current_pattern = re.compile(keyword)
 
-                scanResults.append(
-                    currentPattern.search(
-                        clearText.lower(), currentPos[0], currentPos[1]
+                scan_results.append(
+                    current_pattern.search(
+                        clear_text.lower(), current_pos[0], current_pos[1]
                     )
                 )
 
-            if not None in scanResults:
-                manualTags.append(keywordCollection["tag"])
+            if not None in scan_results:
+                manual_tags.append(keyword_collection["tag"])
                 break
 
-    return manualTags
+    return manual_tags

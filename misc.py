@@ -4,57 +4,54 @@ import re
 import os
 from pathlib import Path
 
-def createFolder(folderName):
-    if not os.path.isdir(Path("./" + folderName)):
+
+def create_folder(folder_name):
+    if not os.path.isdir(Path("./" + folder_name)):
         try:
-            os.mkdir(Path("./" + folderName), mode=0o750)
+            os.mkdir(Path("./" + folder_name), mode=0o750)
         except:
             # This shoudln't ever be reached, as it would imply that the folder doesn't exist, but the script also is unable to create it. Could possibly be missing read permissions if the scripts catches this exception
-            raise Exception(
-                "The folder {} couldn't be created, exiting".format(folderName)
-            )
+            raise Exception(f"The folder {folder_name} couldn't be created, exiting")
     else:
         try:
-            os.chmod(Path("./" + folderName), 0o750)
+            os.chmod(Path("./" + folder_name), 0o750)
         except:
             raise Exception(
-                "Failed to set the 750 permissions on {}, either remove the folder or set the right perms yourself and try again.".format(
-                    folderName
-                )
+                f"Failed to set the 750 permissions on {folder_name}, either remove the folder or set the right perms yourself and try again."
             )
 
 
-def checkIfURL(URL):
-    if re.match(r"https?:\/\/.*\..*", URL):
+def check_if_valid_url(url):
+    if re.match(r"https?:\/\/.*\..*", url):
         return True
     else:
         return False
 
 
 # Function for intellegently adding the domain to a relative path on website depending on if the domain is already there
-def catURL(rootURL, relativePath):
-    if checkIfURL(relativePath):
-        return relativePath
+def cat_url(root_url, relative_path):
+    if check_if_valid_url(relative_path):
+        return relative_path
     else:
-        return rootURL[:-1] + relativePath
+        return root_url[:-1] + relative_path
 
 
 # The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from text will return (tag). [proximity] is optional, and if not specified 30 is the default value
-def decodeKeywordsFile(filePath):
+def decode_keywords_file(file_path):
     keywords = []
-    with open(filePath, "r") as keywordFile:
-        for line in keywordFile.readlines():
+    with open(file_path, "r") as keyword_file:
+        for line in keyword_file.readlines():
             try:
-                keywordDetails = line.strip().split(";")
-                keywordCollection = {}
-                keywordCollection["keywords"] = keywordDetails[0].lower().split(",")
-                keywordCollection["tag"] = keywordDetails[1]
-                if len(keywordDetails) == 3:
-                    keywordCollection["proximity"] = int(keywordDetails[2])
+                keyword_details = line.strip().split(";")
+                keyword_collection = {}
+                keyword_collection["keywords"] = keyword_details[0].lower().split(",")
+                keyword_collection["tag"] = keyword_details[1]
+                if len(keyword_details) == 3:
+                    keyword_collection["proximity"] = int(keyword_details[2])
                 else:
-                    keywordCollection["proximity"] = 30
+                    keyword_collection["proximity"] = 30
             except:
                 pass
 
-            keywords.append(keywordCollection)
+            keywords.append(keyword_collection)
     return keywords

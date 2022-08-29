@@ -6,53 +6,55 @@ from pathlib import Path
 
 import json
 
-# Function for reading all profile files and returning the content in a list if profileName is left empty, returning the contents of one profile if it isn't or simply just return the names of the available profile if profileName is left empty and justNames is set to true
-def getProfiles(profileName="", justNames=False):
+# Function for reading all profile files and returning the content in a list if profile_name is left empty, returning the contents of one profile if it isn't or simply just return the names of the available profile if profile_name is left empty and just_names is set to true
+def get_profiles(profile_name="", just_names=False):
 
-    profilePath = "./profiles/profiles/"
+    profile_path = "./profiles/profiles/"
 
-    if profileName == "":
+    if profile_name == "":
         # Listing all the profiles by getting the OS indepentent path to profiles folder and listing files in it, and then only choosing those files that end in a .profile
-        profileFiles = [
-            x for x in os.listdir(path=Path(profilePath)) if ".profile" in x
+        profile_files = [
+            x for x in os.listdir(path=Path(profile_path)) if ".profile" in x
         ]
 
-        if justNames and profileName == "":
+        if just_names and profile_name == "":
             # Remember to remove the .profile extension
-            return [x[:-8] for x in profileFiles]
+            return [x[:-8] for x in profile_files]
 
         # List for holding the information from all the files, so they only have to be read one
         profiles = list()
 
         # Reading all the different profile files and storing the contents in just created list
-        for profile in profileFiles:
+        for profile in profile_files:
 
             # Stripping any potential trailing or leading newlines
-            profiles.append(json.loads(Path(profilePath + profile).read_text().strip()))
+            profiles.append(
+                json.loads(Path(profile_path + profile).read_text().strip())
+            )
 
         return profiles
     else:
         return json.loads(
-            Path(profilePath + profileName + ".profile").read_text().strip()
+            Path(profile_path + profile_name + ".profile").read_text().strip()
         )
 
 
-def collectWebsiteDetails(esClient):
-    DBStoredProfiles = esClient.requestSourceCategoryListFromDB()
+def collect_website_details(es_client):
+    db_stored_profiles = es_client.get_source_category_list_from_db()
 
-    profiles = getProfiles()
+    profiles = get_profiles()
 
     # The final list of all the website information
     details = {}
 
     for profile in profiles:
 
-        if profile["source"]["profileName"] in DBStoredProfiles:
-            imageURL = profile["source"]["imageURL"]
+        if profile["source"]["profile_name"] in db_stored_profiles:
+            image_url = profile["source"]["image_url"]
 
-            details[profile["source"]["profileName"]] = {
+            details[profile["source"]["profile_name"]] = {
                 "name": profile["source"]["name"],
-                "image": imageURL,
+                "image": image_url,
                 "url": profile["source"]["address"],
             }
 

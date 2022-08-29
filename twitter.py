@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 from searchtweets import load_credentials, collect_results, gen_request_parameters
 
 
-def gatherTweetData(credentials, author, lastTweetID=None):
+def gather_tweet_data(credentials, author, last_tweet_id=None):
 
-    queryParams = {
+    query_params = {
         "tweet_fields": "created_at,text,entities",
         "user_fields": "username",
         "expansions": "author_id",
@@ -13,39 +13,41 @@ def gatherTweetData(credentials, author, lastTweetID=None):
         "granularity": None,
     }
 
-    searchQuery = f"-is:reply -is:retweet "
+    search_query = f"-is:reply -is:retweet "
 
     if isinstance(author, list):
-        searchQuery += f"(from:{' OR from:'.join(author)})"
+        search_query += f"(from:{' OR from:'.join(author)})"
     elif isinstance(author, str):
-        searchQuery += f"from:{author}"
+        search_query += f"from:{author}"
 
-    if lastTweetID:
-        query = gen_request_parameters(searchQuery, since_id=lastTweetID, **queryParams)
+    if last_tweet_id:
+        query = gen_request_parameters(
+            search_query, since_id=last_tweet_id, **query_params
+        )
     else:
-        query = gen_request_parameters(searchQuery, **queryParams)
+        query = gen_request_parameters(search_query, **query_params)
 
     return collect_results(query, max_tweets=100, result_stream_args=credentials)
 
 
-def processTweetData(tweetData):
-    tweets = tweetData[0]["data"]
+def process_tweet_data(tweet_data):
+    tweets = tweet_data[0]["data"]
     authors = {
-        authorBlock.pop("id"): authorBlock
-        for authorBlock in tweetData[0]["includes"]["users"]
+        author_block.pop("id"): author_block
+        for author_block in tweet_data[0]["includes"]["users"]
     }
 
     for tweet in tweets:
-        authorID = tweet.pop("author_id")
-        tweet["author_details"] = {"author_id": authorID}
-        tweet["author_details"].update(authors[authorID])
+        author_id = tweet.pop("author_id")
+        tweet["author_details"] = {"author_id": author_id}
+        tweet["author_details"].update(authors[author_id])
 
         tweet["publish_date"] = datetime.strptime(
             tweet.pop("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ"
         ).replace(tzinfo=timezone.utc)
 
         if "entities" in tweet:
-            entitySpecs = {
+            entity_specs = {
                 "hashtags": {
                     "identifier": "tag",
                     "link": "https://twitter.com/hashtag/",
@@ -58,34 +60,34 @@ def processTweetData(tweetData):
                 },
             }
 
-            for entityName in entitySpecs:
-                if entityName in tweet["entities"]:
-                    tweet[entityName] = []
-                    for entity in tweet["entities"].pop(entityName):
+            for entity_name in entity_specs:
+                if entity_name in tweet["entities"]:
+                    tweet[entity_name] = []
+                    for entity in tweet["entities"].pop(entity_name):
 
-                        ID = entity[entitySpecs[entityName]["identifier"]]
+                        ID = entity[entity_specs[entity_name]["identifier"]]
 
                         tweet["text"] = tweet["text"].replace(
-                            f"{entitySpecs[entityName]['prepend']}{ID}",
-                            f"[{entitySpecs[entityName]['prepend']}{ID}]({entitySpecs[entityName]['link']}{ID})",
+                            f"{entity_specs[entity_name]['prepend']}{ID}",
+                            f"[{entity_specs[entity_name]['prepend']}{ID}]({entity_specs[entity_name]['link']}{ID})",
                         )
-                        tweet[entityName].append(ID)
+                        tweet[entity_name].append(ID)
 
             if "urls" in tweet["entities"]:
-                for URLDetails in tweet["entities"].pop("urls"):
-                    if "title" in URLDetails:
+                for url_details in tweet["entities"].pop("urls"):
+                    if "title" in url_details:
                         tweet["OG"] = {}
 
                         for detail in ["title", "description", "unwound_url"]:
-                            if detail in URLDetails:
-                                tweet["OG"][detail.split("_")[-1]] = URLDetails[detail]
+                            if detail in url_details:
+                                tweet["OG"][detail.split("_")[-1]] = url_details[detail]
 
-                        if "images" in URLDetails:
-                            tweet["OG"]["image_url"] = URLDetails["images"][0]["url"]
+                        if "images" in url_details:
+                            tweet["OG"]["image_url"] = url_details["images"][0]["url"]
                     else:
                         tweet["text"] = tweet["text"].replace(
-                            URLDetails["url"],
-                            f"[{URLDetails['display_url']}]({URLDetails['expanded_url']})",
+                            url_details["url"],
+                            f"[{url_details['display_url']}]({url_details['expanded_url']})",
                         )
 
             tweet.pop("entities")
