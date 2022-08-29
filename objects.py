@@ -30,7 +30,7 @@ class FullArticle(BaseArticle):
         ]
     ] = {}
     read_times: int = 0
-    similar: List[int] = None
+    similar: List[str] = None
 
 
 class BaseTweet(BaseModel):
