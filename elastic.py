@@ -218,7 +218,7 @@ class ElasticDB:
         if not search_q:
             search_q = SearchQuery()
 
-        if search_q.limit <= 10_000:
+        if search_q.limit <= 10_000 and search_q.limit != 0:
             search_results = self.es.search(
                 **search_q.generate_es_query(self), index=self.index_name
             )
