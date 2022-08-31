@@ -213,6 +213,44 @@ class ElasticDB:
             "result_number": search_results["hits"]["total"]["value"],
         }
 
+    def query_large(self, query: Dict[any, any], complete: bool):
+        pit_id = self.es.open_point_in_time(index=self.index_name, keep_alive="1m")[
+            "id"
+        ]
+
+        documents = []
+        search_after = None
+        prior_limit = query["size"]
+
+        while True:
+            query["size"] = (
+                10_000 if prior_limit >= 10_000 or prior_limit == 0 else prior_limit
+            )
+
+            search_results = self.es.search(
+                **query,
+                pit={"id": pit_id, "keep_alive": "1m"},
+                search_after=search_after,
+            )
+
+            returned_documents = self._process_search_results(
+                complete, search_results
+            )["documents"]
+
+            documents.extend(returned_documents)
+
+            if len(returned_documents) < 10_000:
+                break
+
+            search_after = search_results["hits"]["hits"][-1]["sort"]
+            pit_id = search_results["pit_id"]
+
+            if prior_limit > 0:
+                prior_limit -= 10_000
+
+        return documents
+
+
     def query_documents(self, search_q: Optional[SearchQuery] = None):
 
         if not search_q:
@@ -226,39 +264,7 @@ class ElasticDB:
             return self._process_search_results(search_q.complete, search_results)
         else:
 
-            pit_id = self.es.open_point_in_time(index=self.index_name, keep_alive="1m")[
-                "id"
-            ]
-
-            documents = []
-            search_after = None
-            prior_limit = search_q.limit
-
-            while True:
-                search_q.limit = (
-                    10_000 if prior_limit >= 10_000 or prior_limit == 0 else prior_limit
-                )
-
-                search_results = self.es.search(
-                    **search_q.generate_es_query(self),
-                    pit={"id": pit_id, "keep_alive": "1m"},
-                    search_after=search_after,
-                )
-
-                returned_documents = self._process_search_results(
-                    search_q.complete, search_results
-                )["documents"]
-
-                documents.extend(returned_documents)
-
-                if len(returned_documents) < 10_000 or prior_limit < 0:
-                    break
-
-                search_after = search_results["hits"]["hits"][-1]["sort"]
-                pit_id = search_results["pit_id"]
-
-                if prior_limit > 0:
-                    prior_limit -= 10_000
+            documents = self.query_large(search_q.generate_es_query(self), search_q.complete)
 
             return {"documents": documents, "result_number": len(documents)}
 
