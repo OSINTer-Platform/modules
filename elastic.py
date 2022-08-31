@@ -5,7 +5,7 @@ from elasticsearch.client import IndicesClient
 from pydantic import ValidationError
 from dataclasses import dataclass
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 
 from datetime import datetime, timezone
 
@@ -271,13 +271,16 @@ class ElasticDB:
 
         return filtered_document_list
 
-    # Function for getting each unique profile in the DB
-    def get_source_category_list_from_db(self):
+    # If there's more than 10.000 unique values, then this function will only get the first 10.000
+    def get_unique_values(self, field_name: Optional[str] = None) -> List[Union[str, int]]:
+        if not field_name:
+            field_name = self.source_category
+
         search_q = {
             "size": 0,
             "aggs": {
-                "source_category": {
-                    "terms": {"field": self.source_category, "size": 10_000}
+                "unique_fields": {
+                    "terms": {"field": field_name, "size": 10_000}
                 }
             },
         }
@@ -286,7 +289,7 @@ class ElasticDB:
             unique_val["key"]
             for unique_val in self.es.search(**search_q, index=self.index_name)[
                 "aggregations"
-            ]["source_category"]["buckets"]
+            ]["unique_fields"]["buckets"]
         ]
 
     def save_document(self, document_object):
