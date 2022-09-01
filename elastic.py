@@ -291,12 +291,12 @@ class ElasticDB:
             },
         }
 
-        return [
-            unique_val["key"]
+        return {
+            unique_val["key"] : unique_val["doc_count"]
             for unique_val in self.es.search(**search_q, index=self.index_name)[
                 "aggregations"
             ]["unique_fields"]["buckets"]
-        ]
+        }
 
     def save_document(self, document_object):
         document_dict = {

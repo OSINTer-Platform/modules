@@ -40,7 +40,7 @@ def get_profiles(profile_name="", just_names=False):
 
 
 def collect_website_details(es_client):
-    db_stored_profiles = es_client.get_unique_values()
+    db_stored_profiles = list(es_client.get_unique_values())
 
     profiles = get_profiles()
 
