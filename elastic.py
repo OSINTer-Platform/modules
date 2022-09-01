@@ -398,8 +398,12 @@ def configure_elasticsearch(config_options):
                         "automatic": {"type": "keyword"},
                     },
                 },
-                "read_times": {"type": "unsigned_long"},
-                "similar": {"type": "keyword"},
+                "ml": {
+                    "type": "object",
+                    "properties": {
+                        "similar": {"type": "keyword"},
+                    },
+                },
             },
         },
         "ELASTICSEARCH_USER_INDEX": {
