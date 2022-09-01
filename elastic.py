@@ -402,6 +402,7 @@ def configure_elasticsearch(config_options):
                     "type": "object",
                     "properties": {
                         "similar": {"type": "keyword"},
+                        "cluster": {"type": "short"},
                     },
                 },
             },

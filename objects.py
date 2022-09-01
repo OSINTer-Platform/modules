@@ -17,6 +17,7 @@ class BaseArticle(BaseModel):
 
 class MLAttributes(TypedDict, total=False):
     similar: List[str]
+    cluster: int
 
 
 class FullArticle(BaseArticle):
