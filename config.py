@@ -84,6 +84,9 @@ class BaseConfig:
     def __getitem__(self, item):
         return getattr(self, item)
 
+    def __setitem__(self, item_name, item):
+        setattr(self, item_name, item)
+
 
 class BackendConfig(BaseConfig):
     def __init__(self):
@@ -110,6 +113,5 @@ class FrontendConfig(BaseConfig):
 
         self.JWT_ALGORITHMS = (os.environ.get("JWT_ALGORITHMS") or "HS256").split(" ")
 
-        self.HTTPS = os.environ.get("ENABLE_HTTPS") or False
-        self.EMAIL_SERVER_AVAILABLE = os.environ.get("EMAIL_SERVER_AVAILABLE") or False
-        self.ML_AVAILABLE = os.environ.get("ML_AVAILABLE") or False
+        for value_name in ["ENABLE_HTTPS", "EMAIL_SERVER_AVAILABLE", "ML_AVAILABLE"]:
+            self[value_name] = bool(os.environ.get(value_name)) or False
