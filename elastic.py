@@ -73,6 +73,7 @@ class SearchQuery:
     highlight: bool = False
     highlight_symbol: str = "**"
     complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
+    cluster_id: Optional[int] = None
 
     def generate_es_query(self, es_client):
         query = {
@@ -117,6 +118,9 @@ class SearchQuery:
 
         if self.ids:
             query["query"]["bool"]["filter"].append({"terms": {"_id": self.ids}})
+
+        if self.cluster_id:
+            query["query"]["bool"]["filter"].append({"term" : {"ml.cluster" : {"value" : self.cluster_id}}})
 
         if self.first_date or self.last_date:
             query["query"]["bool"]["filter"].append({"range": {"publish_date": {}}})
