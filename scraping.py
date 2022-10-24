@@ -123,30 +123,28 @@ def scrape_page_dynamic(page_url, scraping_types, load_time=3, headless=True):
     driver_options.headless = headless
 
     # Setup the webdriver with options
-    driver = webdriver.Firefox(
+    with webdriver.Firefox(
         options=driver_options,
         executable_path=Path("./tools/geckodriver").resolve(),
         log_path=Path("./logs/geckodriver.log").resolve(),
-    )
+    ) as driver:
 
-    # Actually scraping the page
-    driver.get(page_url)
+        # Actually scraping the page
+        driver.get(page_url)
 
-    # Sleeping a pre-specified time to let the driver actually render the page properly
-    time.sleep(load_time)
+        # Sleeping a pre-specified time to let the driver actually render the page properly
+        time.sleep(load_time)
 
-    for scraping_type in scraping_types:
-        current_type = scraping_type.split(":")
-        if current_type[0] == "JS":
-            driver.execute_script(
-                Path(f"./profiles/js_injections/{current_type[1]}.js").read_text()
-            )
-            while driver.execute_script("return document.osinterReady") == False:
-                time.sleep(1)
+        for scraping_type in scraping_types:
+            current_type = scraping_type.split(":")
+            if current_type[0] == "JS":
+                driver.execute_script(
+                    Path(f"./profiles/js_injections/{current_type[1]}.js").read_text()
+                )
+                while driver.execute_script("return document.osinterReady") == False:
+                    time.sleep(1)
 
-    # Getting the source code for the page
-    page_source = driver.page_source
+        # Getting the source code for the page
+        page_source = driver.page_source
 
-    driver.quit()
-
-    return page_source
+        return page_source
