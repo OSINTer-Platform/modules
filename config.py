@@ -34,22 +34,27 @@ def load_logger():
     logger.setLevel(logging.DEBUG)
 
     log_handlers = {
-        "printHandler": logging.StreamHandler(),
-        "fileHandler": logging.FileHandler("logs/info.log"),
-        "errorHandler": logging.FileHandler("logs/error.log"),
+        "printHandler": {"logger": logging.StreamHandler(), "level": logging.DEBUG},
+        "fileHandler": {
+            "logger": logging.FileHandler(f"logs/{name}.info.log"),
+            "level": logging.INFO,
+        },
+        "errorHandler": {
+            "logger": logging.FileHandler(f"logs/{name}.error.log"),
+            "level": logging.ERROR,
+        },
     }
-
-    log_handlers["printHandler"].setLevel(logging.DEBUG)
-    log_handlers["fileHandler"].setLevel(logging.INFO)
-    log_handlers["errorHandler"].setLevel(logging.ERROR)
 
     logger_format = logging.Formatter(
         "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
     )
 
     for handler_name in log_handlers:
-        log_handlers[handler_name].setFormatter(logger_format)
-        logger.addHandler(log_handlers[handler_name])
+        log_handlers[handler_name]["logger"].setLevel(
+            log_handlers[handler_name]["level"]
+        )
+        log_handlers[handler_name]["logger"].setFormatter(logger_format)
+        logger.addHandler(log_handlers[handler_name]["logger"])
 
     return logger
 
