@@ -9,6 +9,10 @@ from typing import Optional, List, Dict, Any, Union
 
 from datetime import datetime, timezone
 
+import logging
+
+logger = logging.getLogger("osinter")
+
 
 def create_es_conn(addresses, cert_path=None):
     if cert_path:
@@ -35,7 +39,6 @@ def return_article_db_conn(config_options):
             "publish_date",
             "inserted_at",
         ],
-        logger=config_options.logger,
     )
 
 
@@ -54,7 +57,6 @@ def return_tweet_db_conn(config_options):
             "publish_date",
             "inserted_at",
         ],
-        logger=config_options.logger,
     )
 
 
@@ -143,7 +145,6 @@ class ElasticDB:
         weighted_search_fields,
         document_object_classes,
         essential_fields,
-        logger,
     ):
         self.index_name = index_name
         self.es = es_conn
@@ -157,7 +158,6 @@ class ElasticDB:
             self.search_fields.append(field_type.split("^")[0])
 
         self.document_object_classes = document_object_classes
-        self.logger = logger
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
     def exists_in_db(self, token):
@@ -204,7 +204,7 @@ class ElasticDB:
                 current_document.id = query_result["_id"]
                 document_list.append(current_document)
             except ValidationError as e:
-                self.logger.error(
+                logger.error(
                     f'Encountered problem with article with ID "{query_result["_id"]}" and title "{query_result["_source"]["title"]}", skipping for now. Error: {e}'
                 )
 
@@ -233,9 +233,9 @@ class ElasticDB:
                 search_after=search_after,
             )
 
-            returned_documents = self._process_search_results(
-                complete, search_results
-            )["documents"]
+            returned_documents = self._process_search_results(complete, search_results)[
+                "documents"
+            ]
 
             documents.extend(returned_documents)
 
@@ -250,7 +250,6 @@ class ElasticDB:
 
         return documents
 
-
     def query_documents(self, search_q: Optional[SearchQuery] = None):
 
         if not search_q:
@@ -264,7 +263,9 @@ class ElasticDB:
             return self._process_search_results(search_q.complete, search_results)
         else:
 
-            documents = self.query_large(search_q.generate_es_query(self), search_q.complete)
+            documents = self.query_large(
+                search_q.generate_es_query(self), search_q.complete
+            )
 
             return {"documents": documents, "result_number": len(documents)}
 
@@ -278,21 +279,19 @@ class ElasticDB:
         return filtered_document_list
 
     # If there's more than 10.000 unique values, then this function will only get the first 10.000
-    def get_unique_values(self, field_name: Optional[str] = None) -> List[Union[str, int]]:
+    def get_unique_values(
+        self, field_name: Optional[str] = None
+    ) -> List[Union[str, int]]:
         if not field_name:
             field_name = self.source_category
 
         search_q = {
             "size": 0,
-            "aggs": {
-                "unique_fields": {
-                    "terms": {"field": field_name, "size": 10_000}
-                }
-            },
+            "aggs": {"unique_fields": {"terms": {"field": field_name, "size": 10_000}}},
         }
 
         return {
-            unique_val["key"] : unique_val["doc_count"]
+            unique_val["key"]: unique_val["doc_count"]
             for unique_val in self.es.search(**search_q, index=self.index_name)[
                 "aggregations"
             ]["unique_fields"]["buckets"]

@@ -27,6 +27,10 @@ from modules.misc import cat_url
 # Used for selecting a random elemen from browserHeaders list
 import random
 
+import logging
+
+logger = logging.getLogger("osinter")
+
 # Used for simulating an actual browser when scraping for OGTags, stolen from here
 browser_headers_list = [
     # Firefox 77 Mac
@@ -65,6 +69,7 @@ def scrape_web_soup(url):
     current_headers = random.choice(browser_headers_list)
     page_source = requests.get(url, headers=current_headers)
     if page_source.status_code != 200:
+
         print(f"Error: Status code {page_source.status_code}, skipping URL {url}")
         return None
     return BeautifulSoup(page_source.content, "html.parser")

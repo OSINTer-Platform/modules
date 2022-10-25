@@ -29,8 +29,8 @@ def load_elastic_url():
         return "http://localhost:9200"
 
 
-def load_logger():
-    logger = logging.getLogger(__name__)
+def configure_logger(name: str = __name__) -> logging.Logger:
+    logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
     log_handlers = {
@@ -76,8 +76,6 @@ class BaseConfig:
             if os.path.isfile("./.elasticsearch.crt")
             else None
         )
-
-        self.logger = load_logger()
 
         self.es_conn = create_es_conn(
             self.ELASTICSEARCH_URL, self.ELASTICSEARCH_CERT_PATH
