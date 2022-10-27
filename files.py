@@ -22,7 +22,7 @@ def convert_article_to_md(article):
     article_file.write(f"![Article Image]({article.image_url})" + "\n")
     article_file.write(article.formatted_content)
 
-    article_file.write("\n##Tags:\n")
+    article_file.write("\n## Tags:\n")
 
     if "manual" in article.tags and article.tags["manual"] != {}:
         article_file.write(
