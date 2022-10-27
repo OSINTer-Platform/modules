@@ -78,7 +78,6 @@ def scrape_web_soup(url):
 # Scraping targets is element and class of element in which the target url is stored, and the profile_name is prepended on the list, to be able to find the profile again when it's needed for scraping
 def scrape_article_urls(root_url, front_page_url, scraping_targets, profile_name):
 
-    print(scraping_targets["container_list"])
     # Getting a soup for the website
     front_page_soup = (
         scrape_web_soup(front_page_url).select(scraping_targets["container_list"])[0]
