@@ -70,7 +70,7 @@ def scrape_web_soup(url):
     page_source = requests.get(url, headers=current_headers)
     if page_source.status_code != 200:
 
-        print(f"Error: Status code {page_source.status_code}, skipping URL {url}")
+        logger.error(f"Status code {page_source.status_code}, skipping URL {url}")
         return None
     return BeautifulSoup(page_source.content, "html.parser")
 
