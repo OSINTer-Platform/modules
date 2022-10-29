@@ -1,6 +1,5 @@
 from modules.objects import BaseArticle, FullArticle, BaseTweet, FullTweet
 from elasticsearch import Elasticsearch
-from elasticsearch.client import IndicesClient
 
 from pydantic import ValidationError
 from dataclasses import dataclass
@@ -342,99 +341,87 @@ class ElasticDB:
         self.es.update(index=self.index_name, id=document_id, script=increment_script)
 
 
-def configure_elasticsearch(config_options):
-    es = config_options.es_conn
-
-    index_configs = {
-        "ELASTICSEARCH_TWEET_INDEX": {
-            "dynamic": "strict",
-            "properties": {
-                "twitter_id": {"type": "keyword"},
-                "content": {"type": "text"},
-                "hashtags": {"type": "keyword"},
-                "mentions": {"type": "keyword"},
-                "inserted_at": {"type": "date"},
-                "publish_date": {"type": "date"},
-                "author_details": {
-                    "type": "object",
-                    "enabled": True,
-                    "properties": {
-                        "author_id": {"type": "keyword"},
-                        "name": {"type": "keyword"},
-                        "username": {"type": "keyword"},
-                    },
+ES_INDEX_CONFIGS = {
+    "ELASTICSEARCH_TWEET_INDEX": {
+        "dynamic": "strict",
+        "properties": {
+            "twitter_id": {"type": "keyword"},
+            "content": {"type": "text"},
+            "hashtags": {"type": "keyword"},
+            "mentions": {"type": "keyword"},
+            "inserted_at": {"type": "date"},
+            "publish_date": {"type": "date"},
+            "author_details": {
+                "type": "object",
+                "enabled": True,
+                "properties": {
+                    "author_id": {"type": "keyword"},
+                    "name": {"type": "keyword"},
+                    "username": {"type": "keyword"},
                 },
-                "OG": {
-                    "type": "object",
-                    "enabled": True,
-                    "properties": {
-                        "url": {"type": "keyword"},
-                        "image_url": {"type": "keyword"},
-                        "title": {"type": "text"},
-                        "description": {"type": "text"},
-                        "content": {"type": "text"},
-                    },
-                },
-                "read_times": {"type": "unsigned_long"},
             },
-        },
-        "ELASTICSEARCH_ARTICLE_INDEX": {
-            "dynamic": "strict",
-            "properties": {
-                "title": {"type": "text"},
-                "description": {"type": "text"},
-                "content": {"type": "text"},
-                "formatted_content": {"type": "text"},
-                "url": {"type": "keyword"},
-                "profile": {"type": "keyword"},
-                "source": {"type": "keyword"},
-                "image_url": {"type": "keyword"},
-                "author": {"type": "keyword"},
-                "inserted_at": {"type": "date"},
-                "publish_date": {"type": "date"},
-                "tags": {
-                    "type": "object",
-                    "enabled": False,
-                    "properties": {
-                        "manual": {"type": "object", "dynamic": True},
-                        "interresting": {"type": "object", "dynamic": True},
-                        "automatic": {"type": "keyword"},
-                    },
+            "OG": {
+                "type": "object",
+                "enabled": True,
+                "properties": {
+                    "url": {"type": "keyword"},
+                    "image_url": {"type": "keyword"},
+                    "title": {"type": "text"},
+                    "description": {"type": "text"},
+                    "content": {"type": "text"},
                 },
-                "ml": {
-                    "type": "object",
-                    "properties": {
-                        "similar": {"type": "keyword"},
-                        "cluster": {"type": "short"},
-                    },
+            },
+            "read_times": {"type": "unsigned_long"},
+        },
+    },
+    "ELASTICSEARCH_ARTICLE_INDEX": {
+        "dynamic": "strict",
+        "properties": {
+            "title": {"type": "text"},
+            "description": {"type": "text"},
+            "content": {"type": "text"},
+            "formatted_content": {"type": "text"},
+            "url": {"type": "keyword"},
+            "profile": {"type": "keyword"},
+            "source": {"type": "keyword"},
+            "image_url": {"type": "keyword"},
+            "author": {"type": "keyword"},
+            "inserted_at": {"type": "date"},
+            "publish_date": {"type": "date"},
+            "tags": {
+                "type": "object",
+                "enabled": False,
+                "properties": {
+                    "manual": {"type": "object", "dynamic": True},
+                    "interresting": {"type": "object", "dynamic": True},
+                    "automatic": {"type": "keyword"},
+                },
+            },
+            "ml": {
+                "type": "object",
+                "properties": {
+                    "similar": {"type": "keyword"},
+                    "cluster": {"type": "short"},
                 },
             },
         },
-        "ELASTICSEARCH_USER_INDEX": {
-            "dynamic": "strict",
-            "properties": {
-                "username": {"type": "keyword"},
-                "password_hash": {"type": "keyword"},
-                "email_hash": {"type": "keyword"},
-                "feeds": {"type": "flattened"},
-                "collections": {
-                    "type": "object",
-                    "enabled": False,
-                    "dynamic": True,
-                    "properties": {
-                        "Read Later": {"type": "keyword"},
-                        "Already Read": {"type": "keyword"},
-                    },
+    },
+    "ELASTICSEARCH_USER_INDEX": {
+        "dynamic": "strict",
+        "properties": {
+            "username": {"type": "keyword"},
+            "password_hash": {"type": "keyword"},
+            "email_hash": {"type": "keyword"},
+            "feeds": {"type": "flattened"},
+            "collections": {
+                "type": "object",
+                "enabled": False,
+                "dynamic": True,
+                "properties": {
+                    "Read Later": {"type": "keyword"},
+                    "Already Read": {"type": "keyword"},
                 },
             },
         },
-    }
-
-    es_index_client = IndicesClient(es)
-
-    for index_name in index_configs:
-        es_index_client.create(
-            index=config_options[index_name],
-            mappings=index_configs[index_name],
-            ignore=[400],
-        )
+    },
+}
