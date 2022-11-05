@@ -388,6 +388,7 @@ ES_INDEX_CONFIGS = {
             "author": {"type": "keyword"},
             "inserted_at": {"type": "date"},
             "publish_date": {"type": "date"},
+            "read_times" : {"type" : "unsigned_long"},
             "tags": {
                 "type": "object",
                 "enabled": False,
