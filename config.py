@@ -3,9 +3,6 @@ import secrets
 from pathlib import Path
 import logging
 
-from elasticsearch import BadRequestError
-from elasticsearch.client import IndicesClient
-
 from modules.elastic import (
     return_tweet_db_conn,
     return_article_db_conn,
@@ -62,21 +59,6 @@ def configure_logger(name: str = __name__) -> logging.Logger:
 
     return logger
 
-def configure_elasticsearch(config_options):
-    logger = logging.getLogger("osinter")
-    es_index_client = IndicesClient(config_options.es_conn)
-
-    for index_name in ES_INDEX_CONFIGS:
-        try:
-            es_index_client.create(
-                index=config_options[index_name],
-                mappings=ES_INDEX_CONFIGS[index_name],
-            )
-        except BadRequestError as e:
-            if e.status_code != 400 or e.error != "resource_already_exists_exception":
-                raise e
-            else:
-                logger.info(f'The {index_name} already exists, skipping.')
 
 class BaseConfig:
     def __init__(self):
