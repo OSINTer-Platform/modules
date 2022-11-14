@@ -1,5 +1,6 @@
-from modules.objects import BaseArticle, FullArticle, BaseTweet, FullTweet
+from modules.objects import BaseArticle, FullArticle, BaseTweet, FullTweet, OSINTerDocument
 from elasticsearch import Elasticsearch
+from elasticsearch.helpers import bulk
 
 from pydantic import ValidationError
 from dataclasses import dataclass
@@ -253,7 +254,7 @@ class ElasticDB:
 
         return documents
 
-    def query_documents(self, search_q: Optional[SearchQuery] = None):
+    def query_documents(self, search_q: Optional[SearchQuery] = None) -> dict[str, int | list[OSINTerDocument]]:
 
         if not search_q:
             search_q = SearchQuery()
@@ -271,6 +272,9 @@ class ElasticDB:
             )
 
             return {"documents": documents, "result_number": len(documents)}
+
+    def query_all_documents(self) -> dict[str, int | FullArticle | FullTweet]:
+        return self.query_documents(SearchQuery(limit=0, complete=True))
 
     # Function for taking in a list of lists of documents with the first entry of each list being the name of the profile, and then removing all the documents that already has been saved in the database
     def filter_document_list(self, document_attribute_list):
@@ -300,24 +304,28 @@ class ElasticDB:
             ]["unique_fields"]["buckets"]
         }
 
-    def save_document(self, document_object):
-        document_dict = {
-            key: value
-            for key, value in document_object.dict().items()
-            if value is not None
-        }
+    def save_document(self, document_object: OSINTerDocument | list[OSINTerDocument]) -> int:
+        def convert_documents(documents: list[OSINTerDocument]) -> tuple[dict[str, any], str]:
+            for document in documents:
+                document_contents: dict[str, any] = {
+                    key: value
+                    for key, value in document.dict().items()
+                    if value is not None
+                }
 
-        if "id" in document_dict:
-            document_id = document_dict.pop("id")
-        else:
-            document_id = ""
+                operation = {
+                    "_index": self.index_name,
+                    "_source" : document_contents,
+                }
 
-        if document_id:
-            return self.es.index(
-                index=self.index_name, document=document_dict, id=document_id
-            )["_id"]
-        else:
-            return self.es.index(index=self.index_name, document=document_dict)["_id"]
+                if "id" in operation["_source"]:
+                    operation["_id"] = operation["_source"].pop("id")
+
+                yield operation
+
+        document_objects: list[OSINTerDocument] = [document_object] if not isinstance(document_object, list) else document_object
+
+        return bulk(self.es, convert_documents(document_objects))[0]
 
     def get_last_document(self, source_category_value=None):
         search_q = {"size": 1, "sort": {"publish_date": "desc"}}

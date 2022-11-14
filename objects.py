@@ -1,7 +1,6 @@
 from pydantic import BaseModel, HttpUrl
-from typing import Dict, List, Union, Optional, TypedDict
+from typing import Dict, List, Union, Optional, TypedDict, TypeAlias
 from datetime import datetime, timezone
-
 
 class BaseArticle(BaseModel):
     title: str
@@ -54,3 +53,5 @@ class FullTweet(BaseTweet):
     OG: Dict[str, str] = {}
 
     read_times: int = 0
+
+OSINTerDocument: TypeAlias = FullArticle | FullTweet
