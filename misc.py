@@ -30,7 +30,6 @@ def download_driver(driver_url):
         driver_file.extractall(path=Path("./tools/"))
 
 
-
 def create_folder(folder_name):
     if not os.path.isdir(Path("./" + folder_name)):
         try:

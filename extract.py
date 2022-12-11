@@ -95,7 +95,6 @@ def extract_meta_information(page_soup, scraping_targets, site_url):
         else:
             OG_tags[meta_id] = tag.text
 
-
     if OG_tags["author"] == None or OG_tags["publish_date"] == None:
 
         # Use ld+json to extract extra information not found in the meta OG tags like author and publish date

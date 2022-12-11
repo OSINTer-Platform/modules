@@ -1,4 +1,10 @@
-from modules.objects import BaseArticle, FullArticle, BaseTweet, FullTweet, OSINTerDocument
+from modules.objects import (
+    BaseArticle,
+    FullArticle,
+    BaseTweet,
+    FullTweet,
+    OSINTerDocument,
+)
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 
@@ -120,7 +126,9 @@ class SearchQuery:
             query["query"]["bool"]["filter"].append({"terms": {"_id": self.ids}})
 
         if self.cluster_id:
-            query["query"]["bool"]["filter"].append({"term" : {"ml.cluster" : {"value" : self.cluster_id}}})
+            query["query"]["bool"]["filter"].append(
+                {"term": {"ml.cluster": {"value": self.cluster_id}}}
+            )
 
         if self.first_date or self.last_date:
             query["query"]["bool"]["filter"].append({"range": {"publish_date": {}}})
@@ -254,7 +262,9 @@ class ElasticDB:
 
         return documents
 
-    def query_documents(self, search_q: Optional[SearchQuery] = None) -> dict[str, int | list[OSINTerDocument]]:
+    def query_documents(
+        self, search_q: Optional[SearchQuery] = None
+    ) -> dict[str, Union[int, list[OSINTerDocument]]]:
 
         if not search_q:
             search_q = SearchQuery()
@@ -273,7 +283,7 @@ class ElasticDB:
 
             return {"documents": documents, "result_number": len(documents)}
 
-    def query_all_documents(self) -> dict[str, int | FullArticle | FullTweet]:
+    def query_all_documents(self) -> dict[str, Union[int, OSINTerDocument]]:
         return self.query_documents(SearchQuery(limit=0, complete=True))
 
     # Function for taking in a list of lists of documents with the first entry of each list being the name of the profile, and then removing all the documents that already has been saved in the database
@@ -304,8 +314,12 @@ class ElasticDB:
             ]["unique_fields"]["buckets"]
         }
 
-    def save_document(self, document_object: OSINTerDocument | list[OSINTerDocument]) -> int:
-        def convert_documents(documents: list[OSINTerDocument]) -> tuple[dict[str, any], str]:
+    def save_document(
+        self, document_object: Union[OSINTerDocument, list[OSINTerDocument]]
+    ) -> int:
+        def convert_documents(
+            documents: list[OSINTerDocument],
+        ) -> tuple[dict[str, any], str]:
             for document in documents:
                 document_contents: dict[str, any] = {
                     key: value
@@ -315,7 +329,7 @@ class ElasticDB:
 
                 operation = {
                     "_index": self.index_name,
-                    "_source" : document_contents,
+                    "_source": document_contents,
                 }
 
                 if "id" in operation["_source"]:
@@ -323,7 +337,11 @@ class ElasticDB:
 
                 yield operation
 
-        document_objects: list[OSINTerDocument] = [document_object] if not isinstance(document_object, list) else document_object
+        document_objects: list[OSINTerDocument] = (
+            [document_object]
+            if not isinstance(document_object, list)
+            else document_object
+        )
 
         return bulk(self.es, convert_documents(document_objects))[0]
 
@@ -396,7 +414,7 @@ ES_INDEX_CONFIGS = {
             "author": {"type": "keyword"},
             "inserted_at": {"type": "date"},
             "publish_date": {"type": "date"},
-            "read_times" : {"type" : "unsigned_long"},
+            "read_times": {"type": "unsigned_long"},
             "tags": {
                 "type": "object",
                 "enabled": False,
