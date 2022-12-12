@@ -67,16 +67,16 @@ def extract_article_content(selectors, soup, delimiter="\n"):
 def extract_meta_information(page_soup, scraping_targets, site_url):
     OG_tags = {}
 
-    for meta_id in scraping_targets:
-        OG_tags[meta_id] = None
+    for meta_tag in scraping_targets:
+        OG_tags[meta_tag] = None
 
-        if not meta_id:
+        if not scraping_targets[meta_tag]:
             continue
 
         try:
-            tag_selector, tag_field = scraping_targets[meta_id].split(";")
+            tag_selector, tag_field = scraping_targets[meta_tag].split(";")
         except ValueError:
-            tag_selector = scraping_targets[meta_id]
+            tag_selector = scraping_targets[meta_tag]
 
             if "meta" in tag_selector:
                 tag_field = "content"
@@ -91,9 +91,9 @@ def extract_meta_information(page_soup, scraping_targets, site_url):
             continue
 
         if tag_field:
-            OG_tags[meta_id] = tag.get(tag_field)
+            OG_tags[meta_tag] = tag.get(tag_field)
         else:
-            OG_tags[meta_id] = tag.text
+            OG_tags[meta_tag] = tag.text
 
     if OG_tags["author"] == None or OG_tags["publish_date"] == None:
 
