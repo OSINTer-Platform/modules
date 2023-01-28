@@ -2,7 +2,7 @@ from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-from typing import Any, Type, TypedDict
+from typing import Any, Type, TypedDict, Generic
 
 from elastic_transport import ObjectApiResponse
 from elasticsearch import Elasticsearch
@@ -15,6 +15,8 @@ from modules.objects import (
     FullArticle,
     FullTweet,
     OSINTerDocument,
+    DocumentBase,
+    DocumentFull,
 )
 
 logger = logging.getLogger("osinter")
@@ -28,7 +30,7 @@ def create_es_conn(addresses, cert_path=None):
 
 
 def return_article_db_conn(config_options):
-    return ElasticDB(
+    return ElasticDB[BaseArticle, FullArticle](
         es_conn=config_options.es_conn,
         index_name=config_options.ELASTICSEARCH_ARTICLE_INDEX,
         unique_field="url",
@@ -49,7 +51,7 @@ def return_article_db_conn(config_options):
 
 
 def return_tweet_db_conn(config_options):
-    return ElasticDB(
+    return ElasticDB[BaseTweet, FullTweet](
         es_conn=config_options.es_conn,
         index_name=config_options.ELASTICSEARCH_TWEET_INDEX,
         unique_field="twitter_id",
@@ -146,12 +148,7 @@ class SearchQuery:
         return query
 
 
-class EsResponse(TypedDict):
-    result_number: int
-    documents: list[OSINTerDocument]
-
-
-class ElasticDB:
+class ElasticDB(Generic[DocumentBase, DocumentFull]):
     def __init__(
         self,
         *,
@@ -175,7 +172,7 @@ class ElasticDB:
             self.search_fields.append(field_type.split("^")[0])
 
         self.document_object_classes: dict[
-            str, Type[OSINTerDocument]
+            str, Type[DocumentBase | DocumentFull]
         ] = document_object_classes
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
@@ -203,10 +200,10 @@ class ElasticDB:
 
     def _process_search_results(
         self, complete: bool, search_results: ObjectApiResponse
-    ) -> EsResponse:
-        document_list: list[OSINTerDocument] = []
+    ) -> DocumentBase | DocumentFull:
+        document_list: list[DocumentBase | DocumentFull] = []
 
-        document_object_class: Type[OSINTerDocument] = (
+        document_object_class: Type[DocumentBase | DocumentFull] = (
             self.document_object_classes["full"]
             if complete
             else self.document_object_classes["base"]
@@ -222,7 +219,7 @@ class ElasticDB:
                         )
 
             try:
-                current_document: OSINTerDocument = document_object_class(
+                current_document: DocumentBase | DocumentFull = document_object_class(
                     **query_result["_source"]
                 )
                 current_document.id = query_result["_id"]
@@ -232,14 +229,9 @@ class ElasticDB:
                     f'Encountered problem with article with ID "{query_result["_id"]}" and title "{query_result["_source"]["title"]}", skipping for now. Error: {e}'
                 )
 
-        results: EsResponse = {
-            "documents": document_list,
-            "result_number": search_results["hits"]["total"]["value"],
-        }
+        return document_list
 
-        return results
-
-    def query_large(self, query: dict[str, Any], complete: bool) -> list[OSINTerDocument]:
+    def query_large(self, query: dict[str, Any], complete: bool) -> list[DocumentBase] | list[DocumentFull]:
         pit_id: str = self.es.open_point_in_time(
             index=self.index_name, keep_alive="1m"
         )["id"]
@@ -276,7 +268,7 @@ class ElasticDB:
 
         return documents
 
-    def query_documents(self, search_q: SearchQuery | None = None) -> EsResponse:
+    def query_documents(self, search_q: SearchQuery | None = None) -> list[DocumentBase] | list[DocumentFull]:
 
         if not search_q:
             search_q = SearchQuery()
@@ -289,13 +281,11 @@ class ElasticDB:
             return self._process_search_results(search_q.complete, search_results)
         else:
 
-            documents = self.query_large(
+            return self.query_large(
                 search_q.generate_es_query(self), search_q.complete
             )
 
-            return {"documents": documents, "result_number": len(documents)}
-
-    def query_all_documents(self) -> EsResponse:
+    def query_all_documents(self) -> list[DocumentFull]:
         return self.query_documents(SearchQuery(limit=0, complete=True))
 
     def filter_document_list(self, document_attribute_list: list[str]) -> list[str]:
@@ -324,10 +314,10 @@ class ElasticDB:
         }
 
     def save_document(
-        self, document_object: OSINTerDocument | list[OSINTerDocument]
+        self, document_object: DocumentBase | DocumentFull | list[DocumentBase] | list[DocumentFull]
     ) -> int:
         def convert_documents(
-            documents: list[OSINTerDocument],
+            documents: list[DocumentBase | DocumentFull],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
                 document_contents: dict[str, Any] = {
@@ -346,7 +336,7 @@ class ElasticDB:
 
                 yield operation
 
-        document_objects: list[OSINTerDocument] = (
+        document_objects: list[DocumentBase | DocumentFull] = (
             [document_object]
             if not isinstance(document_object, list)
             else document_object

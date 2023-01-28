@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import TypeAlias, TypedDict
+from typing import TypeAlias, TypedDict, TypeVar
 
 from pydantic import BaseModel, HttpUrl
 
@@ -64,3 +64,5 @@ class FullTweet(BaseTweet):
 
 
 OSINTerDocument: TypeAlias = BaseArticle | BaseTweet
+DocumentBase = TypeVar('DocumentBase', BaseTweet, BaseArticle)
+DocumentFull = TypeVar('DocumentFull', FullTweet, FullArticle)
