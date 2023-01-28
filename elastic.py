@@ -370,15 +370,9 @@ class ElasticDB(Generic[DocumentBase, DocumentFull]):
             documents: list[DocumentBase] | list[DocumentFull],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
-                document_contents: dict[str, Any] = {
-                    key: value
-                    for key, value in document.dict().items()
-                    if value is not None
-                }
-
                 operation = {
                     "_index": self.index_name,
-                    "_source": document_contents,
+                    "_source": document.dict(exclude_none=True),
                 }
 
                 if "id" in operation["_source"]:
@@ -387,6 +381,18 @@ class ElasticDB(Generic[DocumentBase, DocumentFull]):
                 yield operation
 
         return bulk(self.es, convert_documents(document_objects))[0]
+
+    def save_document(
+        self, document_object: DocumentBase | DocumentFull
+    ) -> str:
+        document_dict: dict[str, Any] = document_object.dict(exclude_none=True)
+
+        try:
+            document_id = document_dict.pop("id")
+            return self.es.index(index=self.index_name, document=document_dict, id=document_id)["_id"]
+        except KeyError:
+            return self.es.index(index=self.index_name, document=document_dict)["_id"]
+
 
     def get_last_document(
         self, source_category_value: list[str]
