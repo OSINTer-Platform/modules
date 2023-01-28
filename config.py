@@ -23,13 +23,6 @@ def load_secret_key():
         return current_secret_key
 
 
-def load_elastic_url():
-    if os.path.isfile("./.elasticsearch.url"):
-        return Path("./.elasticsearch.url").read_text()
-    else:
-        return "http://localhost:9200"
-
-
 def configure_logger(name: str = __name__) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
@@ -68,9 +61,8 @@ class BaseConfig:
         self.ELASTICSEARCH_TWEET_INDEX = (
             os.environ.get("TWEET_INDEX") or "osinter_tweets"
         )
-        self.ELASTICSEARCH_USER_INDEX = os.environ.get("USER_INDEX") or "osinter_users"
         self.ELASTICSEARCH_URL = (
-            os.environ.get("ELASTICSEARCH_URL") or load_elastic_url()
+            os.environ.get("ELASTICSEARCH_URL") or "http://localhost:9200"
         )
         self.ELASTICSEARCH_CERT_PATH = (
             os.environ.get("ELASTICSEARCH_CERT_PATH") or "./.elasticsearch.crt"
