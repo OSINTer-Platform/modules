@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from searchtweets import load_credentials, collect_results, gen_request_parameters
+from searchtweets import collect_results, gen_request_parameters
 
 
 def gather_tweet_data(credentials, author, last_tweet_id=None):

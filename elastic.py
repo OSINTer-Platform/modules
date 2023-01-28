@@ -1,21 +1,21 @@
+from collections.abc import Generator
+from dataclasses import dataclass
+from datetime import datetime
+import logging
+from typing import Any, Type, TypedDict
+
+from elastic_transport import ObjectApiResponse
+from elasticsearch import Elasticsearch
+from elasticsearch.helpers import bulk
+from pydantic import ValidationError
+
 from modules.objects import (
     BaseArticle,
-    FullArticle,
     BaseTweet,
+    FullArticle,
     FullTweet,
     OSINTerDocument,
 )
-from elasticsearch import Elasticsearch
-from elasticsearch.helpers import bulk
-
-from pydantic import ValidationError
-from dataclasses import dataclass
-
-from typing import Optional, List, Dict, Any, Union
-
-from datetime import datetime, timezone
-
-import logging
 
 logger = logging.getLogger("osinter")
 
@@ -69,19 +69,19 @@ def return_tweet_db_conn(config_options):
 @dataclass
 class SearchQuery:
     limit: int = 10_000
-    sort_by: Optional[str] = None
-    sort_order: Optional[str] = None
-    search_term: Optional[str] = None
-    first_date: Optional[datetime] = None
-    last_date: Optional[datetime] = None
-    source_category: Optional[List[str]] = None
-    ids: Optional[List[str]] = None
+    sort_by: str | None = None
+    sort_order: str | None = None
+    search_term: str | None = None
+    first_date: datetime | None = None
+    last_date: datetime | None = None
+    source_category: list[str] | None = None
+    ids: list[str] | None = None
     highlight: bool = False
     highlight_symbol: str = "**"
     complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
-    cluster_id: Optional[int] = None
+    cluster_id: int | None = None
 
-    def generate_es_query(self, es_client):
+    def generate_es_query(self, es_client) -> dict[str, Any]:
         query = {
             "size": self.limit,
             "sort": ["_doc"],
@@ -146,6 +146,11 @@ class SearchQuery:
         return query
 
 
+class EsResponse(TypedDict):
+    result_number: int
+    documents: list[OSINTerDocument]
+
+
 class ElasticDB:
     def __init__(
         self,
@@ -158,32 +163,34 @@ class ElasticDB:
         document_object_classes,
         essential_fields,
     ):
-        self.index_name = index_name
-        self.es = es_conn
-        self.unique_field = unique_field
-        self.source_category = source_category
-        self.weighted_search_fields = weighted_search_fields
-        self.essential_fields = essential_fields
+        self.index_name: str = index_name
+        self.es: Elasticsearch = es_conn
+        self.unique_field: str = unique_field
+        self.source_category: str = source_category
+        self.weighted_search_fields: list[str] = weighted_search_fields
+        self.essential_fields: list[str] = essential_fields
 
-        self.search_fields = []
+        self.search_fields: list[str] = []
         for field_type in weighted_search_fields:
             self.search_fields.append(field_type.split("^")[0])
 
-        self.document_object_classes = document_object_classes
+        self.document_object_classes: dict[
+            str, Type[OSINTerDocument]
+        ] = document_object_classes
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
-    def exists_in_db(self, token):
+    def exists_in_db(self, token: str) -> bool:
         return (
             int(
                 self.es.search(
                     index=self.index_name,
-                    body={"query": {"term": {self.unique_field: {"value": token}}}},
+                    query={"term": {self.unique_field: {"value": token}}},
                 )["hits"]["total"]["value"]
             )
             != 0
         )
 
-    def _concat_strings(self, string_list):
+    def _concat_strings(self, string_list: list[str]) -> str:
         final_string = " ... ".join(string_list)
 
         if not final_string[0].isupper():
@@ -194,13 +201,16 @@ class ElasticDB:
 
         return final_string
 
-    def _process_search_results(self, complete: bool, search_results: Dict[Any, Any]):
-        document_list = []
+    def _process_search_results(
+        self, complete: bool, search_results: ObjectApiResponse
+    ) -> EsResponse:
+        document_list: list[OSINTerDocument] = []
 
-        if complete:
-            document_object_class = self.document_object_classes["full"]
-        else:
-            document_object_class = self.document_object_classes["base"]
+        document_object_class: Type[OSINTerDocument] = (
+            self.document_object_classes["full"]
+            if complete
+            else self.document_object_classes["base"]
+        )
 
         for query_result in search_results["hits"]["hits"]:
 
@@ -212,7 +222,9 @@ class ElasticDB:
                         )
 
             try:
-                current_document = document_object_class(**query_result["_source"])
+                current_document: OSINTerDocument = document_object_class(
+                    **query_result["_source"]
+                )
                 current_document.id = query_result["_id"]
                 document_list.append(current_document)
             except ValidationError as e:
@@ -220,15 +232,17 @@ class ElasticDB:
                     f'Encountered problem with article with ID "{query_result["_id"]}" and title "{query_result["_source"]["title"]}", skipping for now. Error: {e}'
                 )
 
-        return {
+        results: EsResponse = {
             "documents": document_list,
             "result_number": search_results["hits"]["total"]["value"],
         }
 
-    def query_large(self, query: Dict[any, any], complete: bool):
-        pit_id = self.es.open_point_in_time(index=self.index_name, keep_alive="1m")[
-            "id"
-        ]
+        return results
+
+    def query_large(self, query: dict[str, Any], complete: bool) -> list[OSINTerDocument]:
+        pit_id: str = self.es.open_point_in_time(
+            index=self.index_name, keep_alive="1m"
+        )["id"]
 
         documents = []
         search_after = None
@@ -239,7 +253,7 @@ class ElasticDB:
                 10_000 if prior_limit >= 10_000 or prior_limit == 0 else prior_limit
             )
 
-            search_results = self.es.search(
+            search_results: ObjectApiResponse = self.es.search(
                 **query,
                 pit={"id": pit_id, "keep_alive": "1m"},
                 search_after=search_after,
@@ -262,9 +276,7 @@ class ElasticDB:
 
         return documents
 
-    def query_documents(
-        self, search_q: Optional[SearchQuery] = None
-    ) -> dict[str, Union[int, list[OSINTerDocument]]]:
+    def query_documents(self, search_q: SearchQuery | None = None) -> EsResponse:
 
         if not search_q:
             search_q = SearchQuery()
@@ -283,11 +295,10 @@ class ElasticDB:
 
             return {"documents": documents, "result_number": len(documents)}
 
-    def query_all_documents(self) -> dict[str, Union[int, OSINTerDocument]]:
+    def query_all_documents(self) -> EsResponse:
         return self.query_documents(SearchQuery(limit=0, complete=True))
 
-    # Function for taking in a list of lists of documents with the first entry of each list being the name of the profile, and then removing all the documents that already has been saved in the database
-    def filter_document_list(self, document_attribute_list):
+    def filter_document_list(self, document_attribute_list: list[str]) -> list[str]:
         filtered_document_list = []
         for attr in document_attribute_list:
             if not self.exists_in_db(attr):
@@ -296,9 +307,7 @@ class ElasticDB:
         return filtered_document_list
 
     # If there's more than 10.000 unique values, then this function will only get the first 10.000
-    def get_unique_values(
-        self, field_name: Optional[str] = None
-    ) -> List[Union[str, int]]:
+    def get_unique_values(self, field_name: str | None = None) -> dict[str, int]:
         if not field_name:
             field_name = self.source_category
 
@@ -315,13 +324,13 @@ class ElasticDB:
         }
 
     def save_document(
-        self, document_object: Union[OSINTerDocument, list[OSINTerDocument]]
+        self, document_object: OSINTerDocument | list[OSINTerDocument]
     ) -> int:
         def convert_documents(
             documents: list[OSINTerDocument],
-        ) -> tuple[dict[str, any], str]:
+        ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
-                document_contents: dict[str, any] = {
+                document_contents: dict[str, Any] = {
                     key: value
                     for key, value in document.dict().items()
                     if value is not None
@@ -362,7 +371,7 @@ class ElasticDB:
         else:
             return None
 
-    def increment_read_counter(self, document_id):
+    def increment_read_counter(self, document_id: str) -> None:
         increment_script = {"source": "ctx._source.read_times += 1", "lang": "painless"}
         self.es.update(index=self.index_name, id=document_id, script=increment_script)
 

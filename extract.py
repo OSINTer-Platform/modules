@@ -1,14 +1,10 @@
-# For parsing html
-from bs4 import BeautifulSoup
-
-# For parsing application/ld+json
+from datetime import datetime, timezone
 import json
-
 import re
 
-from dateutil.parser import parse
-from datetime import timezone, datetime
-
+from bs4 import BeautifulSoup
+from bs4.element import ResultSet
+from pydantic import BaseModel
 
 # Used for matching the relevant information from LD+JSON
 json_patterns = {
@@ -16,24 +12,30 @@ json_patterns = {
     "author": re.compile(r'("@type": "Person",.*?"name": ")(.*?)(?=")'),
 }
 
-# Function for using the class of a container along with the element type and class of desired html tag (stored in the contentDetails variable) to extract that specific tag. Data is found under the "scraping" class in the profiles.
-def locate_content(css_selector, soup, recursive=True):
-    try:
-        return soup.select(css_selector, recursive=recursive)
-    except:
-        return BeautifulSoup("Unknown", "html.parser")
+
+class OGTags(BaseModel):
+    author: str | None = None
+    title: str | None = None
+    description: str | None = None
+    image_url: str | None = None
+    publish_date: datetime | None = None
 
 
-# Function used for removing certain tags with or without class from a soup. Takes in a list of element tag and class in the format: "tag,class;tag,class;..."
-def clean_soup(soup, remove_selectors):
-    for css_selector in remove_selectors.split(";"):
-        for tag in soup.select(css_selector):
-            tag.decompose()
+def extract_article_content(
+    selectors: dict[str, str], soup: BeautifulSoup, delimiter: str = "\n"
+) -> tuple[str, str]:
+    def locate_content(css_selector, soup, recursive=True) -> ResultSet | None:
+        try:
+            return soup.select(css_selector, recursive=recursive)
+        except:
+            return None
 
-    return soup
+    def clean_soup(soup: BeautifulSoup, remove_selectors: str) -> BeautifulSoup:
+        for css_selector in remove_selectors.split(";"):
+            for tag in soup.select(css_selector):
+                tag.decompose()
 
-
-def extract_article_content(selectors, soup, delimiter="\n"):
+        return soup
 
     # Clean the textlist for unwanted html elements
     if selectors["remove"] != "":
@@ -42,7 +44,7 @@ def extract_article_content(selectors, soup, delimiter="\n"):
     else:
         text_list = locate_content(selectors["container"], soup, recursive=True)
 
-    if text_list == "Unknown":
+    if text_list is None:
         raise Exception(
             "Wasn't able to fetch the text for the following soup:" + str(soup)
         )
@@ -64,19 +66,19 @@ def extract_article_content(selectors, soup, delimiter="\n"):
 
 
 # Function for scraping meta information (like title, author and publish date) from articles. This both utilizes the OG tags and LD+JSON data, and while the proccess for extracting the OG tags is fairly simply as those is (nearly) always following the same standard, the LD+JSON data is a little more complicated. Here the data isn't parsed as JSON, but rather as a string where the relevant pieces of information is extracted using regex. It's probably ugly and definitly not the officially "right" way of doing this, but different placement of the information in the JSON object on different websites using different attributes made parsing the information from a python JSON object near impossible. As such, be warned that this function is not for the faint of heart
-def extract_meta_information(page_soup, scraping_targets, site_url):
-    OG_tags = {}
+def extract_meta_information(
+    page_soup: BeautifulSoup, scraping_targets: dict[str, str], site_url: str
+) -> OGTags:
+    OG_tags = OGTags()
 
-    for meta_tag in scraping_targets:
-        OG_tags[meta_tag] = None
-
-        if not scraping_targets[meta_tag]:
+    for meta_id in scraping_targets:
+        if not meta_id:
             continue
 
         try:
-            tag_selector, tag_field = scraping_targets[meta_tag].split(";")
+            tag_selector, tag_field = scraping_targets[meta_id].split(";")
         except ValueError:
-            tag_selector = scraping_targets[meta_tag]
+            tag_selector = scraping_targets[meta_id]
 
             if "meta" in tag_selector:
                 tag_field = "content"
@@ -91,11 +93,14 @@ def extract_meta_information(page_soup, scraping_targets, site_url):
             continue
 
         if tag_field:
-            OG_tags[meta_tag] = tag.get(tag_field)
+            tag_contents = tag.get(tag_field)
         else:
-            OG_tags[meta_tag] = tag.text
+            tag_contents = tag.text
 
-    if OG_tags["author"] == None or OG_tags["publish_date"] == None:
+        if isinstance(tag_contents, str):
+            setattr(OG_tags, meta_id, tag_contents)
+
+    if not OG_tags.author or not OG_tags.publish_date:
 
         # Use ld+json to extract extra information not found in the meta OG tags like author and publish date
         json_script_tags = page_soup.find_all("script", {"type": "application/ld+json"})
@@ -105,23 +110,19 @@ def extract_meta_information(page_soup, scraping_targets, site_url):
             try:
                 script_tag_string = json.dumps(json.loads("".join(script_tag.contents)))
             except json.decoder.JSONDecodeError:
-                pass
+                continue
 
             for pattern in json_patterns:
-                if OG_tags[pattern] == None:
+                if getattr(OG_tags, pattern, None) is None:
                     detail_match = json_patterns[pattern].search(script_tag_string)
                     if detail_match != None:
                         # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
-                        OG_tags[pattern] = detail_match.group(2)
+                        setattr(OG_tags, pattern, detail_match.group(2))
 
-    if OG_tags["image_url"] == None:
-        OG_tags["image_url"] = f"{site_url}/favicon.ico"
+    if not OG_tags.image_url:
+        OG_tags.image_url = f"{site_url}/favicon.ico"
 
-    if OG_tags["publish_date"]:
-        OG_tags["publish_date"] = parse(OG_tags["publish_date"]).astimezone(
-            timezone.utc
-        )
-    else:
-        OG_tags["publish_date"] = datetime.now(timezone.utc)
+    if not OG_tags.publish_date:
+        OG_tags.publish_date = datetime.now(timezone.utc)
 
     return OG_tags

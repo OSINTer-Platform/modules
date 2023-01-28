@@ -1,6 +1,8 @@
-from pydantic import BaseModel, HttpUrl
-from typing import Dict, List, Union, Optional, TypedDict
 from datetime import datetime, timezone
+from typing import TypeAlias, TypedDict
+
+from pydantic import BaseModel, HttpUrl
+
 
 
 class BaseArticle(BaseModel):
@@ -12,28 +14,33 @@ class BaseArticle(BaseModel):
     source: str
     publish_date: datetime
     inserted_at: datetime = datetime.now(timezone.utc)
-    id: Optional[str] = None
+    id: str | None = None
 
 
 class MLAttributes(TypedDict, total=False):
-    similar: List[str]
+    similar: list[str]
     cluster: int
 
 
+class TagsOfInterest(TypedDict):
+    results: list[str]
+    tag: bool
+
+
+class Tags(TypedDict, total=False):
+    manual: dict[str, list[str]]
+    automatic: list[str]
+    interresting: dict[str, TagsOfInterest]
+
+
 class FullArticle(BaseArticle):
-    author: Optional[str] = None
-    formatted_content: Optional[str] = None
-    content: Optional[str] = None
-    summary: Optional[str] = None
-    tags: Dict[
-        str,
-        Union[
-            List[str],
-            Dict[str, Union[List[str], Dict[str, Union[List[str], bool]]]],
-        ],
-    ] = {}
+    author: str | None = None
+    formatted_content: str | None = None
+    content: str | None = None
+    summary: str | None = None
+    tags: Tags = {}
     read_times: int = 0
-    ml: Optional[MLAttributes] = None
+    ml: MLAttributes | None = None
 
 
 class BaseTweet(BaseModel):
@@ -43,17 +50,17 @@ class BaseTweet(BaseModel):
     publish_date: datetime
     inserted_at: datetime = datetime.now(timezone.utc)
 
-    id: Optional[str] = None
+    id: str | None = None
 
 
 class FullTweet(BaseTweet):
-    hashtags: List[str] = []
-    mentions: List[str] = []
+    hashtags: list[str] = []
+    mentions: list[str] = []
 
-    author_details: Dict[str, str] = {}
-    OG: Dict[str, str] = {}
+    author_details: dict[str, str] = {}
+    OG: dict[str, str] = {}
 
     read_times: int = 0
 
 
-OSINTerDocument = Union[FullArticle, FullTweet]
+OSINTerDocument: TypeAlias = BaseArticle | BaseTweet

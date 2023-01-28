@@ -1,11 +1,7 @@
-# For doing substitution on text
-import re
-
-# For removing weird characthers that sometimes exist in text scraped from the internet
-import unicodedata
-
-# For counting and finding the most frequently used words when generating tag
 from collections import Counter
+import re
+from typing import TypedDict
+import unicodedata
 
 
 # Function for taking in text from article (or basically any source) and outputting a list of words cleaned for punctuation, sole numbers, double spaces and other things so that it can be used for text analyssis
@@ -18,7 +14,7 @@ def clean_text(clear_text):
     return clean_clear_text
 
 
-def tokenize_text(clean_clear_text):
+def tokenize_text(clean_clear_text: str) -> list[str]:
     # Removing all contractions and "'s" created in english by descriping possession
     clean_clear_text = re.sub(r"(?:\'|’)\S*", "", clean_clear_text)
     # Remove punctuation
@@ -36,7 +32,7 @@ def tokenize_text(clean_clear_text):
 
 
 # Function for taking in a list of words, and generating tags based on that. Does this by finding the words that doesn't appear in a wordlist (which means they probably have some technical relevans) and then sort them by how often they're used. The input should be cleaned with cleanText
-def generate_tags(clear_text_list):
+def generate_tags(clear_text_list: list[str]) -> list[str]:
 
     # List containing words that doesn't exist in the wordlist
     uncommon_words = list()
@@ -50,7 +46,9 @@ def generate_tags(clear_text_list):
             uncommon_words.append(word)
 
     # Take the newly found words, sort by them by frequency and take the 10 most used
-    words_sorted_by_freq = [word for word in Counter(uncommon_words).most_common(10)]
+    words_sorted_by_freq: list[tuple[str, int]] = [
+        word for word in Counter(uncommon_words).most_common(10)
+    ]
 
     # only use those who have 3 mentions or more
     tag_list = list()
@@ -61,8 +59,13 @@ def generate_tags(clear_text_list):
     return tag_list
 
 
+class ResultsStore(TypedDict):
+    results: list[str]
+    tag: bool
+
+
 # Function for locating interresting bits and pieces in an article like ip adresses and emails
-def locate_objects_of_interrest(clear_text):
+def locate_objects_of_interrest(clear_text: str) -> dict[str, ResultsStore]:
     objects = {
         "ipv4-adresses": {
             "pattern": re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b"),
@@ -106,12 +109,13 @@ def locate_objects_of_interrest(clear_text):
             "tag": False,
         },
     }
-    results = {}
+    results: dict[str, ResultsStore] = {}
+
     for object_name in objects:
 
         # Sometimes the regex's will return a tuple of the result split up based on the groups in the regex. This will combine each of the, before reuniting them as a list
         result = [
-            result if type(result) != tuple else "".join(result)
+            result if not isinstance(result, tuple) else "".join(result)
             for result in objects[object_name]["pattern"].findall(clear_text)
         ]
 
@@ -126,7 +130,7 @@ def locate_objects_of_interrest(clear_text):
 
 
 # The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from text will return (tag). [proximity] is optional, and if not specified 30 is the default value
-def locate_keywords(keywords, clear_text):
+def locate_keywords(keywords, clear_text: str):
 
     manual_tags = []
     for keyword_collection in keywords:

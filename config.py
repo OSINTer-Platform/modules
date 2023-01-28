@@ -1,25 +1,20 @@
+import logging
 import os
 import secrets
-from pathlib import Path
-import logging
 
-from modules.elastic import (
-    return_tweet_db_conn,
-    return_article_db_conn,
-    create_es_conn,
-    ES_INDEX_CONFIGS,
-)
+from modules.elastic import create_es_conn, return_article_db_conn, return_tweet_db_conn
 
 
-def load_secret_key():
-    if os.path.isfile("./secret.key"):
-        return Path("./secret.key").read_text()
+def load_secret_key() -> str:
+    if os.path.isfile("secret.key"):
+        with open("secret.key", "r") as key_file:
+            return key_file.read()
     else:
-        current_secret_key = secrets.token_urlsafe(256)
+        current_secret_key: str = secrets.token_urlsafe(256)
         with os.fdopen(
-            os.open(Path("./secret.key"), os.O_WRONLY | os.O_CREAT, 0o400), "w"
-        ) as file:
-            file.write(current_secret_key)
+            os.open("secret.key", os.O_WRONLY | os.O_CREAT, 0o400), "w"
+        ) as key_file:
+            key_file.write(current_secret_key)
         return current_secret_key
 
 

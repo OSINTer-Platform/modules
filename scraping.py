@@ -1,33 +1,16 @@
-# Used for sleeping
+import logging
+import os
+import random
 import time
+from typing import Any
 
-# Used for determining the path to the geckodriver
-from pathlib import Path
-
-# For manipulating lists in a way that's less memory intensive
-import itertools
-
-# Used to gather the urls from the articles, by reading a RSS feed
+from bs4 import BeautifulSoup, element
 import feedparser
-
-# Used for scraping static pages
 import requests
-
-# Used for dynamically scraping pages that aren't static
 from selenium import webdriver
-
-# Used for running the browser headlessly
 from selenium.webdriver.firefox.options import Options
 
-# For parsing html
-from bs4 import BeautifulSoup
-
 from modules.misc import cat_url
-
-# Used for selecting a random elemen from browserHeaders list
-import random
-
-import logging
 
 logger = logging.getLogger("osinter")
 
@@ -65,62 +48,86 @@ browser_headers_list = [
 ]
 
 # Simple function for scraping static page and converting it to a soup
-def scrape_web_soup(url):
-    current_headers = random.choice(browser_headers_list)
-    page_source = requests.get(url, headers=current_headers)
-    if page_source.status_code != 200:
+def scrape_web_soup(url) -> BeautifulSoup | None:
+    current_headers: dict[str, str] = random.choice(browser_headers_list)
+    page_source: requests.models.Response = requests.get(url, headers=current_headers)
 
+    if page_source.status_code != 200:
         logger.error(f"Status code {page_source.status_code}, skipping URL {url}")
         return None
+
     return BeautifulSoup(page_source.content, "html.parser")
 
 
 # Scraping targets is element and class of element in which the target url is stored, and the profile_name is prepended on the list, to be able to find the profile again when it's needed for scraping
-def scrape_article_urls(root_url, front_page_url, scraping_targets, profile_name):
+def scrape_article_urls(
+    root_url: str,
+    front_page_url: str,
+    scraping_targets: dict[str, Any],
+    profile_name: str,
+    max_url_count: int = 10,
+) -> list[str] | None:
+
+    if (web_soup := scrape_web_soup(front_page_url)) is None:
+        logger.error(f"Error when scraping article urls from {profile_name}")
+        return
 
     # Getting a soup for the website
-    front_page_soup = (
-        scrape_web_soup(front_page_url).select(scraping_targets["container_list"])[0]
-        if scraping_targets["container_list"] != []
-        else scrape_web_soup(front_page_url)
+    if scraping_targets["container_list"] != []:
+        if (
+            front_page_soup := web_soup.select_one(scraping_targets["container_list"])
+        ) is None:
+            logger.error(
+                f"Error when scraping the specific front-page from {profile_name}"
+            )
+            return
+    else:
+        front_page_soup = web_soup
+
+    article_links_containers: list[element.Tag] = front_page_soup.select(
+        scraping_targets["link_containers"]
+        if scraping_targets["link_containers"] != ""
+        else scraping_targets["links"]
     )
 
-    article_urls = [
-        cat_url(
-            root_url,
-            link.get("href")
-            if scraping_targets["link_containers"] == ""
-            else link.select(scraping_targets["links"])[0].get("href"),
-        )
-        for link in itertools.islice(
-            front_page_soup.select(
-                scraping_targets["link_containers"]
-                if scraping_targets["link_containers"] != ""
-                else scraping_targets["links"]
+    article_links: list[element.Tag] = [
+        link
+        for container in article_links_containers
+        if isinstance(
+            (
+                link := (
+                    container
+                    if scraping_targets["link_containers"]
+                    else container.select_one(scraping_targets["links"])
+                )
             ),
-            10,
+            element.Tag,
         )
     ]
 
-    return article_urls
+    raw_article_urls: list[str] = [
+        url
+        for link in article_links[:max_url_count]
+        if isinstance((url := link.get("href")), str)
+    ]
+
+    return [cat_url(root_url, url) for url in raw_article_urls]
 
 
 # Function for scraping a list of recent articles using the url to a RSS feed
-def get_article_urls_from_rss(rss_url, profile_name):
+def get_article_urls_from_rss(
+    rss_url: str,
+    max_url_count: int = 10,
+) -> list[str]:
     # Parse the whole RSS feed
     rss_feed = feedparser.parse(rss_url)
 
-    # List for holding the urls from the RSS feed
-    article_urls = []
-
-    # Extracting the urls only, as these are the only relevant information. Also only take the first 10, if more is given to only get the newest articles
-    for entry in itertools.islice(rss_feed.entries, 10):
-        article_urls.append(entry.id)
-
-    return article_urls
+    return [entry.id for entry in rss_feed.entries[:max_url_count]]
 
 
-def scrape_page_dynamic(page_url, scraping_types, load_time=3, headless=True):
+def scrape_page_dynamic(
+    page_url: str, scraping_types: list[str], load_time: int = 3, headless: bool = True
+) -> str:
 
     # Setting the options for running the browser driver headlessly so it doesn't pop up when running the script
     driver_options = Options()
@@ -129,8 +136,8 @@ def scrape_page_dynamic(page_url, scraping_types, load_time=3, headless=True):
     # Setup the webdriver with options
     with webdriver.Firefox(
         options=driver_options,
-        executable_path=Path("./tools/geckodriver").resolve(),
-        log_path=Path("./logs/geckodriver.log").resolve(),
+        executable_path=os.path.normcase("./tools/geckodriver"),
+        log_path=os.path.normcase("./logs/geckodriver.log"),
     ) as driver:
 
         # Actually scraping the page
@@ -142,9 +149,14 @@ def scrape_page_dynamic(page_url, scraping_types, load_time=3, headless=True):
         for scraping_type in scraping_types:
             current_type = scraping_type.split(":")
             if current_type[0] == "JS":
-                driver.execute_script(
-                    Path(f"./profiles/js_injections/{current_type[1]}.js").read_text()
-                )
+
+                with open(
+                    os.path.normcase(f"./profiles/js_injections/{current_type[1]}.js")
+                ) as f:
+                    js_script: str = f.read()
+
+                driver.execute_script(js_script)
+
                 while driver.execute_script("return document.osinterReady") == False:
                     time.sleep(1)
 

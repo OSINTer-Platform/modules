@@ -1,7 +1,9 @@
 from io import StringIO
 
+from modules.objects import FullArticle
+
 # Function for taking in some details about an articles and creating a markdown file with those
-def convert_article_to_md(article):
+def convert_article_to_md(article: FullArticle) -> StringIO:
 
     article_file = StringIO()
 
@@ -20,7 +22,9 @@ def convert_article_to_md(article):
 
     article_file.write("\n## Article:\n")
     article_file.write(f"![Article Image]({article.image_url})" + "\n")
-    article_file.write(article.formatted_content)
+
+    if article.formatted_content:
+        article_file.write(article.formatted_content)
 
     article_file.write("\n## Tags:\n")
 
