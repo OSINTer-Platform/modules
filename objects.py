@@ -4,7 +4,6 @@ from typing import TypeAlias, TypedDict, TypeVar
 from pydantic import BaseModel, HttpUrl
 
 
-
 class BaseArticle(BaseModel):
     title: str
     description: str
@@ -64,5 +63,6 @@ class FullTweet(BaseTweet):
 
 
 OSINTerDocument: TypeAlias = BaseArticle | BaseTweet
-DocumentBase = TypeVar('DocumentBase', BaseTweet, BaseArticle)
-DocumentFull = TypeVar('DocumentFull', FullTweet, FullArticle)
+DocumentBase = TypeVar("DocumentBase", BaseTweet, BaseArticle)
+DocumentFull = TypeVar("DocumentFull", FullTweet, FullArticle)
+AllDocuments = TypeVar("AllDocuments", BaseTweet, BaseArticle, FullTweet, FullArticle)
