@@ -345,15 +345,15 @@ class ElasticDB:
 
         return bulk(self.es, convert_documents(document_objects))[0]
 
-    def get_last_document(self, source_category_value=None):
-        search_q = {"size": 1, "sort": {"publish_date": "desc"}}
-
-        if source_category_value and isinstance(source_category_value, list):
-            search_q["query"] = {"terms": {self.source_category: source_category_value}}
-        elif source_category_value:
-            search_q["query"] = {"term": {self.source_category: source_category_value}}
-        else:
-            search_q["query"] = {"term": {"": ""}}
+    def get_last_document(
+        self, source_category_value: list[str]
+    ) -> OSINTerDocument | None:
+        search_q = SearchQuery(
+            limit=1,
+            source_category=source_category_value,
+            sort_by="inserted_at",
+            sort_order="desc",
+        )
 
         results = self.query_documents(search_q)
 
