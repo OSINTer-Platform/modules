@@ -4,18 +4,6 @@ from typing import TypeAlias, TypedDict, TypeVar
 from pydantic import BaseModel, HttpUrl
 
 
-class BaseArticle(BaseModel):
-    title: str
-    description: str
-    url: HttpUrl
-    image_url: HttpUrl
-    profile: str
-    source: str
-    publish_date: datetime
-    inserted_at: datetime = datetime.now(timezone.utc)
-    id: str | None = None
-
-
 class MLAttributes(TypedDict, total=False):
     similar: list[str]
     cluster: int
@@ -32,13 +20,25 @@ class Tags(TypedDict, total=False):
     interresting: dict[str, TagsOfInterest]
 
 
+class BaseArticle(BaseModel):
+    title: str
+    description: str
+    url: HttpUrl
+    image_url: HttpUrl
+    profile: str
+    source: str
+    publish_date: datetime
+    inserted_at: datetime = datetime.now(timezone.utc)
+    read_times: int = 0
+    id: str | None = None
+
+
 class FullArticle(BaseArticle):
     author: str | None = None
     formatted_content: str | None = None
     content: str | None = None
     summary: str | None = None
     tags: Tags = {}
-    read_times: int = 0
     ml: MLAttributes | None = None
 
 
@@ -49,6 +49,8 @@ class BaseTweet(BaseModel):
     publish_date: datetime
     inserted_at: datetime = datetime.now(timezone.utc)
 
+    read_times: int = 0
+
     id: str | None = None
 
 
@@ -58,8 +60,6 @@ class FullTweet(BaseTweet):
 
     author_details: dict[str, str] = {}
     OG: dict[str, str] = {}
-
-    read_times: int = 0
 
 
 OSINTerDocument: TypeAlias = BaseArticle | BaseTweet
