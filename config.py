@@ -104,5 +104,6 @@ class FrontendConfig(BaseConfig):
 
         self.JWT_ALGORITHMS = (os.environ.get("JWT_ALGORITHMS") or "HS256").split(" ")
 
-        for value_name in ["ENABLE_HTTPS", "EMAIL_SERVER_AVAILABLE", "ML_AVAILABLE"]:
-            self[value_name] = bool(os.environ.get(value_name)) or False
+        self.ENABLE_HTTPS = bool(os.environ.get("ENABLE_HTTPS")) or False
+        self.ML_AVAILABLE = bool(os.environ.get("ML_AVAILABLE")) or False
+        self.EMAIL_SERVER_AVAILABLE = bool(os.environ.get("EMAIL_SERVER_AVAILABLE")) or False
