@@ -107,3 +107,8 @@ class FrontendConfig(BaseConfig):
         self.ENABLE_HTTPS = bool(os.environ.get("ENABLE_HTTPS")) or False
         self.ML_AVAILABLE = bool(os.environ.get("ML_AVAILABLE")) or False
         self.EMAIL_SERVER_AVAILABLE = bool(os.environ.get("EMAIL_SERVER_AVAILABLE")) or False
+
+        self.COUCHDB_URL = (
+            os.environ.get("COUCHDB_URL") or "http://admin:admin@localhost:5984/"
+        )
+        self.COUCHDB_NAME = os.environ.get("USER_DB_NAME") or "osinter_users"
