@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import TypeAlias, TypedDict, TypeVar
+from typing import TypedDict, TypeVar
 
 from pydantic import BaseModel, HttpUrl
 
@@ -42,7 +42,7 @@ class FullArticle(BaseArticle):
     ml: MLAttributes | None = None
 
 
-class BaseTweet(BaseModel):
+class FullTweet(BaseModel):
     twitter_id: str
     content: str
 
@@ -53,8 +53,6 @@ class BaseTweet(BaseModel):
 
     id: str | None = None
 
-
-class FullTweet(BaseTweet):
     hashtags: list[str] = []
     mentions: list[str] = []
 
@@ -62,7 +60,4 @@ class FullTweet(BaseTweet):
     OG: dict[str, str] = {}
 
 
-OSINTerDocument: TypeAlias = BaseArticle | BaseTweet
-DocumentBase = TypeVar("DocumentBase", BaseTweet, BaseArticle)
-DocumentFull = TypeVar("DocumentFull", FullTweet, FullArticle)
-AllDocuments = TypeVar("AllDocuments", BaseTweet, BaseArticle, FullTweet, FullArticle)
+OSINTerDocument = TypeVar("OSINTerDocument", FullTweet, FullArticle)

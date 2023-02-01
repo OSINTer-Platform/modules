@@ -9,7 +9,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from pydantic import ValidationError
 
-from modules.objects import DocumentFull, FullArticle, FullTweet, OSINTerDocument
+from modules.objects import OSINTerDocument, FullArticle, FullTweet
 
 logger = logging.getLogger("osinter")
 
@@ -140,7 +140,7 @@ class SearchQuery:
         return query
 
 
-class ElasticDB(Generic[DocumentFull]):
+class ElasticDB(Generic[OSINTerDocument]):
     def __init__(
         self,
         *,
@@ -163,7 +163,7 @@ class ElasticDB(Generic[DocumentFull]):
         for field_type in weighted_search_fields:
             self.search_fields.append(field_type.split("^")[0])
 
-        self.document_object_class: Type[DocumentFull] = document_object_classes
+        self.document_object_class: Type[OSINTerDocument] = document_object_classes
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
     def exists_in_db(self, token: str) -> bool:
@@ -190,8 +190,8 @@ class ElasticDB(Generic[DocumentFull]):
 
     def _process_search_results(
         self, search_results: ObjectApiResponse
-    ) -> Sequence[DocumentFull]:
-        documents: Sequence[DocumentFull] = []
+    ) -> Sequence[OSINTerDocument]:
+        documents: Sequence[OSINTerDocument] = []
 
         for result in search_results["hits"]["hits"]:
 
@@ -213,7 +213,7 @@ class ElasticDB(Generic[DocumentFull]):
 
         return documents
 
-    def query_large(self, query: dict[str, Any]) -> Sequence[DocumentFull]:
+    def query_large(self, query: dict[str, Any]) -> Sequence[OSINTerDocument]:
 
         pit_id: str = self.es.open_point_in_time(
             index=self.index_name, keep_alive="1m"
@@ -251,7 +251,7 @@ class ElasticDB(Generic[DocumentFull]):
 
     def query_documents(
         self, search_q: SearchQuery | None = None
-    ) -> Sequence[DocumentFull]:
+    ) -> Sequence[OSINTerDocument]:
 
         if not search_q:
             search_q = SearchQuery()
@@ -266,7 +266,7 @@ class ElasticDB(Generic[DocumentFull]):
 
             return self.query_large(search_q.generate_es_query(self))
 
-    def query_all_documents(self) -> Sequence[DocumentFull]:
+    def query_all_documents(self) -> Sequence[OSINTerDocument]:
         return self.query_documents(SearchQuery(limit=0, complete=True))
 
     def filter_document_list(self, document_attribute_list: list[str]) -> list[str]:
@@ -294,9 +294,9 @@ class ElasticDB(Generic[DocumentFull]):
             ]["unique_fields"]["buckets"]
         }
 
-    def save_documents(self, document_objects: Sequence[DocumentFull]) -> int:
+    def save_documents(self, document_objects: Sequence[OSINTerDocument]) -> int:
         def convert_documents(
-            documents: Sequence[DocumentFull],
+            documents: Sequence[OSINTerDocument],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
                 operation = {
@@ -311,7 +311,7 @@ class ElasticDB(Generic[DocumentFull]):
 
         return bulk(self.es, convert_documents(document_objects))[0]
 
-    def save_document(self, document_object: DocumentFull) -> str:
+    def save_document(self, document_object: OSINTerDocument) -> str:
         document_dict: dict[str, Any] = document_object.dict(exclude_none=True)
 
         try:
