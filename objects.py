@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TypedDict, TypeVar
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class MLAttributes(TypedDict, total=False):
@@ -28,7 +28,7 @@ class BaseArticle(BaseModel):
     profile: str
     source: str
     publish_date: datetime
-    inserted_at: datetime = datetime.now(timezone.utc)
+    inserted_at: datetime = Field(default_factory=datetime.utcnow)
     read_times: int = 0
     id: str | None = None
 
@@ -47,7 +47,7 @@ class FullTweet(BaseModel):
     content: str
 
     publish_date: datetime
-    inserted_at: datetime = datetime.now(timezone.utc)
+    inserted_at: datetime = Field(default_factory=datetime.utcnow)
 
     read_times: int = 0
 
