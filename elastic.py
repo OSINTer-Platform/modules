@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -190,8 +190,8 @@ class ElasticDB(Generic[DocumentFull]):
 
     def _process_search_results(
         self, search_results: ObjectApiResponse
-    ) -> list[DocumentFull]:
-        documents: list[DocumentFull] = []
+    ) -> Sequence[DocumentFull]:
+        documents: Sequence[DocumentFull] = []
 
         for result in search_results["hits"]["hits"]:
 
@@ -213,7 +213,7 @@ class ElasticDB(Generic[DocumentFull]):
 
         return documents
 
-    def query_large(self, query: dict[str, Any]) -> list[DocumentFull]:
+    def query_large(self, query: dict[str, Any]) -> Sequence[DocumentFull]:
 
         pit_id: str = self.es.open_point_in_time(
             index=self.index_name, keep_alive="1m"
@@ -251,7 +251,7 @@ class ElasticDB(Generic[DocumentFull]):
 
     def query_documents(
         self, search_q: SearchQuery | None = None
-    ) -> list[DocumentFull]:
+    ) -> Sequence[DocumentFull]:
 
         if not search_q:
             search_q = SearchQuery()
@@ -266,7 +266,7 @@ class ElasticDB(Generic[DocumentFull]):
 
             return self.query_large(search_q.generate_es_query(self))
 
-    def query_all_documents(self) -> list[DocumentFull]:
+    def query_all_documents(self) -> Sequence[DocumentFull]:
         return self.query_documents(SearchQuery(limit=0, complete=True))
 
     def filter_document_list(self, document_attribute_list: list[str]) -> list[str]:
@@ -294,9 +294,9 @@ class ElasticDB(Generic[DocumentFull]):
             ]["unique_fields"]["buckets"]
         }
 
-    def save_documents(self, document_objects: list[DocumentFull]) -> int:
+    def save_documents(self, document_objects: Sequence[DocumentFull]) -> int:
         def convert_documents(
-            documents: list[DocumentFull],
+            documents: Sequence[DocumentFull],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
                 operation = {
