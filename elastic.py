@@ -410,22 +410,4 @@ ES_INDEX_CONFIGS = {
             },
         },
     },
-    "ELASTICSEARCH_USER_INDEX": {
-        "dynamic": "strict",
-        "properties": {
-            "username": {"type": "keyword"},
-            "password_hash": {"type": "keyword"},
-            "email_hash": {"type": "keyword"},
-            "feeds": {"type": "flattened"},
-            "collections": {
-                "type": "object",
-                "enabled": False,
-                "dynamic": True,
-                "properties": {
-                    "Read Later": {"type": "keyword"},
-                    "Already Read": {"type": "keyword"},
-                },
-            },
-        },
-    },
 }
