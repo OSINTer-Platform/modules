@@ -82,7 +82,7 @@ def extract_meta_information(
 
             if "meta" in tag_selector:
                 tag_field = "content"
-            elif "datetime" in tag_selector:
+            elif "time" in tag_selector:
                 tag_field = "datetime"
             else:
                 tag_field = None
