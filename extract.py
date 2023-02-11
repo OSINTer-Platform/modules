@@ -71,14 +71,12 @@ def extract_meta_information(
 ) -> OGTags:
     OG_tags = OGTags()
 
-    for meta_id in scraping_targets:
-        if not meta_id:
-            continue
+    for meta_type in scraping_targets:
 
         try:
-            tag_selector, tag_field = scraping_targets[meta_id].split(";")
+            tag_selector, tag_field = scraping_targets[meta_type].split(";")
         except ValueError:
-            tag_selector = scraping_targets[meta_id]
+            tag_selector = scraping_targets[meta_type]
 
             if "meta" in tag_selector:
                 tag_field = "content"
@@ -86,6 +84,10 @@ def extract_meta_information(
                 tag_field = "datetime"
             else:
                 tag_field = None
+
+        # Skip empty selectors, as some profiles rely on LD+JSON for some fields and therefore doesn't have CSS selectors for author and date
+        if not tag_selector:
+            continue
 
         try:
             tag = page_soup.select(tag_selector)[0]
@@ -98,7 +100,7 @@ def extract_meta_information(
             tag_contents = tag.text
 
         if isinstance(tag_contents, str):
-            setattr(OG_tags, meta_id, tag_contents)
+            setattr(OG_tags, meta_type, tag_contents)
 
     if not OG_tags.author or not OG_tags.publish_date:
 
