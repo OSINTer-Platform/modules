@@ -59,7 +59,6 @@ def scrape_web_soup(url) -> BeautifulSoup | None:
     return BeautifulSoup(page_source.content, "html.parser")
 
 
-# Scraping targets is element and class of element in which the target url is stored, and the profile_name is prepended on the list, to be able to find the profile again when it's needed for scraping
 def scrape_article_urls(
     root_url: str,
     front_page_url: str,
@@ -75,39 +74,30 @@ def scrape_article_urls(
     # Getting a soup for the website
     if scraping_targets["container_list"] != []:
         if (
-            front_page_soup := web_soup.select_one(scraping_targets["container_list"])
+            outer_container := web_soup.select_one(scraping_targets["container_list"])
         ) is None:
             logger.error(
                 f"Error when scraping the specific front-page from {profile_name}"
             )
             return
     else:
-        front_page_soup = web_soup
+        outer_container = web_soup
 
-    article_links_containers: list[element.Tag] = front_page_soup.select(
+    inner_containers: list[element.Tag] = outer_container.select(
         scraping_targets["link_containers"]
-        if scraping_targets["link_containers"] != ""
-        else scraping_targets["links"]
     )
 
-    article_links: list[element.Tag] = [
-        link
-        for container in article_links_containers
-        if isinstance(
-            (
-                link := (
-                    container
-                    if scraping_targets["link_containers"]
-                    else container.select_one(scraping_targets["links"])
-                )
-            ),
-            element.Tag,
-        )
-    ]
+    link_elements: list[element.Tag] = []
+
+    for container in inner_containers:
+        link_element = container.select_one(scraping_targets["links"])
+
+        if link_element:
+            link_elements.append(link_element)
 
     raw_article_urls: list[str] = [
         url
-        for link in article_links[:max_url_count]
+        for link in link_elements[:max_url_count]
         if isinstance((url := link.get("href")), str)
     ]
 
