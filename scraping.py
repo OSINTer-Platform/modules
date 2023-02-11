@@ -65,21 +65,19 @@ def scrape_article_urls(
     scraping_targets: dict[str, Any],
     profile_name: str,
     max_url_count: int = 10,
-) -> list[str] | None:
+) -> list[str]:
 
     if (web_soup := scrape_web_soup(front_page_url)) is None:
-        logger.error(f"Error when scraping article urls from {profile_name}")
-        return
+        raise Exception(f"Error when scraping article urls from {profile_name}")
 
     # Getting a soup for the website
     if scraping_targets["container_list"] != []:
         if (
             outer_container := web_soup.select_one(scraping_targets["container_list"])
         ) is None:
-            logger.error(
-                f"Error when scraping the specific front-page from {profile_name}"
+            raise Exception(
+                f"Error when scraping the specific container on front-page from {profile_name}"
             )
-            return
     else:
         outer_container = web_soup
 
