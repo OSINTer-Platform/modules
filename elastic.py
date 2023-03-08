@@ -2,7 +2,7 @@ from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-from typing import Any, Generic, Type
+from typing import Any, Generic, Literal, Type
 
 from elastic_transport import ObjectApiResponse
 from elasticsearch import Elasticsearch
@@ -64,7 +64,7 @@ def return_tweet_db_conn(config_options):
 class SearchQuery:
     limit: int = 10_000
     sort_by: str | None = None
-    sort_order: str | None = None
+    sort_order: Literal["desc", "asc"] = "desc"
     search_term: str | None = None
     first_date: datetime | None = None
     last_date: datetime | None = None
@@ -102,7 +102,7 @@ class SearchQuery:
                 }
             }
 
-        if self.sort_by and self.sort_order:
+        if self.sort_by:
             query["sort"].insert(0, {self.sort_by: self.sort_order})
 
         if self.source_category:
