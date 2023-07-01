@@ -65,9 +65,13 @@ def scrape_article_urls(
     scraping_targets: dict[str, Any],
     profile_name: str,
     max_url_count: int = 10,
+    web_soup: BeautifulSoup | None = None,
 ) -> list[str]:
 
-    if (web_soup := scrape_web_soup(front_page_url)) is None:
+    if not web_soup:
+        web_soup = scrape_web_soup(front_page_url)
+
+    if web_soup is None:
         raise Exception(f"Error when scraping article urls from {profile_name}")
 
     # Getting a soup for the website
