@@ -91,11 +91,14 @@ def scrape_article_urls(
 
     link_elements: list[element.Tag] = []
 
-    for container in inner_containers:
-        link_element = container.select_one(scraping_targets["links"])
+    if not scraping_targets["links"]:
+        link_elements = inner_containers
+    else:
+        for container in inner_containers:
+            link_element = container.select_one(scraping_targets["links"])
 
-        if link_element:
-            link_elements.append(link_element)
+            if link_element:
+                link_elements.append(link_element)
 
     raw_article_urls: list[str] = [
         url
