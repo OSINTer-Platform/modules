@@ -1,3 +1,4 @@
+from dateparser import parse as date_parse
 from datetime import datetime, timezone
 import json
 import re
@@ -18,7 +19,7 @@ class OGTags(BaseModel):
     title: str | None = None
     description: str | None = None
     image_url: str | None = None
-    publish_date: datetime | None = None
+    publish_date: datetime | str | None = None
 
 
 def extract_article_content(
@@ -126,5 +127,7 @@ def extract_meta_information(
 
     if not OG_tags.publish_date:
         OG_tags.publish_date = datetime.now(timezone.utc)
+    elif isinstance(OG_tags.publish_date, str):
+        OG_tags.publish_date = date_parse(OG_tags.publish_date, languages=["en"])
 
     return OG_tags
