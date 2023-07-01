@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TypedDict, TypeVar
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, ConstrainedStr, Field, HttpUrl
 
 
 class MLAttributes(TypedDict, total=False):
@@ -20,9 +20,17 @@ class Tags(TypedDict, total=False):
     interresting: dict[str, TagsOfInterest]
 
 
+class ArticleTitle(ConstrainedStr):
+    strip_whitespace = True
+    min_length = 3
+
+class ArticleDescription(ConstrainedStr):
+    strip_whitespace = True
+    min_length = 10
+
 class BaseArticle(BaseModel):
-    title: str
-    description: str
+    title: ArticleTitle
+    description: ArticleDescription
     url: HttpUrl
     image_url: HttpUrl
     profile: str
