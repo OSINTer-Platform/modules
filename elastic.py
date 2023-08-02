@@ -9,7 +9,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from pydantic import ValidationError
 
-from modules.objects import OSINTerDocument, FullArticle, FullTweet
+from objects import OSINTerDocument, FullArticle
 
 logger = logging.getLogger("osinter")
 
@@ -36,24 +36,6 @@ def return_article_db_conn(config_options):
             "image_url",
             "profile",
             "source",
-            "publish_date",
-            "inserted_at",
-        ],
-    )
-
-
-def return_tweet_db_conn(config_options):
-    return ElasticDB[FullTweet](
-        es_conn=config_options.es_conn,
-        index_name=config_options.ELASTICSEARCH_TWEET_INDEX,
-        unique_field="twitter_id",
-        source_category="author_details.username",
-        weighted_search_fields=["content"],
-        document_object_classes=FullTweet,
-        essential_fields=[
-            "twitter_id",
-            "content",
-            "author_details",
             "publish_date",
             "inserted_at",
         ],
@@ -351,38 +333,6 @@ class ElasticDB(Generic[OSINTerDocument]):
 
 
 ES_INDEX_CONFIGS = {
-    "ELASTICSEARCH_TWEET_INDEX": {
-        "dynamic": "strict",
-        "properties": {
-            "twitter_id": {"type": "keyword"},
-            "content": {"type": "text"},
-            "hashtags": {"type": "keyword"},
-            "mentions": {"type": "keyword"},
-            "inserted_at": {"type": "date"},
-            "publish_date": {"type": "date"},
-            "author_details": {
-                "type": "object",
-                "enabled": True,
-                "properties": {
-                    "author_id": {"type": "keyword"},
-                    "name": {"type": "keyword"},
-                    "username": {"type": "keyword"},
-                },
-            },
-            "OG": {
-                "type": "object",
-                "enabled": True,
-                "properties": {
-                    "url": {"type": "keyword"},
-                    "image_url": {"type": "keyword"},
-                    "title": {"type": "text"},
-                    "description": {"type": "text"},
-                    "content": {"type": "text"},
-                },
-            },
-            "read_times": {"type": "unsigned_long"},
-        },
-    },
     "ELASTICSEARCH_ARTICLE_INDEX": {
         "dynamic": "strict",
         "properties": {

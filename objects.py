@@ -50,22 +50,4 @@ class FullArticle(BaseArticle):
     ml: MLAttributes | None = None
 
 
-class FullTweet(BaseModel):
-    twitter_id: str
-    content: str
-
-    publish_date: datetime
-    inserted_at: datetime = Field(default_factory=datetime.utcnow)
-
-    read_times: int = 0
-
-    id: str | None = None
-
-    hashtags: list[str] = []
-    mentions: list[str] = []
-
-    author_details: dict[str, str] = {}
-    OG: dict[str, str] = {}
-
-
-OSINTerDocument = TypeVar("OSINTerDocument", FullTweet, FullArticle)
+OSINTerDocument = TypeVar("OSINTerDocument", bound=FullArticle)

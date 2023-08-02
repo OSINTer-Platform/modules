@@ -2,7 +2,7 @@ import logging
 import os
 import secrets
 
-from modules.elastic import create_es_conn, return_article_db_conn, return_tweet_db_conn
+from elastic import create_es_conn, return_article_db_conn
 
 
 def load_secret_key() -> str:
@@ -53,9 +53,6 @@ class BaseConfig:
         self.ELASTICSEARCH_ARTICLE_INDEX = (
             os.environ.get("ARTICLE_INDEX") or "osinter_articles"
         )
-        self.ELASTICSEARCH_TWEET_INDEX = (
-            os.environ.get("TWEET_INDEX") or "osinter_tweets"
-        )
         self.ELASTICSEARCH_URL = (
             os.environ.get("ELASTICSEARCH_URL") or "http://localhost:9200"
         )
@@ -69,7 +66,6 @@ class BaseConfig:
             self.ELASTICSEARCH_URL, self.ELASTICSEARCH_CERT_PATH
         )
 
-        self.es_tweet_client = return_tweet_db_conn(self)
         self.es_article_client = return_article_db_conn(self)
 
     def __getitem__(self, item):
@@ -82,11 +78,6 @@ class BaseConfig:
 class BackendConfig(BaseConfig):
     def __init__(self):
         BaseConfig.__init__(self)
-        self.TWITTER_CREDENTIAL_PATH = (
-            os.environ.get("TWITTER_CREDENTIAL_PATH") or "./.twitter_keys.yaml"
-            if os.path.isfile("./.twitter_keys.yaml")
-            else None
-        )
 
 
 class FrontendConfig(BaseConfig):
@@ -106,7 +97,9 @@ class FrontendConfig(BaseConfig):
 
         self.ENABLE_HTTPS = bool(os.environ.get("ENABLE_HTTPS")) or False
         self.ML_AVAILABLE = bool(os.environ.get("ML_AVAILABLE")) or False
-        self.EMAIL_SERVER_AVAILABLE = bool(os.environ.get("EMAIL_SERVER_AVAILABLE")) or False
+        self.EMAIL_SERVER_AVAILABLE = (
+            bool(os.environ.get("EMAIL_SERVER_AVAILABLE")) or False
+        )
 
         self.COUCHDB_URL = (
             os.environ.get("COUCHDB_URL") or "http://admin:admin@localhost:5984/"
