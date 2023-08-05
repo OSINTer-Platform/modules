@@ -1,5 +1,4 @@
 import os
-import re
 
 
 def create_folder(folder_name: str) -> None:
@@ -20,16 +19,3 @@ def create_folder(folder_name: str) -> None:
             )
 
 
-def check_if_valid_url(url: str) -> bool:
-    if re.match(r"https?:\/\/.*\..*", url):
-        return True
-    else:
-        return False
-
-
-# Function for intellegently adding the domain to a relative path on website depending on if the domain is already there
-def cat_url(root_url: str, relative_path: str) -> str:
-    if check_if_valid_url(relative_path):
-        return relative_path
-    else:
-        return root_url[:-1] + relative_path
