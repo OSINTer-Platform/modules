@@ -1,7 +1,8 @@
-from datetime import datetime
-from typing import TypedDict, TypeVar
+from datetime import datetime, timezone
+from typing import Annotated, TypedDict, TypeVar
 
-from pydantic import BaseModel, ConstrainedStr, Field, HttpUrl
+from pydantic import AwareDatetime, BaseModel, BeforeValidator, Field, HttpUrl
+import annotated_types
 
 
 class MLAttributes(TypedDict, total=False):
@@ -20,23 +21,21 @@ class Tags(TypedDict, total=False):
     interresting: dict[str, TagsOfInterest]
 
 
-class ArticleTitle(ConstrainedStr):
-    strip_whitespace = True
-    min_length = 3
-
-class ArticleDescription(ConstrainedStr):
-    strip_whitespace = True
-    min_length = 10
-
 class BaseArticle(BaseModel):
-    title: ArticleTitle
-    description: ArticleDescription
+    title: Annotated[
+        str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(3)
+    ]
+    description: Annotated[
+        str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(10)
+    ]
     url: HttpUrl
     image_url: HttpUrl
     profile: str
     source: str
-    publish_date: datetime
-    inserted_at: datetime = Field(default_factory=datetime.utcnow)
+    publish_date: Annotated[datetime, AwareDatetime]
+    inserted_at: Annotated[datetime, AwareDatetime] = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     read_times: int = 0
     id: str | None = None
 
