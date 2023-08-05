@@ -1,6 +1,5 @@
 import os
 import re
-from typing import TypedDict
 
 
 def create_folder(folder_name: str) -> None:
@@ -39,27 +38,25 @@ def cat_url(root_url: str, relative_path: str) -> str:
 # The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from text will return (tag). [proximity] is optional, and if not specified 30 is the default value
 
 
-class Keywords(TypedDict, total=False):
+class Keywords(TypedDict):
     keywords: list[str]
     tag: str
     proximity: int
 
 
-def decode_keywords_file(file_path) -> list[Keywords]:
-    keywords = []
+def decode_keywords_file(file_path: str) -> list[Keywords]:
+    keywordsList: list[Keywords] = []
     with open(file_path, "r") as keyword_file:
         for line in keyword_file.readlines():
             try:
                 keyword_details = line.strip().split(";")
-                keyword_collection: Keywords = {}
-                keyword_collection["keywords"] = keyword_details[0].lower().split(",")
-                keyword_collection["tag"] = keyword_details[1]
-                if len(keyword_details) == 3:
-                    keyword_collection["proximity"] = int(keyword_details[2])
-                else:
-                    keyword_collection["proximity"] = 30
+                keywords = keyword_details[0].lower().split(",")
+                tag = keyword_details[1]
+                proximity = int(keyword_details[2]) if len(keyword_details) == 3 else 30
             except:
                 continue
 
-            keywords.append(keyword_collection)
-    return keywords
+            keywordsList.append(
+                {"keywords": keywords, "tag": tag, "proximity": proximity}
+            )
+    return keywordsList

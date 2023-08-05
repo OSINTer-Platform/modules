@@ -3,9 +3,11 @@ import re
 from typing import TypedDict
 import unicodedata
 
+from .misc import Keywords
+
 
 # Function for taking in text from article (or basically any source) and outputting a list of words cleaned for punctuation, sole numbers, double spaces and other things so that it can be used for text analyssis
-def clean_text(clear_text):
+def clean_text(clear_text: str) -> str:
     # Normalizing the text, to remove weird characthers that sometimes pop up in webarticles
     clean_clear_text = unicodedata.normalize("NFKD", clear_text)
     # Remove line endings
@@ -33,7 +35,6 @@ def tokenize_text(clean_clear_text: str) -> list[str]:
 
 # Function for taking in a list of words, and generating tags based on that. Does this by finding the words that doesn't appear in a wordlist (which means they probably have some technical relevans) and then sort them by how often they're used. The input should be cleaned with cleanText
 def generate_tags(clear_text_list: list[str]) -> list[str]:
-
     # List containing words that doesn't exist in the wordlist
     uncommon_words = list()
 
@@ -59,6 +60,11 @@ def generate_tags(clear_text_list: list[str]) -> list[str]:
     return tag_list
 
 
+class ObjectsOfInterrest(TypedDict):
+    pattern: re.Pattern[str]
+    tag: bool
+
+
 class ResultsStore(TypedDict):
     results: list[str]
     tag: bool
@@ -66,7 +72,7 @@ class ResultsStore(TypedDict):
 
 # Function for locating interresting bits and pieces in an article like ip adresses and emails
 def locate_objects_of_interrest(clear_text: str) -> dict[str, ResultsStore]:
-    objects = {
+    objects: dict[str, ObjectsOfInterrest] = {
         "ipv4-adresses": {
             "pattern": re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b"),
             "tag": False,
@@ -112,7 +118,6 @@ def locate_objects_of_interrest(clear_text: str) -> dict[str, ResultsStore]:
     results: dict[str, ResultsStore] = {}
 
     for object_name in objects:
-
         # Sometimes the regex's will return a tuple of the result split up based on the groups in the regex. This will combine each of the, before reuniting them as a list
         result = [
             result if not isinstance(result, tuple) else "".join(result)
@@ -130,14 +135,12 @@ def locate_objects_of_interrest(clear_text: str) -> dict[str, ResultsStore]:
 
 
 # The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from text will return (tag). [proximity] is optional, and if not specified 30 is the default value
-def locate_keywords(keywords, clear_text: str):
-
-    manual_tags = []
+def locate_keywords(keywords: list[Keywords], clear_text: str) -> list[str]:
+    manual_tags: list[str] = []
     for keyword_collection in keywords:
         for match in re.finditer(
             keyword_collection["keywords"].pop(0), clear_text.lower()
         ):
-
             current_pos = [
                 match.span()[0] - keyword_collection["proximity"],
                 match.span()[1] + keyword_collection["proximity"],

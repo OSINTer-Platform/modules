@@ -2,15 +2,15 @@ import logging
 import os
 import random
 import time
-from typing import Any
+from typing import Any, cast
 
 from bs4 import BeautifulSoup, element
-import feedparser
+import feedparser  # type: ignore
 import requests
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-from modules.misc import cat_url
+from .misc import cat_url
 
 logger = logging.getLogger("osinter")
 
@@ -47,8 +47,9 @@ browser_headers_list = [
     },
 ]
 
+
 # Simple function for scraping static page and converting it to a soup
-def scrape_web_soup(url) -> BeautifulSoup | None:
+def scrape_web_soup(url: str) -> BeautifulSoup | None:
     current_headers: dict[str, str] = random.choice(browser_headers_list)
     page_source: requests.models.Response = requests.get(url, headers=current_headers)
 
@@ -67,7 +68,6 @@ def scrape_article_urls(
     max_url_count: int = 10,
     web_soup: BeautifulSoup | None = None,
 ) -> list[str]:
-
     if not web_soup:
         web_soup = scrape_web_soup(front_page_url)
 
@@ -123,17 +123,15 @@ def get_article_urls_from_rss(
 def scrape_page_dynamic(
     page_url: str, scraping_types: list[str], load_time: int = 3, headless: bool = True
 ) -> str:
-
     # Setting the options for running the browser driver headlessly so it doesn't pop up when running the script
     driver_options = Options()
     if headless:
-        driver_options.add_argument("-headless")
+        driver_options.add_argument("-headless")  # type: ignore
 
     # Setup the webdriver with options
     with webdriver.Firefox(
         options=driver_options,
     ) as driver:
-
         # Actually scraping the page
         driver.get(page_url)
 
@@ -143,7 +141,6 @@ def scrape_page_dynamic(
         for scraping_type in scraping_types:
             current_type = scraping_type.split(":")
             if current_type[0] == "JS":
-
                 with open(
                     os.path.normcase(f"./profiles/js_injections/{current_type[1]}.js")
                 ) as f:
@@ -155,6 +152,4 @@ def scrape_page_dynamic(
                     time.sleep(1)
 
         # Getting the source code for the page
-        page_source = driver.page_source
-
-        return page_source
+        return cast(str, driver.page_source)

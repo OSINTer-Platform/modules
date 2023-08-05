@@ -1,6 +1,10 @@
 import json
 import os
-from typing import Any
+from typing import Any, cast
+
+from .objects import OSINTerDocument
+
+from .elastic import ElasticDB
 
 
 PROFILE_PATH = os.path.normcase("./profiles/profiles/")
@@ -18,22 +22,22 @@ def get_profile(specific_profile: str) -> dict[str, Any]:
         specific_profile += ".profile"
 
     with open(os.path.join(PROFILE_PATH, specific_profile)) as f:
-        return json.loads(f.read().strip())
+        return cast(dict[str, Any], json.loads(f.read().strip()))
 
 
 def get_profiles() -> list[dict[str, Any]]:
-
     profiles = []
 
     for profile_name in list_profiles(complete_file_name=True):
-
         with open(os.path.join(PROFILE_PATH, profile_name)) as f:
             profiles.append(json.loads(f.read().strip()))
 
     return profiles
 
 
-def collect_website_details(es_client) -> dict[str, dict[str, str]]:
+def collect_website_details(
+    es_client: ElasticDB[OSINTerDocument],
+) -> dict[str, dict[str, str]]:
     db_stored_profiles = list(es_client.get_unique_values())
 
     profiles = sorted(
@@ -43,7 +47,6 @@ def collect_website_details(es_client) -> dict[str, dict[str, str]]:
     details = {}
 
     for profile in profiles:
-
         if (profile_name := profile["source"]["profile_name"]) in db_stored_profiles:
             image_url = profile["source"]["image_url"]
 

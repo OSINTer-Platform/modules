@@ -1,27 +1,33 @@
+from __future__ import annotations
+
 from collections.abc import Collection, Generator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-from typing import Any, Generic, Literal, Type
+from typing import Any, Generic, Literal, Type, cast
 
 from elastic_transport import ObjectApiResponse
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from pydantic import ValidationError
 
-from objects import OSINTerDocument, FullArticle
+from .config import BaseConfig
+from .objects import OSINTerDocument, FullArticle
 
 logger = logging.getLogger("osinter")
 
 
-def create_es_conn(addresses, cert_path=None):
+# TODO: Type this function properly
+def create_es_conn(
+    addresses: str | list[str], cert_path: None | str = None
+) -> Elasticsearch:
     if cert_path:
-        return Elasticsearch(addresses, ca_certs=cert_path)
+        return Elasticsearch(addresses, ca_certs=cert_path)  # type: ignore
     else:
-        return Elasticsearch(addresses, verify_certs=False)
+        return Elasticsearch(addresses, verify_certs=False)  # type: ignore
 
 
-def return_article_db_conn(config_options):
+def return_article_db_conn(config_options: BaseConfig) -> ElasticDB[FullArticle]:
     return ElasticDB[FullArticle](
         es_conn=config_options.es_conn,
         index_name=config_options.ELASTICSEARCH_ARTICLE_INDEX,
@@ -50,15 +56,17 @@ class SearchQuery:
     search_term: str | None = None
     first_date: datetime | None = None
     last_date: datetime | None = None
-    source_category: list[str] | None = None
-    ids: list[str] | None = None
+    source_category: Sequence[str] | None = None
+    ids: Sequence[str] | None = None
     highlight: bool = False
     highlight_symbol: str = "**"
     complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
     cluster_id: int | None = None
 
-    def generate_es_query(self, es_client) -> dict[str, Any]:
-        query = {
+    def generate_es_query(
+        self, es_client: ElasticDB[OSINTerDocument]
+    ) -> dict[str, Any]:
+        query: dict[str, Any] = {
             "size": self.limit,
             "sort": ["_doc"],
             "query": {"bool": {"filter": []}},
@@ -132,20 +140,20 @@ class ElasticDB(Generic[OSINTerDocument]):
     def __init__(
         self,
         *,
-        es_conn,
-        index_name,
-        unique_field,
-        source_category,
-        weighted_search_fields,
-        document_object_classes,
-        essential_fields,
+        es_conn: Elasticsearch,
+        index_name: str,
+        unique_field: str,
+        source_category: str,
+        weighted_search_fields: Sequence[str],
+        essential_fields: Sequence[str],
+        document_object_classes: Type[OSINTerDocument],
     ):
         self.index_name: str = index_name
         self.es: Elasticsearch = es_conn
         self.unique_field: str = unique_field
         self.source_category: str = source_category
-        self.weighted_search_fields: list[str] = weighted_search_fields
-        self.essential_fields: list[str] = essential_fields
+        self.weighted_search_fields: Sequence[str] = weighted_search_fields
+        self.essential_fields: Sequence[str] = essential_fields
 
         self.search_fields: list[str] = []
         for field_type in weighted_search_fields:
@@ -165,7 +173,7 @@ class ElasticDB(Generic[OSINTerDocument]):
             != 0
         )
 
-    def _concat_strings(self, string_list: list[str]) -> str:
+    def _concat_strings(self, string_list: Sequence[str]) -> str:
         final_string = " ... ".join(string_list)
 
         if not final_string[0].isupper():
@@ -177,12 +185,11 @@ class ElasticDB(Generic[OSINTerDocument]):
         return final_string
 
     def _process_search_results(
-        self, search_results: ObjectApiResponse
-    ) -> Sequence[OSINTerDocument]:
-        documents: Sequence[OSINTerDocument] = []
+        self, search_results: ObjectApiResponse[Any]
+    ) -> list[OSINTerDocument]:
+        documents: list[OSINTerDocument] = []
 
         for result in search_results["hits"]["hits"]:
-
             if "highlight" in result:
                 for field_type in self.search_fields:
                     if field_type in result["highlight"]:
@@ -201,13 +208,12 @@ class ElasticDB(Generic[OSINTerDocument]):
 
         return documents
 
-    def query_large(self, query: dict[str, Any]) -> Sequence[OSINTerDocument]:
-
+    def query_large(self, query: dict[str, Any]) -> list[OSINTerDocument]:
         pit_id: str = self.es.open_point_in_time(
             index=self.index_name, keep_alive="1m"
         )["id"]
 
-        documents = []
+        documents: list[OSINTerDocument] = []
         search_after = None
         prior_limit = query["size"]
 
@@ -216,7 +222,7 @@ class ElasticDB(Generic[OSINTerDocument]):
                 10_000 if prior_limit >= 10_000 or prior_limit == 0 else prior_limit
             )
 
-            search_results: ObjectApiResponse = self.es.search(
+            search_results: ObjectApiResponse[Any] = self.es.search(
                 **query,
                 pit={"id": pit_id, "keep_alive": "1m"},
                 search_after=search_after,
@@ -239,8 +245,7 @@ class ElasticDB(Generic[OSINTerDocument]):
 
     def query_documents(
         self, search_q: SearchQuery | None = None
-    ) -> Sequence[OSINTerDocument]:
-
+    ) -> list[OSINTerDocument]:
         if not search_q:
             search_q = SearchQuery()
 
@@ -251,13 +256,12 @@ class ElasticDB(Generic[OSINTerDocument]):
 
             return self._process_search_results(search_results)
         else:
-
             return self.query_large(search_q.generate_es_query(self))
 
-    def query_all_documents(self) -> Sequence[OSINTerDocument]:
+    def query_all_documents(self) -> list[OSINTerDocument]:
         return self.query_documents(SearchQuery(limit=0, complete=True))
 
-    def filter_document_list(self, document_attribute_list: list[str]) -> list[str]:
+    def filter_document_list(self, document_attribute_list: Sequence[str]) -> list[str]:
         filtered_document_list = []
         for attr in document_attribute_list:
             if not self.exists_in_db(attr):
@@ -270,16 +274,13 @@ class ElasticDB(Generic[OSINTerDocument]):
         if not field_name:
             field_name = self.source_category
 
-        search_q = {
-            "size": 0,
-            "aggs": {"unique_fields": {"terms": {"field": field_name, "size": 10_000}}},
-        }
+        unique_vals = self.es.search(
+            size=0,
+            aggs={"unique_fields": {"terms": {"field": field_name, "size": 10_000}}},
+        )["aggregations"]["unique_fields"]["buckets"]
 
         return {
-            unique_val["key"]: unique_val["doc_count"]
-            for unique_val in self.es.search(**search_q, index=self.index_name)[
-                "aggregations"
-            ]["unique_fields"]["buckets"]
+            unique_val["key"]: unique_val["doc_count"] for unique_val in unique_vals
         }
 
     def save_documents(self, document_objects: Sequence[OSINTerDocument]) -> int:
@@ -287,7 +288,7 @@ class ElasticDB(Generic[OSINTerDocument]):
             documents: Sequence[OSINTerDocument],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
-                operation = {
+                operation: dict[str, Any] = {
                     "_index": self.index_name,
                     "_source": document.dict(exclude_none=True),
                 }
@@ -304,14 +305,18 @@ class ElasticDB(Generic[OSINTerDocument]):
 
         try:
             document_id = document_dict.pop("id")
-            return self.es.index(
+            response = self.es.index(
                 index=self.index_name, document=document_dict, id=document_id
             )["_id"]
         except KeyError:
-            return self.es.index(index=self.index_name, document=document_dict)["_id"]
+            response = self.es.index(index=self.index_name, document=document_dict)[
+                "_id"
+            ]
+
+        return cast(str, response)
 
     def get_last_document(
-        self, source_category_value: list[str]
+        self, source_category_value: Sequence[str]
     ) -> OSINTerDocument | None:
         search_q = SearchQuery(
             limit=1,

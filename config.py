@@ -1,8 +1,9 @@
 import logging
 import os
 import secrets
+from typing import Any, TypedDict
 
-from elastic import create_es_conn, return_article_db_conn
+from .elastic import create_es_conn, return_article_db_conn
 
 
 def load_secret_key() -> str:
@@ -18,11 +19,16 @@ def load_secret_key() -> str:
         return current_secret_key
 
 
+class LogHandler(TypedDict):
+    logger: logging.Handler
+    level: int
+
+
 def configure_logger(name: str = __name__) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
-    log_handlers = {
+    log_handlers: dict[str, LogHandler] = {
         "printHandler": {"logger": logging.StreamHandler(), "level": logging.DEBUG},
         "fileHandler": {
             "logger": logging.FileHandler(f"logs/{name}.info.log"),
@@ -49,7 +55,7 @@ def configure_logger(name: str = __name__) -> logging.Logger:
 
 
 class BaseConfig:
-    def __init__(self):
+    def __init__(self) -> None:
         self.ELASTICSEARCH_ARTICLE_INDEX = (
             os.environ.get("ARTICLE_INDEX") or "osinter_articles"
         )
@@ -68,21 +74,21 @@ class BaseConfig:
 
         self.es_article_client = return_article_db_conn(self)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return getattr(self, item)
 
-    def __setitem__(self, item_name, item):
+    def __setitem__(self, item_name: str, item: Any) -> None:
         setattr(self, item_name, item)
 
 
 class BackendConfig(BaseConfig):
-    def __init__(self):
-        BaseConfig.__init__(self)
+    def __init__(self) -> None:
+        super().__init__()
 
 
 class FrontendConfig(BaseConfig):
-    def __init__(self):
-        BaseConfig.__init__(self)
+    def __init__(self) -> None:
+        super().__init__()
         self.SECRET_KEY = os.environ.get("SECRET_KEY") or load_secret_key()
 
         self.ACCESS_TOKEN_EXPIRE_HOURS = int(

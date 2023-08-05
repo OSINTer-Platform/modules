@@ -1,10 +1,10 @@
 from io import StringIO
 
-from modules.objects import FullArticle
+from .objects import FullArticle
+
 
 # Function for taking in some details about an articles and creating a markdown file with those
 def convert_article_to_md(article: FullArticle) -> StringIO:
-
     article_file = StringIO()
 
     article_file.write(f"# {article.title}\n")
@@ -46,7 +46,6 @@ def convert_article_to_md(article: FullArticle) -> StringIO:
     if "interresting" in article.tags:
         article_file.write("\n### Objects of interrest:\n\n")
         for object_name in article.tags["interresting"]:
-
             article_file.write(
                 f"#### {object_name}\n[[{']] [['.join(article.tags['interresting'][object_name]['results'])}]]\n\n"
                 if article.tags["interresting"][object_name]["tag"]

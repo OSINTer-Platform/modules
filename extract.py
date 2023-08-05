@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import json
 import re
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from bs4.element import ResultSet
 from pydantic import BaseModel
 
@@ -25,9 +25,9 @@ class OGTags(BaseModel):
 def extract_article_content(
     selectors: dict[str, str], soup: BeautifulSoup, delimiter: str = "\n"
 ) -> tuple[str, str]:
-    def locate_content(css_selector, soup, recursive=True) -> ResultSet | None:
+    def locate_content(css_selector: str, soup: BeautifulSoup) -> ResultSet[Tag] | None:
         try:
-            return soup.select(css_selector, recursive=recursive)
+            return soup.select(css_selector)
         except:
             return None
 
@@ -40,10 +40,9 @@ def extract_article_content(
 
     # Clean the textlist for unwanted html elements
     if selectors["remove"] != "":
-        cleaned_soup = clean_soup(soup, selectors["remove"])
-        text_list = locate_content(selectors["container"], cleaned_soup, recursive=True)
-    else:
-        text_list = locate_content(selectors["container"], soup, recursive=True)
+        soup = clean_soup(soup, selectors["remove"])
+
+    text_list = locate_content(selectors["container"], soup)
 
     if text_list is None:
         raise Exception(
@@ -55,7 +54,6 @@ def extract_article_content(
     text_tag_types = ["p", "span"] + [f"h{i}" for i in range(1, 7)]
 
     for text_soup in text_list:
-
         for text_tag in text_soup.find_all(text_tag_types):
             if text_tag.string:
                 text_tag.string.replace_with(text_tag.string.strip())
@@ -73,7 +71,6 @@ def extract_meta_information(
     OG_tags = OGTags()
 
     for meta_type in scraping_targets:
-
         try:
             tag_selector, tag_field = scraping_targets[meta_type].split(";")
         except ValueError:
@@ -104,7 +101,6 @@ def extract_meta_information(
             setattr(OG_tags, meta_type, tag_contents)
 
     if not OG_tags.author or not OG_tags.publish_date:
-
         # Use ld+json to extract extra information not found in the meta OG tags like author and publish date
         json_script_tags = page_soup.find_all("script", {"type": "application/ld+json"})
 
@@ -118,7 +114,8 @@ def extract_meta_information(
             for pattern in json_patterns:
                 if getattr(OG_tags, pattern, None) is None:
                     detail_match = json_patterns[pattern].search(script_tag_string)
-                    if detail_match != None:
+
+                    if detail_match:
                         # Selecting the second group, since the first one is used to located the relevant information. The reason for not using lookaheads is because python doesn't allow non-fixed lengths of those, which is needed when trying to select pieces of text that doesn't always conform to a standard.
                         setattr(OG_tags, pattern, detail_match.group(2))
 
