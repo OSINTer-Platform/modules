@@ -11,7 +11,6 @@ from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from pydantic import ValidationError
 
-from .config import BaseConfig
 from .objects import OSINTerDocument, FullArticle
 
 logger = logging.getLogger("osinter")
@@ -27,10 +26,12 @@ def create_es_conn(
         return Elasticsearch(addresses, verify_certs=False)  # type: ignore
 
 
-def return_article_db_conn(config_options: BaseConfig) -> ElasticDB[FullArticle]:
+def return_article_db_conn(
+    es_conn: Elasticsearch, index_name: str
+) -> ElasticDB[FullArticle]:
     return ElasticDB[FullArticle](
-        es_conn=config_options.es_conn,
-        index_name=config_options.ELASTICSEARCH_ARTICLE_INDEX,
+        es_conn=es_conn,
+        index_name=index_name,
         unique_field="url",
         source_category="profile",
         weighted_search_fields=["title^5", "description^3", "content"],

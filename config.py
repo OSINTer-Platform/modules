@@ -72,7 +72,9 @@ class BaseConfig:
             self.ELASTICSEARCH_URL, self.ELASTICSEARCH_CERT_PATH
         )
 
-        self.es_article_client = return_article_db_conn(self)
+        self.es_article_client = return_article_db_conn(
+            self.es_conn, self.ELASTICSEARCH_ARTICLE_INDEX
+        )
 
     def __getitem__(self, item: str) -> Any:
         return getattr(self, item)
