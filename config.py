@@ -81,11 +81,6 @@ class BaseConfig:
         setattr(self, item_name, item)
 
 
-class BackendConfig(BaseConfig):
-    def __init__(self) -> None:
-        super().__init__()
-
-
 class FrontendConfig(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
