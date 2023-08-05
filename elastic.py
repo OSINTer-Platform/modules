@@ -357,7 +357,6 @@ ES_INDEX_CONFIGS = {
                 "type": "object",
                 "enabled": False,
                 "properties": {
-                    "manual": {"type": "object", "dynamic": True},
                     "interresting": {"type": "object", "dynamic": True},
                     "automatic": {"type": "keyword"},
                 },

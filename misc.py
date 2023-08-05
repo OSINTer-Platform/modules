@@ -33,30 +33,3 @@ def cat_url(root_url: str, relative_path: str) -> str:
         return relative_path
     else:
         return root_url[:-1] + relative_path
-
-
-# The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from text will return (tag). [proximity] is optional, and if not specified 30 is the default value
-
-
-class Keywords(TypedDict):
-    keywords: list[str]
-    tag: str
-    proximity: int
-
-
-def decode_keywords_file(file_path: str) -> list[Keywords]:
-    keywordsList: list[Keywords] = []
-    with open(file_path, "r") as keyword_file:
-        for line in keyword_file.readlines():
-            try:
-                keyword_details = line.strip().split(";")
-                keywords = keyword_details[0].lower().split(",")
-                tag = keyword_details[1]
-                proximity = int(keyword_details[2]) if len(keyword_details) == 3 else 30
-            except:
-                continue
-
-            keywordsList.append(
-                {"keywords": keywords, "tag": tag, "proximity": proximity}
-            )
-    return keywordsList

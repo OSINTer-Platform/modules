@@ -16,7 +16,6 @@ class TagsOfInterest(TypedDict):
 
 
 class Tags(TypedDict, total=False):
-    manual: dict[str, list[str]]
     automatic: list[str]
     interresting: dict[str, TagsOfInterest]
 

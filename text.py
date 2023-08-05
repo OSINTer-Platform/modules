@@ -3,9 +3,6 @@ import re
 from typing import TypedDict
 import unicodedata
 
-from .misc import Keywords
-
-
 # Function for taking in text from article (or basically any source) and outputting a list of words cleaned for punctuation, sole numbers, double spaces and other things so that it can be used for text analyssis
 def clean_text(clear_text: str) -> str:
     # Normalizing the text, to remove weird characthers that sometimes pop up in webarticles
@@ -132,32 +129,3 @@ def locate_objects_of_interrest(clear_text: str) -> dict[str, ResultsStore]:
             }
 
     return results
-
-
-# The keyword file should be created like this "(keyword),(keyword),(keyword);(tag);[proximity]", where keyword are the words that are looked for withing [proximity] number of characthers of each side of the first (keyword), and if found the function "locateKeywords" from text will return (tag). [proximity] is optional, and if not specified 30 is the default value
-def locate_keywords(keywords: list[Keywords], clear_text: str) -> list[str]:
-    manual_tags: list[str] = []
-    for keyword_collection in keywords:
-        for match in re.finditer(
-            keyword_collection["keywords"].pop(0), clear_text.lower()
-        ):
-            current_pos = [
-                match.span()[0] - keyword_collection["proximity"],
-                match.span()[1] + keyword_collection["proximity"],
-            ]
-            scan_results = []
-
-            for keyword in keyword_collection["keywords"]:
-                current_pattern = re.compile(keyword)
-
-                scan_results.append(
-                    current_pattern.search(
-                        clear_text.lower(), current_pos[0], current_pos[1]
-                    )
-                )
-
-            if not None in scan_results:
-                manual_tags.append(keyword_collection["tag"])
-                break
-
-    return manual_tags

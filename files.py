@@ -28,21 +28,6 @@ def convert_article_to_md(article: FullArticle) -> StringIO:
 
     article_file.write("\n## Tags:\n")
 
-    if "manual" in article.tags and article.tags["manual"] != {}:
-        article_file.write(
-            "\n"
-            + "\n\n".join(
-                [
-                    f"#### {category.capitalize()}:\n"
-                    + " ".join(
-                        [f"[[{tag}]]" for tag in article.tags["manual"][category]]
-                    )
-                    for category in article.tags["manual"]
-                ]
-            )
-            + "\n"
-        )
-
     if "interresting" in article.tags:
         article_file.write("\n### Objects of interrest:\n\n")
         for object_name in article.tags["interresting"]:
