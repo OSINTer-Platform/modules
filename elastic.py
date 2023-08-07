@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Generator, Sequence
+from collections.abc import Collection, Generator, Sequence, Set
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -56,8 +56,8 @@ class SearchQuery:
     search_term: str | None = None
     first_date: datetime | None = None
     last_date: datetime | None = None
-    source_category: Sequence[str] | None = None
-    ids: Sequence[str] | None = None
+    source_category: Set[str] | None = None
+    ids: Set[str] | None = None
     highlight: bool = False
     highlight_symbol: str = "**"
     complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
@@ -316,7 +316,7 @@ class ElasticDB(Generic[OSINTerDocument]):
         return cast(str, response)
 
     def get_last_document(
-        self, source_category_value: Sequence[str]
+        self, source_category_value: Set[str]
     ) -> OSINTerDocument | None:
         search_q = SearchQuery(
             limit=1,
