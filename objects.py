@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Annotated, TypedDict, TypeVar
+from typing_extensions import Annotated, TypedDict, TypeVar
 
 from pydantic import AwareDatetime, BaseModel, BeforeValidator, Field, HttpUrl
 import annotated_types
