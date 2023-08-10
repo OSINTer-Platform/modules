@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Generator, Sequence, Set
+from collections.abc import Generator, Sequence, Set
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -108,10 +108,10 @@ class SearchQuery:
             )
 
         if self.ids:
-            query["query"]["bool"]["filter"].append({"terms": {"_id": self.ids}})
+            query["query"]["bool"]["filter"].append({"terms": {"_id": list(self.ids)}})
 
         # This check forces elasticsearch to return no results, in case the ids param is set, but empty, as this would indicate the user was querying an empty set of articles and thus expecting no articles in return
-        elif isinstance(self.ids, Collection) and len(self.ids) == 0:
+        elif isinstance(self.ids, Set) and len(self.ids) == 0:
             query["query"]["bool"]["filter"].append(
                 {"terms": {"_id": ["THIS_ID_DOES_NOT_EXIST"]}}
             )
