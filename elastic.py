@@ -291,7 +291,7 @@ class ElasticDB(Generic[OSINTerDocument]):
             for document in documents:
                 operation: dict[str, Any] = {
                     "_index": self.index_name,
-                    "_source": document.dict(exclude_none=True),
+                    "_source": document.model_dump(exclude_none=True, mode="json"),
                 }
 
                 if "id" in operation["_source"]:
@@ -302,7 +302,9 @@ class ElasticDB(Generic[OSINTerDocument]):
         return bulk(self.es, convert_documents(document_objects))[0]
 
     def save_document(self, document_object: OSINTerDocument) -> str:
-        document_dict: dict[str, Any] = document_object.dict(exclude_none=True)
+        document_dict: dict[str, Any] = document_object.model_dump(
+            exclude_none=True, mode="json"
+        )
 
         try:
             document_id = document_dict.pop("id")
