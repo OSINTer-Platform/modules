@@ -233,7 +233,7 @@ class ElasticDB(Generic[OSINTerDocument]):
 
             documents.extend(returned_documents)
 
-            if len(returned_documents) < 10_000:
+            if len(search_results["hits"]["hits"]) < 10_000:
                 break
 
             search_after = search_results["hits"]["hits"][-1]["sort"]
