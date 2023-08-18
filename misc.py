@@ -17,5 +17,3 @@ def create_folder(folder_name: str) -> None:
             raise Exception(
                 f"Failed to set the 750 permissions on {folder_name}, either remove the folder or set the right perms yourself and try again."
             )
-
-
