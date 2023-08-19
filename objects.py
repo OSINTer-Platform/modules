@@ -41,8 +41,8 @@ class BaseArticle(BaseModel):
 
 class FullArticle(BaseArticle):
     author: str | None = None
-    formatted_content: str | None = None
-    content: str | None = None
+    formatted_content: str
+    content: str
     summary: str | None = None
     tags: Tags = {}
     ml: MLAttributes | None = None
