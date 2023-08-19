@@ -11,7 +11,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from pydantic import ValidationError
 
-from .objects import OSINTerDocument, FullArticle
+from .objects import BaseArticle, OSINTerDocument, FullArticle
 
 logger = logging.getLogger("osinter")
 
@@ -28,8 +28,8 @@ def create_es_conn(
 
 def return_article_db_conn(
     es_conn: Elasticsearch, index_name: str
-) -> ElasticDB[FullArticle]:
-    return ElasticDB[FullArticle](
+) -> ElasticDB[FullArticle | BaseArticle]:
+    return ElasticDB[FullArticle | BaseArticle](
         es_conn=es_conn,
         index_name=index_name,
         unique_field="url",
