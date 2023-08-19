@@ -48,4 +48,4 @@ class FullArticle(BaseArticle):
     ml: MLAttributes | None = None
 
 
-OSINTerDocument = TypeVar("OSINTerDocument", FullArticle, BaseArticle)
+OSINTerDocument = TypeVar("OSINTerDocument", bound=BaseArticle)

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import logging
 from typing import Any, Generic, Literal, Type, cast
+from typing_extensions import TypeVar, TypedDict
 
 from elastic_transport import ObjectApiResponse
 from elasticsearch import Elasticsearch
@@ -26,6 +27,12 @@ def create_es_conn(
         return Elasticsearch(addresses, verify_certs=False)  # type: ignore
 
 
+T = TypeVar("T")
+class DocumentObjectClasses(TypedDict, Generic[T]):
+    base: Type[T]
+    full: Type[T]
+
+
 def return_article_db_conn(
     es_conn: Elasticsearch, index_name: str
 ) -> ElasticDB[FullArticle | BaseArticle]:
@@ -35,7 +42,7 @@ def return_article_db_conn(
         unique_field="url",
         source_category="profile",
         weighted_search_fields=["title^5", "description^3", "content"],
-        document_object_classes=FullArticle,
+        document_object_classes={"base" : BaseArticle, "full" : FullArticle},
         essential_fields=[
             "title",
             "description",
@@ -147,7 +154,7 @@ class ElasticDB(Generic[OSINTerDocument]):
         source_category: str,
         weighted_search_fields: Sequence[str],
         essential_fields: Sequence[str],
-        document_object_classes: Type[OSINTerDocument],
+        document_object_classes: DocumentObjectClasses[OSINTerDocument],
     ):
         self.index_name: str = index_name
         self.es: Elasticsearch = es_conn
@@ -160,7 +167,7 @@ class ElasticDB(Generic[OSINTerDocument]):
         for field_type in weighted_search_fields:
             self.search_fields.append(field_type.split("^")[0])
 
-        self.document_object_class: Type[OSINTerDocument] = document_object_classes
+        self.document_object_class: DocumentObjectClasses[OSINTerDocument] = document_object_classes
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
     def exists_in_db(self, token: str) -> bool:
@@ -186,7 +193,7 @@ class ElasticDB(Generic[OSINTerDocument]):
         return final_string
 
     def _process_search_results(
-        self, search_results: ObjectApiResponse[Any]
+        self, search_results: ObjectApiResponse[Any], document_version: Literal["base", "full"] = "base"
     ) -> list[OSINTerDocument]:
         documents: list[OSINTerDocument] = []
 
@@ -199,7 +206,7 @@ class ElasticDB(Generic[OSINTerDocument]):
                         )
 
             try:
-                current_document = self.document_object_class(**result["_source"])
+                current_document = self.document_object_class[document_version](**result["_source"])
                 current_document.id = result["_id"]
                 documents.append(current_document)
             except ValidationError as e:
@@ -209,7 +216,7 @@ class ElasticDB(Generic[OSINTerDocument]):
 
         return documents
 
-    def query_large(self, query: dict[str, Any]) -> list[OSINTerDocument]:
+    def query_large(self, query: dict[str, Any], complete: bool) -> list[OSINTerDocument]:
         pit_id: str = self.es.open_point_in_time(
             index=self.index_name, keep_alive="1m"
         )["id"]
@@ -229,7 +236,7 @@ class ElasticDB(Generic[OSINTerDocument]):
                 search_after=search_after,
             )
 
-            returned_documents = self._process_search_results(search_results)
+            returned_documents = self._process_search_results(search_results, 'full' if complete else 'base')
 
             documents.extend(returned_documents)
 
@@ -255,9 +262,9 @@ class ElasticDB(Generic[OSINTerDocument]):
                 **search_q.generate_es_query(self), index=self.index_name
             )
 
-            return self._process_search_results(search_results)
+            return self._process_search_results(search_results, 'full' if search_q.complete else 'base')
         else:
-            return self.query_large(search_q.generate_es_query(self))
+            return self.query_large(search_q.generate_es_query(self), complete=search_q.complete)
 
     def query_all_documents(self) -> list[OSINTerDocument]:
         return self.query_documents(SearchQuery(limit=0, complete=True))
