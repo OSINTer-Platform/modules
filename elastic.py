@@ -292,26 +292,26 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
             return process_base(search_results["hits"]["hits"])
 
     @overload
-    def query_large(
+    def _query_large(
         self, query: dict[str, Any], complete: Literal[False]
-    ) -> list[BaseDocument]:
+    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
         ...
 
     @overload
-    def query_large(
+    def _query_large(
         self, query: dict[str, Any], complete: Literal[True]
-    ) -> list[FullDocument]:
+    ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
         ...
 
     @overload
-    def query_large(
+    def _query_large(
         self, query: dict[str, Any], complete: bool
-    ) -> list[BaseDocument] | list[FullDocument]:
+    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
         ...
 
-    def query_large(
+    def _query_large(
         self, query: dict[str, Any], complete: bool
-    ) -> list[BaseDocument] | list[FullDocument]:
+    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
         pit_id: str = self.es.open_point_in_time(
             index=self.index_name, keep_alive="1m"
         )["id"]
@@ -321,6 +321,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
 
         full_documents: list[FullDocument] = []
         base_documents: list[BaseDocument] = []
+        invalid_documents: list[dict[str, Any]] = []
 
         while True:
             query["size"] = (
@@ -336,13 +337,15 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
             if complete:
                 returned_full_documents = self._process_search_results(
                     search_results, True
-                )[0]
-                full_documents.extend(returned_full_documents)
+                )
+                full_documents.extend(returned_full_documents[0])
+                invalid_documents.extend(returned_full_documents[1])
             else:
                 returned_base_documents = self._process_search_results(
                     search_results, False
-                )[0]
-                base_documents.extend(returned_base_documents)
+                )
+                base_documents.extend(returned_base_documents[0])
+                invalid_documents.extend(returned_base_documents[1])
 
             if len(search_results["hits"]["hits"]) < 10_000:
                 break
@@ -354,9 +357,9 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
                 prior_limit -= 10_000
 
         if complete:
-            return full_documents
+            return full_documents, invalid_documents
         else:
-            return base_documents
+            return base_documents, invalid_documents
 
     @overload
     def query_documents(
@@ -389,7 +392,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
 
             return self._process_search_results(search_results, complete)[0]
         else:
-            return self.query_large(search_q.generate_es_query(complete), complete)
+            return self._query_large(search_q.generate_es_query(complete), complete)[0]
 
     def query_all_documents(self) -> list[FullDocument]:
         return self.query_documents(
