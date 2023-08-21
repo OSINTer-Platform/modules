@@ -2,7 +2,7 @@ import json
 import os
 from typing import Any, cast
 
-from .objects import OSINTerDocument
+from .objects import BaseArticle, FullArticle
 
 from .elastic import ElasticDB
 
@@ -36,7 +36,7 @@ def get_profiles() -> list[dict[str, Any]]:
 
 
 def collect_website_details(
-    es_client: ElasticDB[OSINTerDocument],
+    es_client: ElasticDB[BaseArticle, FullArticle],
 ) -> dict[str, dict[str, str]]:
     db_stored_profiles = list(es_client.get_unique_values())
 

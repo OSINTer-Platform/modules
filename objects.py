@@ -20,7 +20,11 @@ class Tags(TypedDict, total=False):
     interresting: dict[str, TagsOfInterest]
 
 
-class BaseArticle(BaseModel):
+class AbstractDocument(BaseModel):
+    id: str | None = None
+
+
+class BaseArticle(AbstractDocument):
     title: Annotated[
         str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(3)
     ]
@@ -36,7 +40,6 @@ class BaseArticle(BaseModel):
         default_factory=lambda: datetime.now(timezone.utc)
     )
     read_times: int = 0
-    id: str | None = None
 
 
 class FullArticle(BaseArticle):
@@ -48,4 +51,5 @@ class FullArticle(BaseArticle):
     ml: MLAttributes | None = None
 
 
-OSINTerDocument = TypeVar("OSINTerDocument", bound=BaseArticle)
+BaseDocument = TypeVar("BaseDocument", bound=AbstractDocument)
+FullDocument = TypeVar("FullDocument", bound=AbstractDocument)

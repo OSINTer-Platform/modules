@@ -4,15 +4,15 @@ from collections.abc import Generator, Sequence, Set
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-from typing import Any, Generic, Literal, Type, cast
-from typing_extensions import TypeVar, TypedDict
+from typing import Any, Generic, Literal, Type, cast, overload
+from typing_extensions import TypedDict
 
 from elastic_transport import ObjectApiResponse
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from pydantic import ValidationError
 
-from .objects import BaseArticle, OSINTerDocument, FullArticle
+from .objects import BaseArticle, FullArticle, BaseDocument, FullDocument
 
 logger = logging.getLogger("osinter")
 
@@ -27,22 +27,21 @@ def create_es_conn(
         return Elasticsearch(addresses, verify_certs=False)  # type: ignore
 
 
-T = TypeVar("T")
-class DocumentObjectClasses(TypedDict, Generic[T]):
-    base: Type[T]
-    full: Type[T]
+class DocumentObjectClasses(TypedDict, Generic[BaseDocument, FullDocument]):
+    base: Type[BaseDocument]
+    full: Type[FullDocument]
 
 
 def return_article_db_conn(
     es_conn: Elasticsearch, index_name: str
-) -> ElasticDB[FullArticle | BaseArticle]:
-    return ElasticDB[FullArticle | BaseArticle](
+) -> ElasticDB[BaseArticle, FullArticle]:
+    return ElasticDB[BaseArticle, FullArticle](
         es_conn=es_conn,
         index_name=index_name,
         unique_field="url",
         source_category="profile",
         weighted_search_fields=["title^5", "description^3", "content"],
-        document_object_classes={"base" : BaseArticle, "full" : FullArticle},
+        document_object_classes={"base": BaseArticle, "full": FullArticle},
         essential_fields=[
             "title",
             "description",
@@ -72,7 +71,7 @@ class SearchQuery:
     cluster_id: int | None = None
 
     def generate_es_query(
-        self, es_client: ElasticDB[OSINTerDocument]
+        self, es_client: ElasticDB[BaseDocument, FullDocument]
     ) -> dict[str, Any]:
         query: dict[str, Any] = {
             "size": self.limit,
@@ -144,7 +143,7 @@ class SearchQuery:
         return query
 
 
-class ElasticDB(Generic[OSINTerDocument]):
+class ElasticDB(Generic[BaseDocument, FullDocument]):
     def __init__(
         self,
         *,
@@ -154,7 +153,7 @@ class ElasticDB(Generic[OSINTerDocument]):
         source_category: str,
         weighted_search_fields: Sequence[str],
         essential_fields: Sequence[str],
-        document_object_classes: DocumentObjectClasses[OSINTerDocument],
+        document_object_classes: DocumentObjectClasses[BaseDocument, FullDocument],
     ):
         self.index_name: str = index_name
         self.es: Elasticsearch = es_conn
@@ -167,7 +166,9 @@ class ElasticDB(Generic[OSINTerDocument]):
         for field_type in weighted_search_fields:
             self.search_fields.append(field_type.split("^")[0])
 
-        self.document_object_class: DocumentObjectClasses[OSINTerDocument] = document_object_classes
+        self.document_object_class: DocumentObjectClasses[
+            BaseDocument, FullDocument
+        ] = document_object_classes
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
     def exists_in_db(self, token: str) -> bool:
@@ -192,10 +193,70 @@ class ElasticDB(Generic[OSINTerDocument]):
 
         return final_string
 
+    @overload
     def _process_search_results(
-        self, search_results: ObjectApiResponse[Any], document_version: Literal["base", "full"] = "base"
-    ) -> list[OSINTerDocument]:
-        documents: list[OSINTerDocument] = []
+        self, search_results: ObjectApiResponse[Any], complete: Literal[False]
+    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
+        ...
+
+    @overload
+    def _process_search_results(
+        self, search_results: ObjectApiResponse[Any], complete: Literal[True]
+    ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
+        ...
+
+    @overload
+    def _process_search_results(
+        self, search_results: ObjectApiResponse[Any], complete: bool
+    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
+        ...
+
+    def _process_search_results(
+        self, search_results: ObjectApiResponse[Any], complete: bool = False
+    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
+        def process_base(
+            hits: list[dict[str, Any]]
+        ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
+            valid_docs: list[BaseDocument] = []
+            invalid_docs: list[dict[str, Any]] = []
+
+            for hit in hits:
+                try:
+                    current_document = self.document_object_class["base"](
+                        **hit["_source"]
+                    )
+                    current_document.id = result["_id"]
+                    valid_docs.append(current_document)
+                except ValidationError as e:
+                    logger.error(
+                        f'Encountered problem with article with ID "{result["_id"]}" and title "{result["_source"]["title"]}", skipping for now. Error: {e}'
+                    )
+
+                    invalid_docs.append(hit)
+
+            return valid_docs, invalid_docs
+
+        def process_full(
+            hits: list[dict[str, Any]]
+        ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
+            valid_docs: list[FullDocument] = []
+            invalid_docs: list[dict[str, Any]] = []
+
+            for hit in hits:
+                try:
+                    current_document = self.document_object_class["full"](
+                        **hit["_source"]
+                    )
+                    current_document.id = result["_id"]
+                    valid_docs.append(current_document)
+                except ValidationError as e:
+                    logger.error(
+                        f'Encountered problem with article with ID "{result["_id"]}" and title "{result["_source"]["title"]}", skipping for now. Error: {e}'
+                    )
+
+                    invalid_docs.append(hit)
+
+            return valid_docs, invalid_docs
 
         for result in search_results["hits"]["hits"]:
             if "highlight" in result:
@@ -205,25 +266,41 @@ class ElasticDB(Generic[OSINTerDocument]):
                             result["highlight"][field_type]
                         )
 
-            try:
-                current_document = self.document_object_class[document_version](**result["_source"])
-                current_document.id = result["_id"]
-                documents.append(current_document)
-            except ValidationError as e:
-                logger.error(
-                    f'Encountered problem with article with ID "{result["_id"]}" and title "{result["_source"]["title"]}", skipping for now. Error: {e}'
-                )
+        if complete:
+            return process_full(search_results["hits"]["hits"])
+        else:
+            return process_base(search_results["hits"]["hits"])
 
-        return documents
+    @overload
+    def query_large(
+        self, query: dict[str, Any], complete: Literal[False]
+    ) -> list[BaseDocument]:
+        ...
 
-    def query_large(self, query: dict[str, Any], complete: bool) -> list[OSINTerDocument]:
+    @overload
+    def query_large(
+        self, query: dict[str, Any], complete: Literal[True]
+    ) -> list[FullDocument]:
+        ...
+
+    @overload
+    def query_large(
+        self, query: dict[str, Any], complete: bool
+    ) -> list[BaseDocument] | list[FullDocument]:
+        ...
+
+    def query_large(
+        self, query: dict[str, Any], complete: bool
+    ) -> list[BaseDocument] | list[FullDocument]:
         pit_id: str = self.es.open_point_in_time(
             index=self.index_name, keep_alive="1m"
         )["id"]
 
-        documents: list[OSINTerDocument] = []
-        search_after = None
-        prior_limit = query["size"]
+        search_after: Any = None
+        prior_limit: int = query["size"]
+
+        full_documents: list[FullDocument] = []
+        base_documents: list[BaseDocument] = []
 
         while True:
             query["size"] = (
@@ -236,9 +313,16 @@ class ElasticDB(Generic[OSINTerDocument]):
                 search_after=search_after,
             )
 
-            returned_documents = self._process_search_results(search_results, 'full' if complete else 'base')
-
-            documents.extend(returned_documents)
+            if complete:
+                returned_full_documents = self._process_search_results(
+                    search_results, True
+                )[0]
+                full_documents.extend(returned_full_documents)
+            else:
+                returned_base_documents = self._process_search_results(
+                    search_results, False
+                )[0]
+                base_documents.extend(returned_base_documents)
 
             if len(search_results["hits"]["hits"]) < 10_000:
                 break
@@ -249,11 +333,14 @@ class ElasticDB(Generic[OSINTerDocument]):
             if prior_limit > 0:
                 prior_limit -= 10_000
 
-        return documents
+        if complete:
+            return full_documents
+        else:
+            return base_documents
 
     def query_documents(
         self, search_q: SearchQuery | None = None
-    ) -> list[OSINTerDocument]:
+    ) -> list[BaseDocument] | list[FullDocument]:
         if not search_q:
             search_q = SearchQuery()
 
@@ -262,12 +349,17 @@ class ElasticDB(Generic[OSINTerDocument]):
                 **search_q.generate_es_query(self), index=self.index_name
             )
 
-            return self._process_search_results(search_results, 'full' if search_q.complete else 'base')
+            return self._process_search_results(search_results, search_q.complete)[0]
         else:
-            return self.query_large(search_q.generate_es_query(self), complete=search_q.complete)
+            return self.query_large(
+                search_q.generate_es_query(self), complete=search_q.complete
+            )
 
-    def query_all_documents(self) -> list[OSINTerDocument]:
-        return self.query_documents(SearchQuery(limit=0, complete=True))
+    def query_all_documents(self) -> list[FullDocument]:
+        return cast(
+            list[FullDocument],
+            self.query_documents(SearchQuery(limit=0, complete=True)),
+        )
 
     def filter_document_list(self, document_attribute_list: Sequence[str]) -> list[str]:
         filtered_document_list = []
@@ -291,9 +383,11 @@ class ElasticDB(Generic[OSINTerDocument]):
             unique_val["key"]: unique_val["doc_count"] for unique_val in unique_vals
         }
 
-    def save_documents(self, document_objects: Sequence[OSINTerDocument]) -> int:
+    def save_documents(
+        self, document_objects: Sequence[BaseDocument | FullDocument]
+    ) -> int:
         def convert_documents(
-            documents: Sequence[OSINTerDocument],
+            documents: Sequence[BaseDocument | FullDocument],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
                 operation: dict[str, Any] = {
@@ -308,7 +402,7 @@ class ElasticDB(Generic[OSINTerDocument]):
 
         return bulk(self.es, convert_documents(document_objects))[0]
 
-    def save_document(self, document_object: OSINTerDocument) -> str:
+    def save_document(self, document_object: BaseDocument | FullDocument) -> str:
         document_dict: dict[str, Any] = document_object.model_dump(
             exclude_none=True, mode="json"
         )
@@ -325,20 +419,19 @@ class ElasticDB(Generic[OSINTerDocument]):
 
         return cast(str, response)
 
-    def get_last_document(
-        self, source_category_value: Set[str]
-    ) -> OSINTerDocument | None:
+    def get_last_document(self, source_category_value: Set[str]) -> FullDocument | None:
         search_q = SearchQuery(
             limit=1,
             source_category=source_category_value,
             sort_by="inserted_at",
             sort_order="desc",
+            complete=True,
         )
 
         results = self.query_documents(search_q)
 
         try:
-            return results[0]
+            return cast(FullDocument, results[0])
         except IndexError:
             return None
 
