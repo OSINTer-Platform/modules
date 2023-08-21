@@ -60,14 +60,12 @@ class SearchQuery(ABC):
     highlight: bool = False
     highlight_symbol: str = "**"
 
-    complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
-
     search_fields: ClassVar[list[str]] = []
     weighted_search_fields: ClassVar[list[str]] = []
     essential_fields: ClassVar[list[str]] = []
 
     @abstractmethod
-    def generate_es_query(self) -> dict[str, Any]:
+    def generate_es_query(self, complete: bool) -> dict[str, Any]:
         query: dict[str, Any] = {
             "size": self.limit,
             "sort": ["_doc"],
@@ -81,7 +79,7 @@ class SearchQuery(ABC):
                 "fields": {field_type: {} for field_type in self.search_fields},
             }
 
-        if not self.complete:
+        if not complete:
             query["source"] = self.essential_fields
 
         if self.search_term:
@@ -144,8 +142,8 @@ class ArticleSearchQuery(SearchQuery):
         "inserted_at",
     ]
 
-    def generate_es_query(self) -> dict[str, Any]:
-        query = super(ArticleSearchQuery, self).generate_es_query()
+    def generate_es_query(self, complete: bool = False) -> dict[str, Any]:
+        query = super(ArticleSearchQuery, self).generate_es_query(complete)
 
         if self.sources:
             query["query"]["bool"]["filter"].append(
@@ -360,29 +358,42 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
         else:
             return base_documents
 
+    @overload
     def query_documents(
-        self, search_q: SearchQueryType | None = None
+        self, search_q: SearchQueryType | None, complete: Literal[False] = ...
+    ) -> list[BaseDocument]:
+        ...
+
+    @overload
+    def query_documents(
+        self, search_q: SearchQueryType | None, complete: Literal[True] = ...
+    ) -> list[FullDocument]:
+        ...
+
+    @overload
+    def query_documents(
+        self, search_q: SearchQueryType | None, complete: bool = ...
+    ) -> list[BaseDocument] | list[FullDocument]:
+        ...
+
+    def query_documents(
+        self, search_q: SearchQueryType | None = None, complete: bool = False
     ) -> list[BaseDocument] | list[FullDocument]:
         if not search_q:
             search_q = self.document_object_class["search_query"]()
 
         if search_q.limit <= 10_000 and search_q.limit != 0:
             search_results = self.es.search(
-                **search_q.generate_es_query(), index=self.index_name
+                **search_q.generate_es_query(complete), index=self.index_name
             )
 
-            return self._process_search_results(search_results, search_q.complete)[0]
+            return self._process_search_results(search_results, complete)[0]
         else:
-            return self.query_large(
-                search_q.generate_es_query(), complete=search_q.complete
-            )
+            return self.query_large(search_q.generate_es_query(complete), complete)
 
     def query_all_documents(self) -> list[FullDocument]:
-        return cast(
-            list[FullDocument],
-            self.query_documents(
-                self.document_object_class["search_query"](limit=0, complete=True)
-            ),
+        return self.query_documents(
+            self.document_object_class["search_query"](limit=0), True
         )
 
     def filter_document_list(self, document_attribute_list: Sequence[str]) -> list[str]:
