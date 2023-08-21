@@ -243,11 +243,11 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
                     current_document = self.document_object_class["base"](
                         **hit["_source"]
                     )
-                    current_document.id = result["_id"]
+                    current_document.id = hit["_id"]
                     valid_docs.append(current_document)
                 except ValidationError as e:
                     logger.error(
-                        f'Encountered problem with article with ID "{result["_id"]}" and title "{result["_source"]["title"]}", skipping for now. Error: {e}'
+                        f'Encountered problem with article with ID "{hit["_id"]}" and title "{hit["_source"]["title"]}", skipping for now. Error: {e}'
                     )
 
                     invalid_docs.append(hit)
@@ -265,11 +265,11 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
                     current_document = self.document_object_class["full"](
                         **hit["_source"]
                     )
-                    current_document.id = result["_id"]
+                    current_document.id = hit["_id"]
                     valid_docs.append(current_document)
                 except ValidationError as e:
                     logger.error(
-                        f'Encountered problem with article with ID "{result["_id"]}" and title "{result["_source"]["title"]}", skipping for now. Error: {e}'
+                        f'Encountered problem with article with ID "{hit["_id"]}" and title "{hit["_source"]["title"]}", skipping for now. Error: {e}'
                     )
 
                     invalid_docs.append(hit)
