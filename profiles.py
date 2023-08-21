@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from .objects import BaseArticle, FullArticle
 
-from .elastic import ElasticDB
+from .elastic import ArticleSearchQuery, ElasticDB
 
 
 PROFILE_PATH = os.path.normcase("./profiles/profiles/")
@@ -36,9 +36,9 @@ def get_profiles() -> list[dict[str, Any]]:
 
 
 def collect_website_details(
-    es_client: ElasticDB[BaseArticle, FullArticle],
+    es_client: ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery],
 ) -> dict[str, dict[str, str]]:
-    db_stored_profiles = list(es_client.get_unique_values())
+    db_stored_profiles = list(es_client.get_unique_values(field_name="profile"))
 
     profiles = sorted(
         get_profiles(), key=lambda profile: profile["source"]["profile_name"]

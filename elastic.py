@@ -1,10 +1,11 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
 
 from collections.abc import Generator, Sequence, Set
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-from typing import Any, Generic, Literal, Type, cast, overload
+from typing import Any, ClassVar, Generic, Literal, Type, TypeVar, cast, overload
 from typing_extensions import TypedDict
 
 from elastic_transport import ObjectApiResponse
@@ -27,52 +28,46 @@ def create_es_conn(
         return Elasticsearch(addresses, verify_certs=False)  # type: ignore
 
 
-class DocumentObjectClasses(TypedDict, Generic[BaseDocument, FullDocument]):
-    base: Type[BaseDocument]
-    full: Type[FullDocument]
-
-
 def return_article_db_conn(
     es_conn: Elasticsearch, index_name: str
-) -> ElasticDB[BaseArticle, FullArticle]:
-    return ElasticDB[BaseArticle, FullArticle](
+) -> ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery]:
+    return ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery](
         es_conn=es_conn,
         index_name=index_name,
         unique_field="url",
-        source_category="profile",
-        weighted_search_fields=["title^5", "description^3", "content"],
-        document_object_classes={"base": BaseArticle, "full": FullArticle},
-        essential_fields=[
-            "title",
-            "description",
-            "url",
-            "image_url",
-            "profile",
-            "source",
-            "publish_date",
-            "inserted_at",
-        ],
+        document_object_classes={
+            "base": BaseArticle,
+            "full": FullArticle,
+            "search_query": ArticleSearchQuery,
+        },
     )
 
 
 @dataclass
-class SearchQuery:
+class SearchQuery(ABC):
     limit: int = 10_000
+
     sort_by: str | None = None
     sort_order: Literal["desc", "asc"] = "desc"
+
     search_term: str | None = None
+
     first_date: datetime | None = None
     last_date: datetime | None = None
-    source_category: Set[str] | None = None
+
     ids: Set[str] | None = None
+
     highlight: bool = False
     highlight_symbol: str = "**"
-    complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
-    cluster_id: int | None = None
 
-    def generate_es_query(
-        self, es_client: ElasticDB[BaseDocument, FullDocument]
-    ) -> dict[str, Any]:
+    complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
+
+    search_fields: ClassVar[list[str]] = []
+    weighted_search_fields: ClassVar[list[str]] = []
+    essential_fields: ClassVar[list[str]] = []
+
+    @abstractmethod
+    def generate_es_query(self) -> dict[str, Any]:
         query: dict[str, Any] = {
             "size": self.limit,
             "sort": ["_doc"],
@@ -83,11 +78,11 @@ class SearchQuery:
             query["highlight"] = {
                 "pre_tags": [self.highlight_symbol],
                 "post_tags": [self.highlight_symbol],
-                "fields": {field_type: {} for field_type in es_client.search_fields},
+                "fields": {field_type: {} for field_type in self.search_fields},
             }
 
         if not self.complete:
-            query["source"] = es_client.essential_fields
+            query["source"] = self.essential_fields
 
         if self.search_term:
             query["sort"].insert(0, "_score")
@@ -95,23 +90,12 @@ class SearchQuery:
             query["query"]["bool"]["must"] = {
                 "simple_query_string": {
                     "query": self.search_term,
-                    "fields": es_client.weighted_search_fields,
+                    "fields": self.weighted_search_fields,
                 }
             }
 
         if self.sort_by:
             query["sort"].insert(0, {self.sort_by: self.sort_order})
-
-        if self.source_category:
-            query["query"]["bool"]["filter"].append(
-                {
-                    "terms": {
-                        es_client.source_category: [
-                            source.lower() for source in self.source_category
-                        ]
-                    }
-                }
-            )
 
         if self.ids:
             query["query"]["bool"]["filter"].append({"terms": {"_id": list(self.ids)}})
@@ -120,11 +104,6 @@ class SearchQuery:
         elif isinstance(self.ids, Set) and len(self.ids) == 0:
             query["query"]["bool"]["filter"].append(
                 {"terms": {"_id": ["THIS_ID_DOES_NOT_EXIST"]}}
-            )
-
-        if self.cluster_id:
-            query["query"]["bool"]["filter"].append(
-                {"term": {"ml.cluster": {"value": self.cluster_id}}}
             )
 
         if self.first_date or self.last_date:
@@ -143,31 +122,72 @@ class SearchQuery:
         return query
 
 
-class ElasticDB(Generic[BaseDocument, FullDocument]):
+@dataclass
+class ArticleSearchQuery(SearchQuery):
+    sources: Set[str] | None = None
+    cluster_id: int | None = None
+
+    search_fields: ClassVar[list[str]] = ["title", "description", "content"]
+    weighted_search_fields: ClassVar[list[str]] = [
+        "title^5",
+        "description^3",
+        "content",
+    ]
+    essential_fields: ClassVar[list[str]] = [
+        "title",
+        "description",
+        "url",
+        "image_url",
+        "profile",
+        "source",
+        "publish_date",
+        "inserted_at",
+    ]
+
+    def generate_es_query(self) -> dict[str, Any]:
+        query = super(ArticleSearchQuery, self).generate_es_query()
+
+        if self.sources:
+            query["query"]["bool"]["filter"].append(
+                {"terms": {"profile": [source.lower() for source in self.sources]}}
+            )
+
+        if self.cluster_id:
+            query["query"]["bool"]["filter"].append(
+                {"term": {"ml.cluster": {"value": self.cluster_id}}}
+            )
+
+        return query
+
+
+SearchQueryType = TypeVar("SearchQueryType", bound=SearchQuery)
+
+
+class DocumentObjectClasses(
+    TypedDict, Generic[BaseDocument, FullDocument, SearchQueryType]
+):
+    base: Type[BaseDocument]
+    full: Type[FullDocument]
+    search_query: Type[SearchQueryType]
+
+
+class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
     def __init__(
         self,
         *,
         es_conn: Elasticsearch,
         index_name: str,
         unique_field: str,
-        source_category: str,
-        weighted_search_fields: Sequence[str],
-        essential_fields: Sequence[str],
-        document_object_classes: DocumentObjectClasses[BaseDocument, FullDocument],
+        document_object_classes: DocumentObjectClasses[
+            BaseDocument, FullDocument, SearchQueryType
+        ],
     ):
-        self.index_name: str = index_name
         self.es: Elasticsearch = es_conn
+        self.index_name: str = index_name
         self.unique_field: str = unique_field
-        self.source_category: str = source_category
-        self.weighted_search_fields: Sequence[str] = weighted_search_fields
-        self.essential_fields: Sequence[str] = essential_fields
-
-        self.search_fields: list[str] = []
-        for field_type in weighted_search_fields:
-            self.search_fields.append(field_type.split("^")[0])
 
         self.document_object_class: DocumentObjectClasses[
-            BaseDocument, FullDocument
+            BaseDocument, FullDocument, SearchQueryType
         ] = document_object_classes
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
@@ -260,11 +280,13 @@ class ElasticDB(Generic[BaseDocument, FullDocument]):
 
         for result in search_results["hits"]["hits"]:
             if "highlight" in result:
-                for field_type in self.search_fields:
-                    if field_type in result["highlight"]:
-                        result["_source"][field_type] = self._concat_strings(
-                            result["highlight"][field_type]
-                        )
+                for field_type in result["highlight"].keys():
+                    if field_type not in result["_source"]:
+                        continue
+
+                    result["_source"][field_type] = self._concat_strings(
+                        result["highlight"][field_type]
+                    )
 
         if complete:
             return process_full(search_results["hits"]["hits"])
@@ -339,26 +361,28 @@ class ElasticDB(Generic[BaseDocument, FullDocument]):
             return base_documents
 
     def query_documents(
-        self, search_q: SearchQuery | None = None
+        self, search_q: SearchQueryType | None = None
     ) -> list[BaseDocument] | list[FullDocument]:
         if not search_q:
-            search_q = SearchQuery()
+            search_q = self.document_object_class["search_query"]()
 
         if search_q.limit <= 10_000 and search_q.limit != 0:
             search_results = self.es.search(
-                **search_q.generate_es_query(self), index=self.index_name
+                **search_q.generate_es_query(), index=self.index_name
             )
 
             return self._process_search_results(search_results, search_q.complete)[0]
         else:
             return self.query_large(
-                search_q.generate_es_query(self), complete=search_q.complete
+                search_q.generate_es_query(), complete=search_q.complete
             )
 
     def query_all_documents(self) -> list[FullDocument]:
         return cast(
             list[FullDocument],
-            self.query_documents(SearchQuery(limit=0, complete=True)),
+            self.query_documents(
+                self.document_object_class["search_query"](limit=0, complete=True)
+            ),
         )
 
     def filter_document_list(self, document_attribute_list: Sequence[str]) -> list[str]:
@@ -370,10 +394,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument]):
         return filtered_document_list
 
     # If there's more than 10.000 unique values, then this function will only get the first 10.000
-    def get_unique_values(self, field_name: str | None = None) -> dict[str, int]:
-        if not field_name:
-            field_name = self.source_category
-
+    def get_unique_values(self, field_name: str) -> dict[str, int]:
         unique_vals = self.es.search(
             size=0,
             aggs={"unique_fields": {"terms": {"field": field_name, "size": 10_000}}},
@@ -418,22 +439,6 @@ class ElasticDB(Generic[BaseDocument, FullDocument]):
             ]
 
         return cast(str, response)
-
-    def get_last_document(self, source_category_value: Set[str]) -> FullDocument | None:
-        search_q = SearchQuery(
-            limit=1,
-            source_category=source_category_value,
-            sort_by="inserted_at",
-            sort_order="desc",
-            complete=True,
-        )
-
-        results = self.query_documents(search_q)
-
-        try:
-            return cast(FullDocument, results[0])
-        except IndexError:
-            return None
 
     def increment_read_counter(self, document_id: str) -> None:
         increment_script = {"source": "ctx._source.read_times += 1", "lang": "painless"}
