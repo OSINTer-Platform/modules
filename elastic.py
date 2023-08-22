@@ -454,6 +454,17 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
 
         return cast(str, response)
 
+    def delete_document(self, ids: Set[str]) -> int:
+        def gen_actions(ids: Set[str]) -> Generator[dict[str, Any], None, None]:
+            for id in ids:
+                yield {
+                    "_op_type": "delete",
+                    "_index": self.index_name,
+                    "_id": id,
+                }
+
+        return bulk(self.es, gen_actions(ids))[0]
+
     def increment_read_counter(self, document_id: str) -> None:
         increment_script = {"source": "ctx._source.read_times += 1", "lang": "painless"}
         self.es.update(index=self.index_name, id=document_id, script=increment_script)
