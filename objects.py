@@ -5,19 +5,14 @@ from pydantic import AwareDatetime, BaseModel, BeforeValidator, Field, HttpUrl
 import annotated_types
 
 
-class MLAttributes(TypedDict, total=False):
+class MLAttributes(TypedDict):
     similar: list[str]
     cluster: int
 
 
-class TagsOfInterest(TypedDict):
-    results: list[str]
-    tag: bool
-
-
-class Tags(TypedDict, total=False):
+class Tags(TypedDict):
     automatic: list[str]
-    interresting: dict[str, TagsOfInterest]
+    interresting: dict[str, list[str]]
 
 
 class AbstractDocument(BaseModel):
@@ -47,8 +42,8 @@ class FullArticle(BaseArticle):
     formatted_content: str
     content: str
     summary: str | None = None
-    tags: Tags = {}
-    ml: MLAttributes | None = None
+    tags: Tags = {"automatic": [], "interresting": {}}
+    ml: MLAttributes = {"similar": [], "cluster": -1}
 
 
 BaseDocument = TypeVar("BaseDocument", bound=AbstractDocument)
