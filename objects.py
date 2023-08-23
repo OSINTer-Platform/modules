@@ -39,8 +39,8 @@ class BaseArticle(AbstractDocument):
 
 class FullArticle(BaseArticle):
     author: str | None = None
-    formatted_content: str
-    content: str
+    formatted_content: Annotated[str, annotated_types.MinLen(10)]
+    content: Annotated[str, annotated_types.MinLen(10)]
     summary: str | None = None
     tags: Tags = {"automatic": [], "interresting": {}}
     ml: MLAttributes = {"similar": [], "cluster": -1}
