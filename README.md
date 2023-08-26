@@ -1,8 +1,12 @@
-# OSINTmodules
-[![OSINTer](https://gitlab.com/osinter/osinter/-/raw/master/logo.png)](https://osinter.dk)
+# OSINTbackend
+
+[![OSINTer logo](https://gitlab.com/osinter/osinter/-/raw/967654ece8f5a7703d9db941af119a368e1b58a3/logo/full.png)](https://osinter.dk)
 
 ## Welcome to OSINTer
-This repo is a part of a larger project called ![OSINTer](https://github.com/bertmad3400/OSINTer). For more information on the project as a whole, you can find OSINTer at ![https://gitlab.com/OSINTer](https://gitlab.com/osinter).
+This repo is a part of a larger project called ![OSINTer](https://osinter.dk).
+For more information on the project as a whole, you can find the source code at
+![https://gitlab.com/osinter](https://gitlab.com/osinter).
 
 ## What is OSINTmodules?
-OSINTmodules is the portion of OSINTer, which is responsible for providing specific functionality for various parts of the project, including handling text, database connections, scraping and more.
+OSINTmodules is the portion of OSINTer, which is responsible for providing
+cross-repo functionality required by both OSINTbackend and OSINTapi
