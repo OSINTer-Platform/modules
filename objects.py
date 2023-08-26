@@ -1,59 +1,50 @@
-from pydantic import BaseModel, HttpUrl
-from typing import Dict, List, Union, Optional, TypedDict
 from datetime import datetime, timezone
+from typing_extensions import Annotated, TypedDict, TypeVar
+
+from pydantic import AwareDatetime, BaseModel, BeforeValidator, Field, HttpUrl
+import annotated_types
 
 
-class BaseArticle(BaseModel):
-    title: str
-    description: str
+class MLAttributes(TypedDict):
+    similar: list[str]
+    cluster: int
+
+
+class Tags(TypedDict):
+    automatic: list[str]
+    interresting: dict[str, list[str]]
+
+
+class AbstractDocument(BaseModel):
+    id: str | None = None
+
+
+class BaseArticle(AbstractDocument):
+    title: Annotated[
+        str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(3)
+    ]
+    description: Annotated[
+        str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(10)
+    ]
     url: HttpUrl
     image_url: HttpUrl
     profile: str
     source: str
-    publish_date: datetime
-    inserted_at: datetime = datetime.now(timezone.utc)
-    id: Optional[str] = None
-
-
-class MLAttributes(TypedDict, total=False):
-    similar: List[str]
-    cluster: int
+    publish_date: Annotated[datetime, AwareDatetime]
+    inserted_at: Annotated[datetime, AwareDatetime] = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    read_times: int = 0
 
 
 class FullArticle(BaseArticle):
-    author: Optional[str] = None
-    formatted_content: Optional[str] = None
-    content: Optional[str] = None
-    summary: Optional[str] = None
-    tags: Dict[
-        str,
-        Union[
-            List[str],
-            Dict[str, Union[List[str], Dict[str, Union[List[str], bool]]]],
-        ],
-    ] = {}
-    read_times: int = 0
-    ml: Optional[MLAttributes] = None
+    author: str | None = None
+    formatted_content: Annotated[str, annotated_types.MinLen(10)]
+    content: Annotated[str, annotated_types.MinLen(10)]
+    summary: str | None = None
+    tags: Tags = {"automatic": [], "interresting": {}}
+    ml: MLAttributes = {"similar": [], "cluster": -1}
 
 
-class BaseTweet(BaseModel):
-    twitter_id: str
-    content: str
-
-    publish_date: datetime
-    inserted_at: datetime = datetime.now(timezone.utc)
-
-    id: Optional[str] = None
-
-
-class FullTweet(BaseTweet):
-    hashtags: List[str] = []
-    mentions: List[str] = []
-
-    author_details: Dict[str, str] = {}
-    OG: Dict[str, str] = {}
-
-    read_times: int = 0
-
-
-OSINTerDocument = Union[FullArticle, FullTweet]
+BaseDocument = TypeVar("BaseDocument", bound=AbstractDocument)
+FullDocument = TypeVar("FullDocument", bound=AbstractDocument)

@@ -1,61 +1,30 @@
-# Used for listing files in directory
-import os
-
-# Used for handling relative paths
-from pathlib import Path
-
 import json
+import os
+from typing import Any, cast
 
-# Function for reading all profile files and returning the content in a list if profile_name is left empty, returning the contents of one profile if it isn't or simply just return the names of the available profile if profile_name is left empty and just_names is set to true
-def get_profiles(profile_name="", just_names=False):
+PROFILE_PATH = os.path.normcase("./profiles/profiles/")
 
-    profile_path = "./profiles/profiles/"
 
-    if profile_name == "":
-        # Listing all the profiles by getting the OS indepentent path to profiles folder and listing files in it, and then only choosing those files that end in a .profile
-        profile_files = [
-            x for x in os.listdir(path=Path(profile_path)) if ".profile" in x
-        ]
-
-        if just_names and profile_name == "":
-            # Remember to remove the .profile extension
-            return [x[:-8] for x in profile_files]
-
-        # List for holding the information from all the files, so they only have to be read one
-        profiles = list()
-
-        # Reading all the different profile files and storing the contents in just created list
-        for profile in profile_files:
-
-            # Stripping any potential trailing or leading newlines
-            profiles.append(
-                json.loads(Path(profile_path + profile).read_text().strip())
-            )
-
-        return profiles
+def list_profiles(complete_file_name: bool = False) -> list[str]:
+    if complete_file_name:
+        return [x for x in os.listdir(PROFILE_PATH) if ".profile" in x]
     else:
-        return json.loads(
-            Path(profile_path + profile_name + ".profile").read_text().strip()
-        )
+        return [x[:-8] for x in os.listdir(PROFILE_PATH) if ".profile" in x]
 
 
-def collect_website_details(es_client):
-    db_stored_profiles = list(es_client.get_unique_values())
+def get_profile(specific_profile: str) -> dict[str, Any]:
+    if ".profile" not in specific_profile:
+        specific_profile += ".profile"
 
-    profiles = get_profiles()
+    with open(os.path.join(PROFILE_PATH, specific_profile)) as f:
+        return cast(dict[str, Any], json.loads(f.read().strip()))
 
-    # The final list of all the website information
-    details = {}
 
-    for profile in profiles:
+def get_profiles() -> list[dict[str, Any]]:
+    profiles = []
 
-        if profile["source"]["profile_name"] in db_stored_profiles:
-            image_url = profile["source"]["image_url"]
+    for profile_name in list_profiles(complete_file_name=True):
+        with open(os.path.join(PROFILE_PATH, profile_name)) as f:
+            profiles.append(json.loads(f.read().strip()))
 
-            details[profile["source"]["profile_name"]] = {
-                "name": profile["source"]["name"],
-                "image": image_url,
-                "url": profile["source"]["address"],
-            }
-
-    return {source: details[source] for source in sorted(details)}
+    return profiles

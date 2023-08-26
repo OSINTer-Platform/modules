@@ -1,88 +1,72 @@
-from modules.objects import (
-    BaseArticle,
-    FullArticle,
-    BaseTweet,
-    FullTweet,
-    OSINTerDocument,
-)
+from __future__ import annotations
+from abc import ABC, abstractmethod
+
+from collections.abc import Generator, Sequence, Set
+from dataclasses import dataclass
+from datetime import datetime
+import logging
+from typing import Any, ClassVar, Generic, Literal, Type, TypeVar, cast, overload
+from typing_extensions import TypedDict
+
+from elastic_transport import ObjectApiResponse
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
-
 from pydantic import ValidationError
-from dataclasses import dataclass
 
-from typing import Optional, List, Dict, Any, Union
-
-from datetime import datetime, timezone
-
-import logging
+from .objects import BaseArticle, FullArticle, BaseDocument, FullDocument
 
 logger = logging.getLogger("osinter")
 
 
-def create_es_conn(addresses, cert_path=None):
+# TODO: Type this function properly
+def create_es_conn(
+    addresses: str | list[str], cert_path: None | str = None
+) -> Elasticsearch:
     if cert_path:
-        return Elasticsearch(addresses, ca_certs=cert_path)
+        return Elasticsearch(addresses, ca_certs=cert_path)  # type: ignore
     else:
-        return Elasticsearch(addresses, verify_certs=False)
+        return Elasticsearch(addresses, verify_certs=False)  # type: ignore
 
 
-def return_article_db_conn(config_options):
-    return ElasticDB(
-        es_conn=config_options.es_conn,
-        index_name=config_options.ELASTICSEARCH_ARTICLE_INDEX,
+def return_article_db_conn(
+    es_conn: Elasticsearch, index_name: str
+) -> ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery]:
+    return ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery](
+        es_conn=es_conn,
+        index_name=index_name,
         unique_field="url",
-        source_category="profile",
-        weighted_search_fields=["title^5", "description^3", "content"],
-        document_object_classes={"full": FullArticle, "base": BaseArticle},
-        essential_fields=[
-            "title",
-            "description",
-            "url",
-            "image_url",
-            "profile",
-            "source",
-            "publish_date",
-            "inserted_at",
-        ],
-    )
-
-
-def return_tweet_db_conn(config_options):
-    return ElasticDB(
-        es_conn=config_options.es_conn,
-        index_name=config_options.ELASTICSEARCH_TWEET_INDEX,
-        unique_field="twitter_id",
-        source_category="author_details.username",
-        weighted_search_fields=["content"],
-        document_object_classes={"full": FullTweet, "base": BaseTweet},
-        essential_fields=[
-            "twitter_id",
-            "content",
-            "author_details",
-            "publish_date",
-            "inserted_at",
-        ],
+        document_object_classes={
+            "base": BaseArticle,
+            "full": FullArticle,
+            "search_query": ArticleSearchQuery,
+        },
     )
 
 
 @dataclass
-class SearchQuery:
+class SearchQuery(ABC):
     limit: int = 10_000
-    sort_by: Optional[str] = None
-    sort_order: Optional[str] = None
-    search_term: Optional[str] = None
-    first_date: Optional[datetime] = None
-    last_date: Optional[datetime] = None
-    source_category: Optional[List[str]] = None
-    ids: Optional[List[str]] = None
+
+    sort_by: str | None = None
+    sort_order: Literal["desc", "asc"] = "desc"
+
+    search_term: str | None = None
+
+    first_date: datetime | None = None
+    last_date: datetime | None = None
+
+    ids: Set[str] | None = None
+
     highlight: bool = False
     highlight_symbol: str = "**"
-    complete: bool = False  # For whether the query should only return the necessary information for creating an article object, or all data stored about the article
-    cluster_id: Optional[int] = None
 
-    def generate_es_query(self, es_client):
-        query = {
+    search_fields: ClassVar[list[str]] = []
+    weighted_search_fields: ClassVar[list[str]] = []
+    essential_fields: ClassVar[list[str]] = []
+
+    @abstractmethod
+    def generate_es_query(self, complete: bool) -> dict[str, Any]:
+        query: dict[str, Any] = {
             "size": self.limit,
             "sort": ["_doc"],
             "query": {"bool": {"filter": []}},
@@ -92,11 +76,11 @@ class SearchQuery:
             query["highlight"] = {
                 "pre_tags": [self.highlight_symbol],
                 "post_tags": [self.highlight_symbol],
-                "fields": {field_type: {} for field_type in es_client.search_fields},
+                "fields": {field_type: {} for field_type in self.search_fields},
             }
 
-        if not self.complete:
-            query["source"] = es_client.essential_fields
+        if not complete:
+            query["source"] = self.essential_fields
 
         if self.search_term:
             query["sort"].insert(0, "_score")
@@ -104,30 +88,20 @@ class SearchQuery:
             query["query"]["bool"]["must"] = {
                 "simple_query_string": {
                     "query": self.search_term,
-                    "fields": es_client.weighted_search_fields,
+                    "fields": self.weighted_search_fields,
                 }
             }
 
-        if self.sort_by and self.sort_order:
+        if self.sort_by:
             query["sort"].insert(0, {self.sort_by: self.sort_order})
 
-        if self.source_category:
-            query["query"]["bool"]["filter"].append(
-                {
-                    "terms": {
-                        es_client.source_category: [
-                            source.lower() for source in self.source_category
-                        ]
-                    }
-                }
-            )
-
         if self.ids:
-            query["query"]["bool"]["filter"].append({"terms": {"_id": self.ids}})
+            query["query"]["bool"]["filter"].append({"terms": {"_id": list(self.ids)}})
 
-        if self.cluster_id:
+        # This check forces elasticsearch to return no results, in case the ids param is set, but empty, as this would indicate the user was querying an empty set of articles and thus expecting no articles in return
+        elif isinstance(self.ids, Set) and len(self.ids) == 0:
             query["query"]["bool"]["filter"].append(
-                {"term": {"ml.cluster": {"value": self.cluster_id}}}
+                {"terms": {"_id": ["THIS_ID_DOES_NOT_EXIST"]}}
             )
 
         if self.first_date or self.last_date:
@@ -146,44 +120,87 @@ class SearchQuery:
         return query
 
 
-class ElasticDB:
+@dataclass
+class ArticleSearchQuery(SearchQuery):
+    sources: Set[str] | None = None
+    cluster_id: int | None = None
+
+    search_fields: ClassVar[list[str]] = ["title", "description", "content"]
+    weighted_search_fields: ClassVar[list[str]] = [
+        "title^5",
+        "description^3",
+        "content",
+    ]
+    essential_fields: ClassVar[list[str]] = [
+        "title",
+        "description",
+        "url",
+        "image_url",
+        "profile",
+        "source",
+        "publish_date",
+        "inserted_at",
+    ]
+
+    def generate_es_query(self, complete: bool = False) -> dict[str, Any]:
+        query = super(ArticleSearchQuery, self).generate_es_query(complete)
+
+        if self.sources:
+            query["query"]["bool"]["filter"].append(
+                {"terms": {"profile": [source.lower() for source in self.sources]}}
+            )
+
+        if self.cluster_id:
+            query["query"]["bool"]["filter"].append(
+                {"term": {"ml.cluster": {"value": self.cluster_id}}}
+            )
+
+        return query
+
+
+SearchQueryType = TypeVar("SearchQueryType", bound=SearchQuery)
+
+
+class DocumentObjectClasses(
+    TypedDict, Generic[BaseDocument, FullDocument, SearchQueryType]
+):
+    base: Type[BaseDocument]
+    full: Type[FullDocument]
+    search_query: Type[SearchQueryType]
+
+
+class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
     def __init__(
         self,
         *,
-        es_conn,
-        index_name,
-        unique_field,
-        source_category,
-        weighted_search_fields,
-        document_object_classes,
-        essential_fields,
+        es_conn: Elasticsearch,
+        index_name: str,
+        unique_field: str,
+        document_object_classes: DocumentObjectClasses[
+            BaseDocument, FullDocument, SearchQueryType
+        ],
     ):
-        self.index_name = index_name
-        self.es = es_conn
-        self.unique_field = unique_field
-        self.source_category = source_category
-        self.weighted_search_fields = weighted_search_fields
-        self.essential_fields = essential_fields
+        self.es: Elasticsearch = es_conn
+        self.index_name: str = index_name
+        self.unique_field: str = unique_field
 
-        self.search_fields = []
-        for field_type in weighted_search_fields:
-            self.search_fields.append(field_type.split("^")[0])
-
-        self.document_object_classes = document_object_classes
+        self.document_object_class: DocumentObjectClasses[
+            BaseDocument, FullDocument, SearchQueryType
+        ] = document_object_classes
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
-    def exists_in_db(self, token):
+    def exists_in_db(self, token: str) -> bool:
         return (
             int(
                 self.es.search(
                     index=self.index_name,
-                    body={"query": {"term": {self.unique_field: {"value": token}}}},
+                    query={"term": {self.unique_field: {"value": token}}},
                 )["hits"]["total"]["value"]
             )
             != 0
         )
 
-    def _concat_strings(self, string_list):
+    def _concat_strings(self, string_list: Sequence[str]) -> str:
         final_string = " ... ".join(string_list)
 
         if not final_string[0].isupper():
@@ -194,64 +211,143 @@ class ElasticDB:
 
         return final_string
 
-    def _process_search_results(self, complete: bool, search_results: Dict[Any, Any]):
-        document_list = []
+    @overload
+    def _process_search_results(
+        self, search_results: ObjectApiResponse[Any], complete: Literal[False]
+    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
+        ...
+
+    @overload
+    def _process_search_results(
+        self, search_results: ObjectApiResponse[Any], complete: Literal[True]
+    ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
+        ...
+
+    @overload
+    def _process_search_results(
+        self, search_results: ObjectApiResponse[Any], complete: bool
+    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
+        ...
+
+    def _process_search_results(
+        self, search_results: ObjectApiResponse[Any], complete: bool = False
+    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
+        def process_base(
+            hits: list[dict[str, Any]]
+        ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
+            valid_docs: list[BaseDocument] = []
+            invalid_docs: list[dict[str, Any]] = []
+
+            for hit in hits:
+                try:
+                    current_document = self.document_object_class["base"](
+                        **hit["_source"]
+                    )
+                    current_document.id = hit["_id"]
+                    valid_docs.append(current_document)
+                except ValidationError as e:
+                    logger.error(
+                        f'Encountered problem with article with ID "{hit["_id"]}" and title "{hit["_source"]["title"]}", skipping for now. Error: {e}'
+                    )
+
+                    invalid_docs.append(hit)
+
+            return valid_docs, invalid_docs
+
+        def process_full(
+            hits: list[dict[str, Any]]
+        ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
+            valid_docs: list[FullDocument] = []
+            invalid_docs: list[dict[str, Any]] = []
+
+            for hit in hits:
+                try:
+                    current_document = self.document_object_class["full"](
+                        **hit["_source"]
+                    )
+                    current_document.id = hit["_id"]
+                    valid_docs.append(current_document)
+                except ValidationError as e:
+                    logger.error(
+                        f'Encountered problem with article with ID "{hit["_id"]}" and title "{hit["_source"]["title"]}", skipping for now. Error: {e}'
+                    )
+
+                    invalid_docs.append(hit)
+
+            return valid_docs, invalid_docs
+
+        for result in search_results["hits"]["hits"]:
+            if "highlight" in result:
+                for field_type in result["highlight"].keys():
+                    if field_type not in result["_source"]:
+                        continue
+
+                    result["_source"][field_type] = self._concat_strings(
+                        result["highlight"][field_type]
+                    )
 
         if complete:
-            document_object_class = self.document_object_classes["full"]
+            return process_full(search_results["hits"]["hits"])
         else:
-            document_object_class = self.document_object_classes["base"]
+            return process_base(search_results["hits"]["hits"])
 
-        for query_result in search_results["hits"]["hits"]:
+    @overload
+    def _query_large(
+        self, query: dict[str, Any], complete: Literal[False]
+    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
+        ...
 
-            if "highlight" in query_result:
-                for field_type in self.search_fields:
-                    if field_type in query_result["highlight"]:
-                        query_result["_source"][field_type] = self._concat_strings(
-                            query_result["highlight"][field_type]
-                        )
+    @overload
+    def _query_large(
+        self, query: dict[str, Any], complete: Literal[True]
+    ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
+        ...
 
-            try:
-                current_document = document_object_class(**query_result["_source"])
-                current_document.id = query_result["_id"]
-                document_list.append(current_document)
-            except ValidationError as e:
-                logger.error(
-                    f'Encountered problem with article with ID "{query_result["_id"]}" and title "{query_result["_source"]["title"]}", skipping for now. Error: {e}'
-                )
+    @overload
+    def _query_large(
+        self, query: dict[str, Any], complete: bool
+    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
+        ...
 
-        return {
-            "documents": document_list,
-            "result_number": search_results["hits"]["total"]["value"],
-        }
+    def _query_large(
+        self, query: dict[str, Any], complete: bool
+    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
+        pit_id: str = self.es.open_point_in_time(
+            index=self.index_name, keep_alive="1m"
+        )["id"]
 
-    def query_large(self, query: Dict[any, any], complete: bool):
-        pit_id = self.es.open_point_in_time(index=self.index_name, keep_alive="1m")[
-            "id"
-        ]
+        search_after: Any = None
+        prior_limit: int = query["size"]
 
-        documents = []
-        search_after = None
-        prior_limit = query["size"]
+        full_documents: list[FullDocument] = []
+        base_documents: list[BaseDocument] = []
+        invalid_documents: list[dict[str, Any]] = []
 
         while True:
             query["size"] = (
                 10_000 if prior_limit >= 10_000 or prior_limit == 0 else prior_limit
             )
 
-            search_results = self.es.search(
+            search_results: ObjectApiResponse[Any] = self.es.search(
                 **query,
                 pit={"id": pit_id, "keep_alive": "1m"},
                 search_after=search_after,
             )
 
-            returned_documents = self._process_search_results(complete, search_results)[
-                "documents"
-            ]
+            if complete:
+                returned_full_documents = self._process_search_results(
+                    search_results, True
+                )
+                full_documents.extend(returned_full_documents[0])
+                invalid_documents.extend(returned_full_documents[1])
+            else:
+                returned_base_documents = self._process_search_results(
+                    search_results, False
+                )
+                base_documents.extend(returned_base_documents[0])
+                invalid_documents.extend(returned_base_documents[1])
 
-            documents.extend(returned_documents)
-
-            if len(returned_documents) < 10_000:
+            if len(search_results["hits"]["hits"]) < 10_000:
                 break
 
             search_after = search_results["hits"]["hits"][-1]["sort"]
@@ -260,34 +356,50 @@ class ElasticDB:
             if prior_limit > 0:
                 prior_limit -= 10_000
 
-        return documents
+        if complete:
+            return full_documents, invalid_documents
+        else:
+            return base_documents, invalid_documents
+
+    @overload
+    def query_documents(
+        self, search_q: SearchQueryType | None, complete: Literal[False] = ...
+    ) -> list[BaseDocument]:
+        ...
+
+    @overload
+    def query_documents(
+        self, search_q: SearchQueryType | None, complete: Literal[True] = ...
+    ) -> list[FullDocument]:
+        ...
+
+    @overload
+    def query_documents(
+        self, search_q: SearchQueryType | None, complete: bool = ...
+    ) -> list[BaseDocument] | list[FullDocument]:
+        ...
 
     def query_documents(
-        self, search_q: Optional[SearchQuery] = None
-    ) -> dict[str, Union[int, list[OSINTerDocument]]]:
-
+        self, search_q: SearchQueryType | None = None, complete: bool = False
+    ) -> list[BaseDocument] | list[FullDocument]:
         if not search_q:
-            search_q = SearchQuery()
+            search_q = self.document_object_class["search_query"]()
 
         if search_q.limit <= 10_000 and search_q.limit != 0:
             search_results = self.es.search(
-                **search_q.generate_es_query(self), index=self.index_name
+                **search_q.generate_es_query(complete), index=self.index_name
             )
 
-            return self._process_search_results(search_q.complete, search_results)
+            return self._process_search_results(search_results, complete)[0]
         else:
+            return self._query_large(search_q.generate_es_query(complete), complete)[0]
 
-            documents = self.query_large(
-                search_q.generate_es_query(self), search_q.complete
-            )
+    def query_all_documents(self) -> list[FullDocument]:
+        return self.query_documents(
+            self.document_object_class["search_query"](limit=0), True
+        )
 
-            return {"documents": documents, "result_number": len(documents)}
-
-    def query_all_documents(self) -> dict[str, Union[int, OSINTerDocument]]:
-        return self.query_documents(SearchQuery(limit=0, complete=True))
-
-    # Function for taking in a list of lists of documents with the first entry of each list being the name of the profile, and then removing all the documents that already has been saved in the database
-    def filter_document_list(self, document_attribute_list):
+    def filter_document_list(self, document_attribute_list: Sequence[str]) -> list[str]:
         filtered_document_list = []
         for attr in document_attribute_list:
             if not self.exists_in_db(attr):
@@ -296,40 +408,26 @@ class ElasticDB:
         return filtered_document_list
 
     # If there's more than 10.000 unique values, then this function will only get the first 10.000
-    def get_unique_values(
-        self, field_name: Optional[str] = None
-    ) -> List[Union[str, int]]:
-        if not field_name:
-            field_name = self.source_category
-
-        search_q = {
-            "size": 0,
-            "aggs": {"unique_fields": {"terms": {"field": field_name, "size": 10_000}}},
-        }
+    def get_unique_values(self, field_name: str) -> dict[str, int]:
+        unique_vals = self.es.search(
+            size=0,
+            aggs={"unique_fields": {"terms": {"field": field_name, "size": 10_000}}},
+        )["aggregations"]["unique_fields"]["buckets"]
 
         return {
-            unique_val["key"]: unique_val["doc_count"]
-            for unique_val in self.es.search(**search_q, index=self.index_name)[
-                "aggregations"
-            ]["unique_fields"]["buckets"]
+            unique_val["key"]: unique_val["doc_count"] for unique_val in unique_vals
         }
 
-    def save_document(
-        self, document_object: Union[OSINTerDocument, list[OSINTerDocument]]
+    def save_documents(
+        self, document_objects: Sequence[BaseDocument | FullDocument]
     ) -> int:
         def convert_documents(
-            documents: list[OSINTerDocument],
-        ) -> tuple[dict[str, any], str]:
+            documents: Sequence[BaseDocument | FullDocument],
+        ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
-                document_contents: dict[str, any] = {
-                    key: value
-                    for key, value in document.dict().items()
-                    if value is not None
-                }
-
-                operation = {
+                operation: dict[str, Any] = {
                     "_index": self.index_name,
-                    "_source": document_contents,
+                    "_source": document.model_dump(exclude_none=True, mode="json"),
                 }
 
                 if "id" in operation["_source"]:
@@ -337,69 +435,42 @@ class ElasticDB:
 
                 yield operation
 
-        document_objects: list[OSINTerDocument] = (
-            [document_object]
-            if not isinstance(document_object, list)
-            else document_object
-        )
-
         return bulk(self.es, convert_documents(document_objects))[0]
 
-    def get_last_document(self, source_category_value=None):
-        search_q = {"size": 1, "sort": {"publish_date": "desc"}}
+    def save_document(self, document_object: BaseDocument | FullDocument) -> str:
+        document_dict: dict[str, Any] = document_object.model_dump(
+            exclude_none=True, mode="json"
+        )
 
-        if source_category_value and isinstance(source_category_value, list):
-            search_q["query"] = {"terms": {self.source_category: source_category_value}}
-        elif source_category_value:
-            search_q["query"] = {"term": {self.source_category: source_category_value}}
-        else:
-            search_q["query"] = {"term": {"": ""}}
+        try:
+            document_id = document_dict.pop("id")
+            response = self.es.index(
+                index=self.index_name, document=document_dict, id=document_id
+            )["_id"]
+        except KeyError:
+            response = self.es.index(index=self.index_name, document=document_dict)[
+                "_id"
+            ]
 
-        results = self.query_documents(search_q)
+        return cast(str, response)
 
-        if results["result_number"]:
-            return results["documents"][0]
-        else:
-            return None
+    def delete_document(self, ids: Set[str]) -> int:
+        def gen_actions(ids: Set[str]) -> Generator[dict[str, Any], None, None]:
+            for id in ids:
+                yield {
+                    "_op_type": "delete",
+                    "_index": self.index_name,
+                    "_id": id,
+                }
 
-    def increment_read_counter(self, document_id):
+        return bulk(self.es, gen_actions(ids))[0]
+
+    def increment_read_counter(self, document_id: str) -> None:
         increment_script = {"source": "ctx._source.read_times += 1", "lang": "painless"}
         self.es.update(index=self.index_name, id=document_id, script=increment_script)
 
 
 ES_INDEX_CONFIGS = {
-    "ELASTICSEARCH_TWEET_INDEX": {
-        "dynamic": "strict",
-        "properties": {
-            "twitter_id": {"type": "keyword"},
-            "content": {"type": "text"},
-            "hashtags": {"type": "keyword"},
-            "mentions": {"type": "keyword"},
-            "inserted_at": {"type": "date"},
-            "publish_date": {"type": "date"},
-            "author_details": {
-                "type": "object",
-                "enabled": True,
-                "properties": {
-                    "author_id": {"type": "keyword"},
-                    "name": {"type": "keyword"},
-                    "username": {"type": "keyword"},
-                },
-            },
-            "OG": {
-                "type": "object",
-                "enabled": True,
-                "properties": {
-                    "url": {"type": "keyword"},
-                    "image_url": {"type": "keyword"},
-                    "title": {"type": "text"},
-                    "description": {"type": "text"},
-                    "content": {"type": "text"},
-                },
-            },
-            "read_times": {"type": "unsigned_long"},
-        },
-    },
     "ELASTICSEARCH_ARTICLE_INDEX": {
         "dynamic": "strict",
         "properties": {
@@ -419,7 +490,6 @@ ES_INDEX_CONFIGS = {
                 "type": "object",
                 "enabled": False,
                 "properties": {
-                    "manual": {"type": "object", "dynamic": True},
                     "interresting": {"type": "object", "dynamic": True},
                     "automatic": {"type": "keyword"},
                 },
@@ -429,24 +499,6 @@ ES_INDEX_CONFIGS = {
                 "properties": {
                     "similar": {"type": "keyword"},
                     "cluster": {"type": "short"},
-                },
-            },
-        },
-    },
-    "ELASTICSEARCH_USER_INDEX": {
-        "dynamic": "strict",
-        "properties": {
-            "username": {"type": "keyword"},
-            "password_hash": {"type": "keyword"},
-            "email_hash": {"type": "keyword"},
-            "feeds": {"type": "flattened"},
-            "collections": {
-                "type": "object",
-                "enabled": False,
-                "dynamic": True,
-                "properties": {
-                    "Read Later": {"type": "keyword"},
-                    "Already Read": {"type": "keyword"},
                 },
             },
         },
