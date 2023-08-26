@@ -2,11 +2,6 @@ import json
 import os
 from typing import Any, cast
 
-from .objects import BaseArticle, FullArticle
-
-from .elastic import ArticleSearchQuery, ElasticDB
-
-
 PROFILE_PATH = os.path.normcase("./profiles/profiles/")
 
 
@@ -33,27 +28,3 @@ def get_profiles() -> list[dict[str, Any]]:
             profiles.append(json.loads(f.read().strip()))
 
     return profiles
-
-
-def collect_website_details(
-    es_client: ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery],
-) -> dict[str, dict[str, str]]:
-    db_stored_profiles = list(es_client.get_unique_values(field_name="profile"))
-
-    profiles = sorted(
-        get_profiles(), key=lambda profile: profile["source"]["profile_name"]
-    )
-
-    details = {}
-
-    for profile in profiles:
-        if (profile_name := profile["source"]["profile_name"]) in db_stored_profiles:
-            image_url = profile["source"]["image_url"]
-
-            details[profile_name] = {
-                "name": profile["source"]["name"],
-                "image": image_url,
-                "url": profile["source"]["address"],
-            }
-
-    return details
