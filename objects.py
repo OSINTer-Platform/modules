@@ -5,9 +5,10 @@ from pydantic import AwareDatetime, BaseModel, BeforeValidator, Field, HttpUrl
 import annotated_types
 
 
-class MLAttributes(TypedDict):
+class MLAttributes(TypedDict, total=False):
     similar: list[str]
     cluster: int
+    coordinates: tuple[float, float]
 
 
 class Tags(TypedDict):
@@ -36,14 +37,16 @@ class BaseArticle(AbstractDocument):
     )
     read_times: int = 0
 
+class MLArticle(BaseArticle):
+    ml: MLAttributes = {"similar": [], "cluster": -1, "coordinates": (0., 0.)}
 
-class FullArticle(BaseArticle):
+
+class FullArticle(MLArticle):
     author: str | None = None
     formatted_content: Annotated[str, annotated_types.MinLen(10)]
     content: Annotated[str, annotated_types.MinLen(10)]
     summary: str | None = None
     tags: Tags = {"automatic": [], "interresting": {}}
-    ml: MLAttributes = {"similar": [], "cluster": -1}
 
 
 BaseDocument = TypeVar("BaseDocument", bound=AbstractDocument)

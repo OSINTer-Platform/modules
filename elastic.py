@@ -157,6 +157,21 @@ class ArticleSearchQuery(SearchQuery):
 
         return query
 
+@dataclass
+class MLArticleSearchQuery(ArticleSearchQuery):
+    essential_fields: ClassVar[list[str]] = [
+        "title",
+        "description",
+        "url",
+        "image_url",
+        "profile",
+        "source",
+        "publish_date",
+        "inserted_at",
+        "ml",
+    ]
+
+
 
 SearchQueryType = TypeVar("SearchQueryType", bound=SearchQuery)
 
@@ -499,6 +514,7 @@ ES_INDEX_CONFIGS = {
                 "properties": {
                     "similar": {"type": "keyword"},
                     "cluster": {"type": "short"},
+                    "coordinates": {"type": "float"},
                 },
             },
         },
