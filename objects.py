@@ -16,8 +16,7 @@ class Tags(TypedDict):
 
 
 class AbstractDocument(BaseModel):
-    id: str | None = None
-
+    id: str
 
 class BaseArticle(AbstractDocument):
     title: Annotated[

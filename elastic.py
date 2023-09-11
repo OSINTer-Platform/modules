@@ -241,9 +241,9 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
             for hit in hits:
                 try:
                     current_document = self.document_object_class["base"](
+                        id=hit["_id"],
                         **hit["_source"]
                     )
-                    current_document.id = hit["_id"]
                     valid_docs.append(current_document)
                 except ValidationError as e:
                     logger.error(
@@ -263,9 +263,9 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
             for hit in hits:
                 try:
                     current_document = self.document_object_class["full"](
+                        id=hit["_id"],
                         **hit["_source"]
                     )
-                    current_document.id = hit["_id"]
                     valid_docs.append(current_document)
                 except ValidationError as e:
                     logger.error(
