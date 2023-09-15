@@ -32,12 +32,14 @@ def return_article_db_conn(
     es_conn: Elasticsearch,
     index_name: str,
     ingest_pipeline: str | None,
+    elser_model_id: str | None,
 ) -> ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery]:
     return ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery](
         es_conn=es_conn,
         index_name=index_name,
         ingest_pipeline=ingest_pipeline,
         unique_field="url",
+        elser_model_id=elser_model_id,
         document_object_classes={
             "base": BaseArticle,
             "full": FullArticle,
@@ -54,6 +56,7 @@ class SearchQuery(ABC):
     sort_order: Literal["desc", "asc"] = "desc"
 
     search_term: str | None = None
+    semantic_search: str | None = None
 
     first_date: datetime | None = None
     last_date: datetime | None = None
@@ -63,35 +66,53 @@ class SearchQuery(ABC):
     highlight: bool = False
     highlight_symbol: str = "**"
 
-    search_fields: ClassVar[list[str]] = []
-    weighted_search_fields: ClassVar[list[str]] = []
+    search_fields: ClassVar[list[tuple[str, int]]] = []
     essential_fields: ClassVar[list[str]] = []
+    exclude_fields: ClassVar[list[str]] = ["elastic_ml"]
 
     @abstractmethod
-    def generate_es_query(self, complete: bool) -> dict[str, Any]:
+    def generate_es_query(self, elser_id: str | None, complete: bool) -> dict[str, Any]:
         query: dict[str, Any] = {
             "size": self.limit,
             "sort": ["_doc"],
-            "query": {"bool": {"filter": []}},
+            "query": {"bool": {"filter": [], "should": []}},
+            "source_excludes": self.exclude_fields,
         }
 
         if self.highlight:
             query["highlight"] = {
                 "pre_tags": [self.highlight_symbol],
                 "post_tags": [self.highlight_symbol],
-                "fields": {field_type: {} for field_type in self.search_fields},
+                "fields": {field_type[0]: {} for field_type in self.search_fields},
             }
 
         if not complete:
             query["source"] = self.essential_fields
 
-        if self.search_term:
+        if self.search_term or (self.semantic_search and elser_id):
             query["sort"].insert(0, "_score")
 
+        if self.semantic_search and elser_id:
+            for field in self.search_fields:
+                query["query"]["bool"]["should"].append(
+                    {
+                        "text_expansion": {
+                            f"elastic_ml.{field[0]}_tokens": {
+                                "model_text": self.semantic_search,
+                                "model_id": elser_id,
+                                "boost": field[1] * 3,
+                            }
+                        }
+                    }
+                )
+
+        if self.search_term:
             query["query"]["bool"]["must"] = {
                 "simple_query_string": {
                     "query": self.search_term,
-                    "fields": self.weighted_search_fields,
+                    "fields": [
+                        f"{field[0]}^{field[1]}" for field in self.search_fields
+                    ],
                 }
             }
 
@@ -128,13 +149,8 @@ class ArticleSearchQuery(SearchQuery):
     sources: Set[str] | None = None
     cluster_id: int | None = None
 
-    search_fields: ClassVar[list[str]] = ["title", "description", "content"]
-    weighted_search_fields: ClassVar[list[str]] = [
-        "title^5",
-        "description^3",
-        "content",
-    ]
-    essential_fields: ClassVar[list[str]] = [
+    search_fields = [("title", 5), ("description", 3), ("content", 1)]
+    essential_fields = [
         "title",
         "description",
         "url",
@@ -145,8 +161,10 @@ class ArticleSearchQuery(SearchQuery):
         "inserted_at",
     ]
 
-    def generate_es_query(self, complete: bool = False) -> dict[str, Any]:
-        query = super(ArticleSearchQuery, self).generate_es_query(complete)
+    def generate_es_query(
+        self, elser_id: str | None, complete: bool = False
+    ) -> dict[str, Any]:
+        query = super(ArticleSearchQuery, self).generate_es_query(elser_id, complete)
 
         if self.sources:
             query["query"]["bool"]["filter"].append(
@@ -159,6 +177,7 @@ class ArticleSearchQuery(SearchQuery):
             )
 
         return query
+
 
 @dataclass
 class MLArticleSearchQuery(ArticleSearchQuery):
@@ -173,7 +192,6 @@ class MLArticleSearchQuery(ArticleSearchQuery):
         "inserted_at",
         "ml",
     ]
-
 
 
 SearchQueryType = TypeVar("SearchQueryType", bound=SearchQuery)
@@ -194,6 +212,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
         es_conn: Elasticsearch,
         index_name: str,
         ingest_pipeline: str | None,
+        elser_model_id: str | None,
         unique_field: str,
         document_object_classes: DocumentObjectClasses[
             BaseDocument, FullDocument, SearchQueryType
@@ -203,6 +222,8 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
         self.index_name: str = index_name
         self.ingest_pipeline = ingest_pipeline
         self.unique_field: str = unique_field
+
+        self.elser_model_id = elser_model_id
 
         self.document_object_class: DocumentObjectClasses[
             BaseDocument, FullDocument, SearchQueryType
@@ -405,12 +426,15 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
 
         if search_q.limit <= 10_000 and search_q.limit != 0:
             search_results = self.es.search(
-                **search_q.generate_es_query(complete), index=self.index_name
+                **search_q.generate_es_query(self.elser_model_id, complete),
+                index=self.index_name,
             )
 
             return self._process_search_results(search_results, complete)[0]
         else:
-            return self._query_large(search_q.generate_es_query(complete), complete)[0]
+            return self._query_large(
+                search_q.generate_es_query(self.elser_model_id, complete), complete
+            )[0]
 
     def query_all_documents(self) -> list[FullDocument]:
         return self.query_documents(
