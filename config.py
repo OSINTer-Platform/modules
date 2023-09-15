@@ -54,12 +54,15 @@ class BaseConfig:
             else None
         )
 
+        self.ELASTICSEARCH_ELSER_PIPELINE = os.environ.get("ELSER_PIPELINE", None)
         self.es_conn = create_es_conn(
             self.ELASTICSEARCH_URL, self.ELASTICSEARCH_CERT_PATH
         )
 
         self.es_article_client = return_article_db_conn(
-            self.es_conn, self.ELASTICSEARCH_ARTICLE_INDEX
+            self.es_conn,
+            self.ELASTICSEARCH_ARTICLE_INDEX,
+            self.ELASTICSEARCH_ELSER_PIPELINE,
         )
 
     def __getitem__(self, item: str) -> Any:

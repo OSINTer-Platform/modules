@@ -29,11 +29,14 @@ def create_es_conn(
 
 
 def return_article_db_conn(
-    es_conn: Elasticsearch, index_name: str
+    es_conn: Elasticsearch,
+    index_name: str,
+    ingest_pipeline: str | None,
 ) -> ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery]:
     return ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery](
         es_conn=es_conn,
         index_name=index_name,
+        ingest_pipeline=ingest_pipeline,
         unique_field="url",
         document_object_classes={
             "base": BaseArticle,
@@ -190,6 +193,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
         *,
         es_conn: Elasticsearch,
         index_name: str,
+        ingest_pipeline: str | None,
         unique_field: str,
         document_object_classes: DocumentObjectClasses[
             BaseDocument, FullDocument, SearchQueryType
@@ -197,6 +201,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
     ):
         self.es: Elasticsearch = es_conn
         self.index_name: str = index_name
+        self.ingest_pipeline = ingest_pipeline
         self.unique_field: str = unique_field
 
         self.document_object_class: DocumentObjectClasses[
@@ -256,8 +261,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
             for hit in hits:
                 try:
                     current_document = self.document_object_class["base"](
-                        id=hit["_id"],
-                        **hit["_source"]
+                        id=hit["_id"], **hit["_source"]
                     )
                     valid_docs.append(current_document)
                 except ValidationError as e:
@@ -278,8 +282,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
             for hit in hits:
                 try:
                     current_document = self.document_object_class["full"](
-                        id=hit["_id"],
-                        **hit["_source"]
+                        id=hit["_id"], **hit["_source"]
                     )
                     valid_docs.append(current_document)
                 except ValidationError as e:
@@ -445,6 +448,9 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
                     "_source": document.model_dump(exclude_none=True, mode="json"),
                 }
 
+                if self.ingest_pipeline:
+                    operation["pipeline"] = self.ingest_pipeline
+
                 if "id" in operation["_source"]:
                     operation["_id"] = operation["_source"].pop("id")
 
@@ -460,12 +466,17 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
         try:
             document_id = document_dict.pop("id")
             response = self.es.index(
-                index=self.index_name, document=document_dict, id=document_id
+                index=self.index_name,
+                pipeline=self.ingest_pipeline,
+                document=document_dict,
+                id=document_id,
             )["_id"]
         except KeyError:
-            response = self.es.index(index=self.index_name, document=document_dict)[
-                "_id"
-            ]
+            response = self.es.index(
+                index=self.index_name,
+                pipeline=self.ingest_pipeline,
+                document=document_dict,
+            )["_id"]
 
         return cast(str, response)
 
