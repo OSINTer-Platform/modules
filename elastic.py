@@ -1,16 +1,19 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 
-from collections.abc import Generator, Sequence, Set
+from collections.abc import Callable, Generator, Sequence, Set
 from dataclasses import dataclass
 from datetime import datetime
 import logging
+from time import sleep
 from typing import Any, ClassVar, Generic, Literal, Type, TypeVar, cast, overload
 from typing_extensions import TypedDict
 
 from elastic_transport import ObjectApiResponse
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
+from elasticsearch.client import TasksClient
+
 from pydantic import ValidationError
 
 from .objects import BaseArticle, FullArticle, BaseDocument, FullDocument
@@ -518,6 +521,59 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
     def increment_read_counter(self, document_id: str) -> None:
         increment_script = {"source": "ctx._source.read_times += 1", "lang": "painless"}
         self.es.update(index=self.index_name, id=document_id, script=increment_script)
+
+    def await_task(
+        self,
+        task_id: str,
+        status_field: str,
+        status_message_formatter: Callable[[dict[str, Any]], str],
+    ) -> None:
+        logger.info(f'Awaiting task "{task_id}"')
+        last_status: Any = None
+
+        task_client = TasksClient(self.es)
+
+        try:
+            while True:
+                sleep(2)
+
+                r = task_client.get(task_id=task_id)
+
+                if r["task"]["status"][status_field] == last_status:
+                    continue
+
+                last_status = r["task"]["status"][status_field]
+
+                logger.info(status_message_formatter(r["task"]["status"]))
+
+                if r["completed"]:
+                    break
+        except KeyboardInterrupt:
+            answer = ""
+
+            while True:
+                answer = input(
+                    f'Terminating waiting on task "{task_id}", do you also want to cancel the task itself? (y/n): '
+                ).lower()
+
+                if answer == "y" or answer == "n":
+                    break
+
+            if answer == "y":
+                logger.info("Cancelling task")
+                task_client.cancel(task_id=task_id)
+
+        r = task_client.get(task_id=task_id)
+        run_time = r["task"]["running_time_in_nanos"] / 1_000_000_000
+
+        logger.info(
+            " ".join(
+                [
+                    f"Task is {'cancelled' if r['task']['cancelled'] else 'completed' if r['completed'] else 'still running'}.",
+                    f"It has run for {run_time} seconds",
+                ]
+            )
+        )
 
 
 ES_INDEX_CONFIGS = {
