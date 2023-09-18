@@ -576,9 +576,8 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
         )
 
 
-ES_INDEX_CONFIGS = {
+ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
     "ELASTICSEARCH_ARTICLE_INDEX": {
-        "dynamic": "strict",
         "properties": {
             "title": {"type": "text"},
             "description": {"type": "text"},
