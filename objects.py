@@ -19,6 +19,7 @@ class Tags(TypedDict):
 class AbstractDocument(BaseModel):
     id: str
 
+
 class BaseArticle(AbstractDocument):
     title: Annotated[
         str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(3)
@@ -30,22 +31,20 @@ class BaseArticle(AbstractDocument):
     image_url: HttpUrl
     profile: str
     source: str
+    author: str | None = None
     publish_date: Annotated[datetime, AwareDatetime]
     inserted_at: Annotated[datetime, AwareDatetime] = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
     read_times: int = 0
+    ml: MLAttributes = {"similar": [], "cluster": -1, "coordinates": (0.0, 0.0)}
+    tags: Tags = {"automatic": [], "interresting": {}}
 
-class MLArticle(BaseArticle):
-    ml: MLAttributes = {"similar": [], "cluster": -1, "coordinates": (0., 0.)}
 
-
-class FullArticle(MLArticle):
-    author: str | None = None
+class FullArticle(BaseArticle):
     formatted_content: Annotated[str, annotated_types.MinLen(10)]
     content: Annotated[str, annotated_types.MinLen(10)]
     summary: str | None = None
-    tags: Tags = {"automatic": [], "interresting": {}}
 
 
 BaseDocument = TypeVar("BaseDocument", bound=AbstractDocument)
