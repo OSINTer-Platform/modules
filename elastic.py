@@ -16,7 +16,14 @@ from elasticsearch.client import TasksClient
 
 from pydantic import ValidationError
 
-from .objects import BaseArticle, FullArticle, BaseDocument, FullDocument
+from .objects import (
+    BaseArticle,
+    FullArticle,
+    BaseDocument,
+    FullDocument,
+    PartialArticle,
+    PartialDocument,
+)
 
 logger = logging.getLogger("osinter")
 
@@ -36,8 +43,8 @@ def return_article_db_conn(
     index_name: str,
     ingest_pipeline: str | None,
     elser_model_id: str | None,
-) -> ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery]:
-    return ElasticDB[BaseArticle, FullArticle, ArticleSearchQuery](
+) -> ElasticDB[BaseArticle, PartialArticle, FullArticle, ArticleSearchQuery]:
+    return ElasticDB[BaseArticle, PartialArticle, FullArticle, ArticleSearchQuery](
         es_conn=es_conn,
         index_name=index_name,
         ingest_pipeline=ingest_pipeline,
@@ -46,6 +53,7 @@ def return_article_db_conn(
         document_object_classes={
             "base": BaseArticle,
             "full": FullArticle,
+            "partial": PartialArticle,
             "search_query": ArticleSearchQuery,
         },
     )
@@ -74,7 +82,9 @@ class SearchQuery(ABC):
     exclude_fields: ClassVar[list[str]] = ["elastic_ml"]
 
     @abstractmethod
-    def generate_es_query(self, elser_id: str | None, complete: bool) -> dict[str, Any]:
+    def generate_es_query(
+        self, elser_id: str | None, completeness: bool | list[str]
+    ) -> dict[str, Any]:
         query: dict[str, Any] = {
             "size": self.limit,
             "sort": ["_doc"],
@@ -89,8 +99,10 @@ class SearchQuery(ABC):
                 "fields": {field_type[0]: {} for field_type in self.search_fields},
             }
 
-        if not complete:
-            query["source"] = self.essential_fields
+        if completeness is False:
+            query["source_includes"] = self.essential_fields
+        elif isinstance(completeness, list):
+            query["source_includes"] = completeness
 
         if self.search_term or (self.semantic_search and elser_id):
             query["sort"].insert(0, "_score")
@@ -168,9 +180,11 @@ class ArticleSearchQuery(SearchQuery):
     ]
 
     def generate_es_query(
-        self, elser_id: str | None, complete: bool = False
+        self, elser_id: str | None, completeness: bool | list[str] = False
     ) -> dict[str, Any]:
-        query = super(ArticleSearchQuery, self).generate_es_query(elser_id, complete)
+        query = super(ArticleSearchQuery, self).generate_es_query(
+            elser_id, completeness
+        )
 
         if self.sources:
             query["query"]["bool"]["filter"].append(
@@ -186,17 +200,19 @@ class ArticleSearchQuery(SearchQuery):
 
 
 SearchQueryType = TypeVar("SearchQueryType", bound=SearchQuery)
+AnyDocument = TypeVar("AnyDocument")
 
 
 class DocumentObjectClasses(
-    TypedDict, Generic[BaseDocument, FullDocument, SearchQueryType]
+    TypedDict, Generic[BaseDocument, PartialDocument, FullDocument, SearchQueryType]
 ):
     base: Type[BaseDocument]
     full: Type[FullDocument]
+    partial: Type[PartialDocument]
     search_query: Type[SearchQueryType]
 
 
-class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
+class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQueryType]):
     def __init__(
         self,
         *,
@@ -206,7 +222,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
         elser_model_id: str | None,
         unique_field: str,
         document_object_classes: DocumentObjectClasses[
-            BaseDocument, FullDocument, SearchQueryType
+            BaseDocument, PartialDocument, FullDocument, SearchQueryType
         ],
     ):
         self.es: Elasticsearch = es_conn
@@ -217,7 +233,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
         self.elser_model_id = elser_model_id
 
         self.document_object_class: DocumentObjectClasses[
-            BaseDocument, FullDocument, SearchQueryType
+            BaseDocument, PartialDocument, FullDocument, SearchQueryType
         ] = document_object_classes
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
@@ -243,70 +259,12 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
 
         return final_string
 
-    @overload
     def _process_search_results(
-        self, search_results: ObjectApiResponse[Any], complete: Literal[False]
-    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
-        ...
-
-    @overload
-    def _process_search_results(
-        self, search_results: ObjectApiResponse[Any], complete: Literal[True]
-    ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
-        ...
-
-    @overload
-    def _process_search_results(
-        self, search_results: ObjectApiResponse[Any], complete: bool
-    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
-        ...
-
-    def _process_search_results(
-        self, search_results: ObjectApiResponse[Any], complete: bool = False
-    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
-        def process_base(
-            hits: list[dict[str, Any]]
-        ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
-            valid_docs: list[BaseDocument] = []
-            invalid_docs: list[dict[str, Any]] = []
-
-            for hit in hits:
-                try:
-                    current_document = self.document_object_class["base"](
-                        id=hit["_id"], **hit["_source"]
-                    )
-                    valid_docs.append(current_document)
-                except ValidationError as e:
-                    logger.error(
-                        f'Encountered problem with article with ID "{hit["_id"]}" and title "{hit["_source"]["title"]}", skipping for now. Error: {e}'
-                    )
-
-                    invalid_docs.append(hit)
-
-            return valid_docs, invalid_docs
-
-        def process_full(
-            hits: list[dict[str, Any]]
-        ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
-            valid_docs: list[FullDocument] = []
-            invalid_docs: list[dict[str, Any]] = []
-
-            for hit in hits:
-                try:
-                    current_document = self.document_object_class["full"](
-                        id=hit["_id"], **hit["_source"]
-                    )
-                    valid_docs.append(current_document)
-                except ValidationError as e:
-                    logger.error(
-                        f'Encountered problem with article with ID "{hit["_id"]}" and title "{hit["_source"]["title"]}", skipping for now. Error: {e}'
-                    )
-
-                    invalid_docs.append(hit)
-
-            return valid_docs, invalid_docs
-
-        for result in search_results["hits"]["hits"]:
+        self,
+        hits: list[dict[str, Any]],
+        convert: Callable[[dict[str, Any]], AnyDocument],
+    ) -> tuple[list[AnyDocument], list[dict[str, Any]]]:
+        for result in hits:
             if "highlight" in result:
                 for field_type in result["highlight"].keys():
                     if field_type not in result["_source"]:
@@ -316,32 +274,22 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
                         result["highlight"][field_type]
                     )
 
-        if complete:
-            return process_full(search_results["hits"]["hits"])
-        else:
-            return process_base(search_results["hits"]["hits"])
+        valid_docs: list[AnyDocument] = []
+        invalid_docs: list[dict[str, Any]] = []
 
-    @overload
-    def _query_large(
-        self, query: dict[str, Any], complete: Literal[False]
-    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
-        ...
+        for hit in hits:
+            try:
+                valid_docs.append(convert({"id": hit["_id"], **hit["_source"]}))
+            except ValidationError as e:
+                logger.error(
+                    f'Encountered problem with article with ID "{hit["_id"]}" and title "{hit["_source"]["title"]}", skipping for now. Error: {e}'
+                )
 
-    @overload
-    def _query_large(
-        self, query: dict[str, Any], complete: Literal[True]
-    ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
-        ...
+                invalid_docs.append(hit)
 
-    @overload
-    def _query_large(
-        self, query: dict[str, Any], complete: bool
-    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
-        ...
+        return valid_docs, invalid_docs
 
-    def _query_large(
-        self, query: dict[str, Any], complete: bool
-    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]]]:
+    def _query_large(self, query: dict[str, Any]) -> list[dict[str, Any]]:
         pit_id: str = self.es.open_point_in_time(
             index=self.index_name, keep_alive="1m"
         )["id"]
@@ -349,9 +297,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
         search_after: Any = None
         prior_limit: int = query["size"]
 
-        full_documents: list[FullDocument] = []
-        base_documents: list[BaseDocument] = []
-        invalid_documents: list[dict[str, Any]] = []
+        hits: list[dict[str, Any]] = []
 
         while True:
             query["size"] = (
@@ -364,18 +310,7 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
                 search_after=search_after,
             )
 
-            if complete:
-                returned_full_documents = self._process_search_results(
-                    search_results, True
-                )
-                full_documents.extend(returned_full_documents[0])
-                invalid_documents.extend(returned_full_documents[1])
-            else:
-                returned_base_documents = self._process_search_results(
-                    search_results, False
-                )
-                base_documents.extend(returned_base_documents[0])
-                invalid_documents.extend(returned_base_documents[1])
+            hits.extend(search_results["hits"]["hits"])
 
             if len(search_results["hits"]["hits"]) < 10_000:
                 break
@@ -386,51 +321,89 @@ class ElasticDB(Generic[BaseDocument, FullDocument, SearchQueryType]):
             if prior_limit > 0:
                 prior_limit -= 10_000
 
-        if complete:
-            return full_documents, invalid_documents
-        else:
-            return base_documents, invalid_documents
+        return hits
 
     @overload
     def query_documents(
-        self, search_q: SearchQueryType | None, complete: Literal[False] = ...
-    ) -> list[BaseDocument]:
+        self, search_q: SearchQueryType | None, completeness: Literal[False]
+    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
         ...
 
     @overload
     def query_documents(
-        self, search_q: SearchQueryType | None, complete: Literal[True] = ...
-    ) -> list[FullDocument]:
+        self, search_q: SearchQueryType | None, completeness: Literal[True]
+    ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
         ...
 
     @overload
     def query_documents(
-        self, search_q: SearchQueryType | None, complete: bool = ...
-    ) -> list[BaseDocument] | list[FullDocument]:
+        self, search_q: SearchQueryType | None, completeness: bool
+    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]],]:
+        ...
+
+    @overload
+    def query_documents(
+        self, search_q: SearchQueryType | None, completeness: list[str]
+    ) -> tuple[list[PartialDocument], list[dict[str, Any]]]:
+        ...
+
+    @overload
+    def query_documents(
+        self, search_q: SearchQueryType | None, completeness: bool | list[str]
+    ) -> tuple[
+        list[BaseDocument] | list[PartialDocument] | list[FullDocument],
+        list[dict[str, Any]],
+    ]:
         ...
 
     def query_documents(
-        self, search_q: SearchQueryType | None = None, complete: bool = False
-    ) -> list[BaseDocument] | list[FullDocument]:
+        self,
+        search_q: SearchQueryType | None,
+        completeness: bool | list[str],
+    ) -> tuple[
+        list[BaseDocument] | list[PartialDocument] | list[FullDocument],
+        list[dict[str, Any]],
+    ]:
         if not search_q:
             search_q = self.document_object_class["search_query"]()
 
+        hits: list[dict[str, Any]]
+
         if search_q.limit <= 10_000 and search_q.limit != 0:
-            search_results = self.es.search(
-                **search_q.generate_es_query(self.elser_model_id, complete),
+            hits = self.es.search(
+                **search_q.generate_es_query(self.elser_model_id, completeness),
                 index=self.index_name,
+            )["hits"]["hits"]
+
+        else:
+            hits = self._query_large(
+                search_q.generate_es_query(self.elser_model_id, completeness)
             )
 
-            return self._process_search_results(search_results, complete)[0]
+        if completeness is False:
+            return self._process_search_results(
+                hits,
+                lambda data: self.document_object_class["base"].model_validate(data),
+            )
+        elif completeness is True:
+            return self._process_search_results(
+                hits,
+                lambda data: self.document_object_class["full"].model_validate(data),
+            )
+        elif isinstance(completeness, list):
+            return self._process_search_results(
+                hits,
+                lambda data: self.document_object_class["partial"].model_validate(
+                    data, context={"fields_to_validate": completeness}
+                ),
+            )
         else:
-            return self._query_large(
-                search_q.generate_es_query(self.elser_model_id, complete), complete
-            )[0]
+            raise NotImplemented
 
     def query_all_documents(self) -> list[FullDocument]:
         return self.query_documents(
             self.document_object_class["search_query"](limit=0), True
-        )
+        )[0]
 
     def filter_document_list(self, document_attribute_list: Sequence[str]) -> list[str]:
         filtered_document_list = []
