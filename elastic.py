@@ -560,10 +560,10 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
                     "automatic": {"type": "keyword"},
                 },
             },
+            "similar" : {"type" : "keyword"},
             "ml": {
                 "type": "object",
                 "properties": {
-                    "similar": {"type": "keyword"},
                     "cluster": {"type": "short"},
                     "coordinates": {"type": "float"},
                 },

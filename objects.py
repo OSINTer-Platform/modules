@@ -15,7 +15,6 @@ from pydantic_core import PydanticCustomError
 
 
 class MLAttributes(TypedDict, total=False):
-    similar: list[str]
     cluster: int
     coordinates: tuple[float, float]
 
@@ -80,7 +79,8 @@ class BaseArticle(AbstractDocument):
         default_factory=lambda: datetime.now(timezone.utc)
     )
     read_times: int = 0
-    ml: MLAttributes = {"similar": [], "cluster": -1, "coordinates": (0.0, 0.0)}
+    similar: list[str] = []
+    ml: MLAttributes = {"cluster": -1, "coordinates": (0.0, 0.0)}
     tags: Tags = {"automatic": [], "interresting": {}}
 
 
@@ -90,7 +90,7 @@ class FullArticle(BaseArticle):
     summary: str | None = None
 
 
-class PartialArticle(AbstractPartialDocument):
+class PartialArticle(AbstractDocument, AbstractPartialDocument):
     title: Annotated[
         str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(3)
     ] | None = None
@@ -105,6 +105,7 @@ class PartialArticle(AbstractPartialDocument):
     publish_date: Annotated[datetime, AwareDatetime] | None = None
     inserted_at: Annotated[datetime, AwareDatetime] | None = None
     read_times: int | None = None
+    similar: list[str] | None = None
     ml: MLAttributes | None = None
     tags: Tags | None = None
 
