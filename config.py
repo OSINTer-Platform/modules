@@ -53,12 +53,17 @@ class BaseConfig:
             if os.path.isfile("./.elasticsearch.crt")
             else None
         )
+        self.ELASTICSEARCH_VERIFY_TLS = bool(
+            os.environ.get("ELASTICSEARCH_TLS", bool(self.ELASTICSEARCH_CERT_PATH))
+        )
 
         self.ELASTICSEARCH_ELSER_PIPELINE = os.environ.get("ELSER_PIPELINE", None)
         self.ELASTICSEARCH_ELSER_ID = os.environ.get("ELSER_ID", None)
 
         self.es_conn = create_es_conn(
-            self.ELASTICSEARCH_URL, self.ELASTICSEARCH_CERT_PATH
+            self.ELASTICSEARCH_URL,
+            self.ELASTICSEARCH_VERIFY_TLS,
+            self.ELASTICSEARCH_CERT_PATH,
         )
 
         self.es_article_client = return_article_db_conn(

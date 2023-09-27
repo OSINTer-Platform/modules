@@ -30,12 +30,12 @@ logger = logging.getLogger("osinter")
 
 # TODO: Type this function properly
 def create_es_conn(
-    addresses: str | list[str], cert_path: None | str = None
+    addresses: str | list[str], verify_certs: bool, cert_path: None | str = None
 ) -> Elasticsearch:
     if cert_path:
-        return Elasticsearch(addresses, ca_certs=cert_path)  # type: ignore
+        return Elasticsearch(addresses, ca_certs=cert_path, verify_certs=verify_certs)  # type: ignore
     else:
-        return Elasticsearch(addresses, verify_certs=False)  # type: ignore
+        return Elasticsearch(addresses, verify_certs=verify_certs)  # type: ignore
 
 
 def return_article_db_conn(
