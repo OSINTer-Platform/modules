@@ -59,6 +59,9 @@ class BaseConfig:
 
         self.ELASTICSEARCH_ELSER_PIPELINE = os.environ.get("ELSER_PIPELINE", None)
         self.ELASTICSEARCH_ELSER_ID = os.environ.get("ELSER_ID", None)
+        self.ELSER_AVAILABLE = bool(self.ELASTICSEARCH_ELSER_ID) and bool(
+            self.ELASTICSEARCH_ELSER_PIPELINE
+        )
 
         self.es_conn = create_es_conn(
             self.ELASTICSEARCH_URL,
