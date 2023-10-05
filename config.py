@@ -42,6 +42,9 @@ def configure_logger(name: str = __name__) -> logging.Logger:
 
 class BaseConfig:
     def __init__(self) -> None:
+        self.OPENAI_KEY = os.environ.get("OPENAI_KEY", None)
+        self.OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
+
         self.ELASTICSEARCH_ARTICLE_INDEX = (
             os.environ.get("ARTICLE_INDEX") or "osinter_articles"
         )
