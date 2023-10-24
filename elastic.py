@@ -592,10 +592,23 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
             "ml": {
                 "type": "object",
                 "properties": {
-                    "cluster": {"type": "short"},
+                    "cluster": {"type": "integer"},
                     "coordinates": {"type": "float"},
                 },
             },
+        },
+    },
+    "ELASTICSEARCH_CLUSTER_INDEX": {
+        "properties": {
+            "nr": {"type": "integer"},
+            "document_count": {"type": "integer"},
+            "title": {"type": "text"},
+            "description": {"type": "text"},
+            "summary": {"type": "text"},
+            "keywords": {"type": "keyword"},
+            "representative_documents": {"type": "keyword"},
+            "documents": {"type": "keyword"},
+            "dating": {"type": "date"},
         },
     },
 }

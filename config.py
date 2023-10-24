@@ -48,6 +48,9 @@ class BaseConfig:
         self.ELASTICSEARCH_ARTICLE_INDEX = (
             os.environ.get("ARTICLE_INDEX") or "osinter_articles"
         )
+        self.ELASTICSEARCH_CLUSTER_INDEX = (
+            os.environ.get("CLUSTER_INDEX") or "osinter_clusters"
+        )
         self.ELASTICSEARCH_URL = (
             os.environ.get("ELASTICSEARCH_URL") or "http://localhost:9200"
         )
