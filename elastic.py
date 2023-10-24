@@ -486,20 +486,13 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             exclude_none=True, mode="json"
         )
 
-        try:
-            document_id = document_dict.pop("id")
-            response = self.es.index(
-                index=self.index_name,
-                pipeline=self.ingest_pipeline,
-                document=document_dict,
-                id=document_id,
-            )["_id"]
-        except KeyError:
-            response = self.es.index(
-                index=self.index_name,
-                pipeline=self.ingest_pipeline,
-                document=document_dict,
-            )["_id"]
+        document_id = document_dict.pop("id")
+        response = self.es.index(
+            index=self.index_name,
+            pipeline=self.ingest_pipeline,
+            document=document_dict,
+            id=document_id,
+        )["_id"]
 
         return cast(str, response)
 
