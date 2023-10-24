@@ -456,7 +456,10 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         return bulk(self.es, convert_documents(documents))[0]
 
     def save_documents(
-        self, document_objects: Sequence[BaseDocument | FullDocument]
+        self,
+        document_objects: Sequence[BaseDocument | FullDocument],
+        bypass_pipeline: bool = False,
+        chunk_size: int = 50,
     ) -> int:
         def convert_documents(
             documents: Sequence[BaseDocument | FullDocument],
@@ -467,15 +470,16 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
                     "_source": document.model_dump(exclude_none=True, mode="json"),
                 }
 
-                if self.ingest_pipeline:
+                if self.ingest_pipeline and not bypass_pipeline:
                     operation["pipeline"] = self.ingest_pipeline
 
-                if "id" in operation["_source"]:
-                    operation["_id"] = operation["_source"].pop("id")
+                operation["_id"] = operation["_source"].pop("id")
 
                 yield operation
 
-        return bulk(self.es, convert_documents(document_objects))[0]
+        return bulk(
+            self.es, convert_documents(document_objects), chunk_size=chunk_size
+        )[0]
 
     def save_document(self, document_object: BaseDocument | FullDocument) -> str:
         document_dict: dict[str, Any] = document_object.model_dump(
