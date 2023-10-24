@@ -176,6 +176,7 @@ class ArticleSearchQuery(SearchQuery):
         "publish_date",
         "inserted_at",
         "tags",
+        "similar",
         "ml",
     ]
 
