@@ -18,10 +18,13 @@ from pydantic import ValidationError
 
 from .objects import (
     BaseArticle,
+    BaseCluster,
+    FullCluster,
     FullArticle,
     BaseDocument,
     FullDocument,
     PartialArticle,
+    PartialCluster,
     PartialDocument,
 )
 
@@ -55,6 +58,27 @@ def return_article_db_conn(
             "full": FullArticle,
             "partial": PartialArticle,
             "search_query": ArticleSearchQuery,
+        },
+    )
+
+
+def return_cluster_db_conn(
+    es_conn: Elasticsearch,
+    index_name: str,
+    ingest_pipeline: str | None,
+    elser_model_id: str | None,
+) -> ElasticDB[BaseCluster, PartialCluster, FullCluster, ClusterSearchQuery]:
+    return ElasticDB[BaseCluster, PartialCluster, FullCluster, ClusterSearchQuery](
+        es_conn=es_conn,
+        index_name=index_name,
+        ingest_pipeline=ingest_pipeline,
+        unique_field="url",
+        elser_model_id=elser_model_id,
+        document_object_classes={
+            "base": BaseCluster,
+            "full": FullCluster,
+            "partial": PartialCluster,
+            "search_query": ClusterSearchQuery,
         },
     )
 

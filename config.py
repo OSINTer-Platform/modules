@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Any, TypedDict
 
-from .elastic import create_es_conn, return_article_db_conn
+from .elastic import create_es_conn, return_article_db_conn, return_cluster_db_conn
 
 
 class LogHandler(TypedDict):
@@ -80,6 +80,10 @@ class BaseConfig:
             self.ELASTICSEARCH_ARTICLE_INDEX,
             self.ELASTICSEARCH_ELSER_PIPELINE,
             self.ELASTICSEARCH_ELSER_ID,
+        )
+
+        self.es_cluster_client = return_cluster_db_conn(
+            self.es_conn, self.ELASTICSEARCH_CLUSTER_INDEX, None, None
         )
 
     def __getitem__(self, item: str) -> Any:
