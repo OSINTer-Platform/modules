@@ -33,9 +33,9 @@ def create_es_conn(
     addresses: str | list[str], verify_certs: bool, cert_path: None | str = None
 ) -> Elasticsearch:
     if cert_path:
-        return Elasticsearch(addresses, ca_certs=cert_path, verify_certs=verify_certs)  # type: ignore
+        return Elasticsearch(addresses, ca_certs=cert_path, verify_certs=verify_certs)
     else:
-        return Elasticsearch(addresses, verify_certs=verify_certs)  # type: ignore
+        return Elasticsearch(addresses, verify_certs=verify_certs)
 
 
 def return_article_db_conn(
@@ -389,13 +389,13 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             return self._process_search_results(
                 hits,
                 lambda data: self.document_object_class["full"].model_validate(data),
-            )
+            )  # pyright: ignore
         elif isinstance(completeness, list):
             return self._process_search_results(
                 hits,
                 lambda data: self.document_object_class["partial"].model_validate(
                     data, context={"fields_to_validate": completeness}
-                ),
+                ),  # pyright: ignore
             )
         else:
             raise NotImplemented
@@ -560,7 +560,7 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
                     "automatic": {"type": "keyword"},
                 },
             },
-            "similar" : {"type" : "keyword"},
+            "similar": {"type": "keyword"},
             "ml": {
                 "type": "object",
                 "properties": {
