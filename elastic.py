@@ -425,6 +425,36 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             unique_val["key"]: unique_val["doc_count"] for unique_val in unique_vals
         }
 
+    def update_documents(
+        self,
+        documents: Sequence[BaseDocument | FullDocument],
+        fields: list[str] | None = None,
+        use_pipeline: bool = False,
+    ) -> int:
+        def convert_documents(
+            documents: Sequence[BaseDocument | FullDocument],
+        ) -> Generator[dict[str, Any], None, None]:
+            for document in documents:
+                operation: dict[str, Any] = {
+                    "_op_type": "update",
+                    "_index": self.index_name,
+                    "doc": document.model_dump(exclude_none=True, mode="json"),
+                }
+
+                operation["_id"] = operation["doc"].pop("id")
+
+                if fields:
+                    operation["doc"] = {
+                        field: operation["doc"][field] for field in fields
+                    }
+
+                if self.ingest_pipeline and use_pipeline:
+                    operation["pipeline"] = self.ingest_pipeline
+
+                yield operation
+
+        return bulk(self.es, convert_documents(documents))[0]
+
     def save_documents(
         self, document_objects: Sequence[BaseDocument | FullDocument]
     ) -> int:
