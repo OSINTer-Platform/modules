@@ -114,6 +114,38 @@ class PartialArticle(AbstractDocument, AbstractPartialDocument):
     summary: str | None = None
 
 
+class BaseCluster(AbstractDocument):
+    nr: int
+    document_count: int
+
+    title: str
+    description: str
+    summary: str
+
+    keywords: list[str]
+
+
+class FullCluster(BaseCluster):
+    representative_documents: list[str]
+    documents: set[str]
+    dating: set[Annotated[datetime, AwareDatetime]]
+
+
+class PartialCluster(AbstractDocument, AbstractPartialDocument):
+    nr: int | None = None
+    document_count: int | None = None
+
+    title: str | None = None
+    description: str | None = None
+    summary: str | None = None
+
+    keywords: list[str] | None = None
+
+    representative_documents: list[str] | None = None
+    documents: set[str] | None = None
+    dating: set[Annotated[datetime, AwareDatetime]] | None = None
+
+
 BaseDocument = TypeVar("BaseDocument", bound=AbstractDocument)
 FullDocument = TypeVar("FullDocument", bound=AbstractDocument)
 PartialDocument = TypeVar("PartialDocument", bound=AbstractPartialDocument)
