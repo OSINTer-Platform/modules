@@ -82,12 +82,12 @@ class BaseArticle(AbstractDocument):
     similar: list[str] = []
     ml: MLAttributes = {"cluster": -1, "coordinates": (0.0, 0.0)}
     tags: Tags = {"automatic": [], "interresting": {}}
+    summary: str | None = None
 
 
 class FullArticle(BaseArticle):
     formatted_content: Annotated[str, annotated_types.MinLen(10)]
     content: Annotated[str, annotated_types.MinLen(10)]
-    summary: str | None = None
 
 
 class PartialArticle(AbstractDocument, AbstractPartialDocument):

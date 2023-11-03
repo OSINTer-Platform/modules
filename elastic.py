@@ -215,6 +215,7 @@ class ArticleSearchQuery(SearchQuery):
         "inserted_at",
         "tags",
         "similar",
+        "summary",
         "ml",
     ]
 
