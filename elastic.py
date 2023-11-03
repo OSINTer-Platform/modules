@@ -176,6 +176,8 @@ class ClusterSearchQuery(SearchQuery):
     cluster_nr: int | None = None
     semantic_search: None = None
 
+    exclude_outliers: bool = True
+
     def generate_es_query(
         self, _: str | None, completeness: bool | list[str] = False
     ) -> dict[str, Any]:
@@ -185,6 +187,9 @@ class ClusterSearchQuery(SearchQuery):
             query["query"]["bool"]["filter"].append(
                 {"term": {"nr": {"value": self.cluster_nr}}}
             )
+
+        if self.exclude_outliers:
+            query["query"]["bool"]["must_not"] = {"term" : {"nr": {"value" : -1}}}
 
         return query
 
