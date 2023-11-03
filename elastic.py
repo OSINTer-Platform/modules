@@ -225,7 +225,7 @@ class ArticleSearchQuery(SearchQuery):
                 {"terms": {"profile": [source.lower() for source in self.sources]}}
             )
 
-        if self.cluster_nr:
+        if self.cluster_nr is not None:
             query["query"]["bool"]["filter"].append(
                 {"term": {"ml.cluster": {"value": self.cluster_nr}}}
             )
