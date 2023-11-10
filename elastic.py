@@ -98,6 +98,8 @@ class SearchQuery(ABC):
     highlight: bool = False
     highlight_symbol: str = "**"
 
+    custom_exclude_fields: list[str] | None = None
+
     search_fields: ClassVar[list[tuple[str, int]]] = []
     essential_fields: ClassVar[list[str]] = []
     exclude_fields: ClassVar[list[str]] = ["elastic_ml"]
@@ -110,8 +112,12 @@ class SearchQuery(ABC):
             "size": self.limit,
             "sort": ["_doc"],
             "query": {"bool": {"filter": [], "should": []}},
-            "source_excludes": self.exclude_fields,
         }
+
+        if self.custom_exclude_fields:
+            query["source_excludes"] = self.exclude_fields + self.custom_exclude_fields
+        else:
+            query["source_excludes"] = self.exclude_fields
 
         if self.highlight:
             query["highlight"] = {
