@@ -36,9 +36,11 @@ def create_es_conn(
     addresses: str | list[str], verify_certs: bool, cert_path: None | str = None
 ) -> Elasticsearch:
     if cert_path:
-        return Elasticsearch(addresses, ca_certs=cert_path, verify_certs=verify_certs)
+        return Elasticsearch(
+            addresses, ca_certs=cert_path, verify_certs=verify_certs, timeout=30
+        )
     else:
-        return Elasticsearch(addresses, verify_certs=verify_certs)
+        return Elasticsearch(addresses, verify_certs=verify_certs, timeout=30)
 
 
 def return_article_db_conn(
