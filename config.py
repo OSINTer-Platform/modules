@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Any, TypedDict
 
-from .elastic import create_es_conn, return_article_db_conn
+from .elastic import create_es_conn, return_article_db_conn, return_cluster_db_conn
 
 
 class LogHandler(TypedDict):
@@ -42,8 +42,14 @@ def configure_logger(name: str = __name__) -> logging.Logger:
 
 class BaseConfig:
     def __init__(self) -> None:
+        self.OPENAI_KEY = os.environ.get("OPENAI_KEY", None)
+        self.OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
+
         self.ELASTICSEARCH_ARTICLE_INDEX = (
             os.environ.get("ARTICLE_INDEX") or "osinter_articles"
+        )
+        self.ELASTICSEARCH_CLUSTER_INDEX = (
+            os.environ.get("CLUSTER_INDEX") or "osinter_clusters"
         )
         self.ELASTICSEARCH_URL = (
             os.environ.get("ELASTICSEARCH_URL") or "http://localhost:9200"
@@ -53,13 +59,31 @@ class BaseConfig:
             if os.path.isfile("./.elasticsearch.crt")
             else None
         )
+        self.ELASTICSEARCH_VERIFY_TLS = bool(
+            os.environ.get("ELASTICSEARCH_TLS", bool(self.ELASTICSEARCH_CERT_PATH))
+        )
+
+        self.ELASTICSEARCH_ELSER_PIPELINE = os.environ.get("ELSER_PIPELINE", None)
+        self.ELASTICSEARCH_ELSER_ID = os.environ.get("ELSER_ID", None)
+        self.ELSER_AVAILABLE = bool(self.ELASTICSEARCH_ELSER_ID) and bool(
+            self.ELASTICSEARCH_ELSER_PIPELINE
+        )
 
         self.es_conn = create_es_conn(
-            self.ELASTICSEARCH_URL, self.ELASTICSEARCH_CERT_PATH
+            self.ELASTICSEARCH_URL,
+            self.ELASTICSEARCH_VERIFY_TLS,
+            self.ELASTICSEARCH_CERT_PATH,
         )
 
         self.es_article_client = return_article_db_conn(
-            self.es_conn, self.ELASTICSEARCH_ARTICLE_INDEX
+            self.es_conn,
+            self.ELASTICSEARCH_ARTICLE_INDEX,
+            self.ELASTICSEARCH_ELSER_PIPELINE,
+            self.ELASTICSEARCH_ELSER_ID,
+        )
+
+        self.es_cluster_client = return_cluster_db_conn(
+            self.es_conn, self.ELASTICSEARCH_CLUSTER_INDEX, None, None
         )
 
     def __getitem__(self, item: str) -> Any:
