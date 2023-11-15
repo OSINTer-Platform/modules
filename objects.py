@@ -14,14 +14,19 @@ import annotated_types
 from pydantic_core import PydanticCustomError
 
 
-class MLAttributes(TypedDict, total=False):
+class MLAttributes(TypedDict):
     cluster: int
     coordinates: tuple[float, float]
 
 
+class TagsOfInterrest(TypedDict):
+    name: str
+    values: list[str]
+
+
 class Tags(TypedDict):
     automatic: list[str]
-    interresting: dict[str, list[str]]
+    interresting: list[TagsOfInterrest]
 
 
 class AbstractDocument(BaseModel):
@@ -81,7 +86,7 @@ class BaseArticle(AbstractDocument):
     read_times: int = 0
     similar: list[str] = []
     ml: MLAttributes = {"cluster": -1, "coordinates": (0.0, 0.0)}
-    tags: Tags = {"automatic": [], "interresting": {}}
+    tags: Tags = {"automatic": [], "interresting": []}
     summary: str | None = None
 
 

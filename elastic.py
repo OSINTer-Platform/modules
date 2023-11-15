@@ -642,9 +642,14 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
             "read_times": {"type": "unsigned_long"},
             "tags": {
                 "type": "object",
-                "enabled": False,
                 "properties": {
-                    "interresting": {"type": "object", "dynamic": True},
+                    "interresting": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "keyword"},
+                            "values": {"type": "keyword"},
+                        },
+                    },
                     "automatic": {"type": "keyword"},
                 },
             },

@@ -37,8 +37,8 @@ def generate_substitution_mapping(article: FullArticle) -> dict[str, str]:
 
     if "interresting" in article.tags:
         technical_tag_lists = [
-            f"***{tag_name}***: {' '.join(tag_container)}"
-            for tag_name, tag_container in article.tags["interresting"].items()
+            f"***{tags['name']}***: {' '.join(tags['values'])}"
+            for tags in article.tags["interresting"]
         ]
         technical_tags = "\n".join(technical_tag_lists)
 
