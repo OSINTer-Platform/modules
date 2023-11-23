@@ -19,14 +19,14 @@ class MLAttributes(BaseModel):
     coordinates: tuple[float, float]
 
 
-class TagsOfInterrest(BaseModel):
+class TagsOfInterest(BaseModel):
     name: str
     values: list[str]
 
 
 class Tags(BaseModel):
     automatic: list[str]
-    interresting: list[TagsOfInterrest]
+    interesting: list[TagsOfInterest]
 
 
 class AbstractDocument(BaseModel):
@@ -86,7 +86,7 @@ class BaseArticle(AbstractDocument):
     read_times: int = 0
     similar: list[str] = []
     ml: MLAttributes = MLAttributes(cluster=-1, coordinates=(0.0, 0.0))
-    tags: Tags = Tags(automatic=[], interresting=[])
+    tags: Tags = Tags(automatic=[], interesting=[])
     summary: str | None = None
 
 

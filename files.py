@@ -35,10 +35,10 @@ def generate_substitution_mapping(article: FullArticle) -> dict[str, str]:
     technical_tags: str = ""
     auto_tags: str = ""
 
-    if article.tags.interresting:
+    if article.tags.interesting:
         technical_tag_lists = [
             f"***{tags.name}***: {' '.join(tags.values)}"
-            for tags in article.tags.interresting
+            for tags in article.tags.interesting
         ]
         technical_tags = "\n".join(technical_tag_lists)
 

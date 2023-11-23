@@ -644,7 +644,7 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
             "tags": {
                 "type": "object",
                 "properties": {
-                    "interresting": {
+                    "interesting": {
                         "type": "object",
                         "properties": {
                             "name": {"type": "keyword"},
