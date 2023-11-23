@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing_extensions import Annotated, TypedDict, TypeVar
+from typing_extensions import Annotated, TypeVar
 
 from pydantic import (
     AwareDatetime,
@@ -14,17 +14,17 @@ import annotated_types
 from pydantic_core import PydanticCustomError
 
 
-class MLAttributes(TypedDict):
+class MLAttributes(BaseModel):
     cluster: int
     coordinates: tuple[float, float]
 
 
-class TagsOfInterrest(TypedDict):
+class TagsOfInterrest(BaseModel):
     name: str
     values: list[str]
 
 
-class Tags(TypedDict):
+class Tags(BaseModel):
     automatic: list[str]
     interresting: list[TagsOfInterrest]
 
@@ -85,8 +85,8 @@ class BaseArticle(AbstractDocument):
     )
     read_times: int = 0
     similar: list[str] = []
-    ml: MLAttributes = {"cluster": -1, "coordinates": (0.0, 0.0)}
-    tags: Tags = {"automatic": [], "interresting": []}
+    ml: MLAttributes = MLAttributes(cluster=-1, coordinates=(0.0, 0.0))
+    tags: Tags = Tags(automatic=[], interresting=[])
     summary: str | None = None
 
 
