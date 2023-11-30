@@ -225,7 +225,7 @@ class ArticleSearchQuery(SearchQuery):
         "similar",
         "summary",
         "ml",
-        "read_times"
+        "read_times",
     ]
 
     def generate_es_query(
