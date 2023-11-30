@@ -672,7 +672,6 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
             "description": {"type": "text"},
             "summary": {"type": "text"},
             "keywords": {"type": "keyword"},
-            "representative_documents": {"type": "keyword"},
             "documents": {"type": "keyword"},
             "dating": {"type": "date"},
         },

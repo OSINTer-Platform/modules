@@ -131,7 +131,6 @@ class BaseCluster(AbstractDocument):
 
 
 class FullCluster(BaseCluster):
-    representative_documents: list[str]
     documents: set[str]
     dating: set[Annotated[datetime, AwareDatetime]]
 
@@ -146,7 +145,6 @@ class PartialCluster(AbstractDocument, AbstractPartialDocument):
 
     keywords: list[str] | None = None
 
-    representative_documents: list[str] | None = None
     documents: set[str] | None = None
     dating: set[Annotated[datetime, AwareDatetime]] | None = None
 
