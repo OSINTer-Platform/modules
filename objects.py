@@ -15,7 +15,7 @@ from pydantic_core import PydanticCustomError
 
 
 class MLAttributes(BaseModel):
-    cluster: int
+    cluster: str
     coordinates: tuple[float, float]
 
 
@@ -85,7 +85,7 @@ class BaseArticle(AbstractDocument):
     )
     read_times: int = 0
     similar: list[str] = []
-    ml: MLAttributes = MLAttributes(cluster=-1, coordinates=(0.0, 0.0))
+    ml: MLAttributes = MLAttributes(cluster="", coordinates=(0.0, 0.0), labels=[])
     tags: Tags = Tags(automatic=[], interesting=[])
     summary: str | None = None
 

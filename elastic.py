@@ -208,7 +208,7 @@ class ArticleSearchQuery(SearchQuery):
     last_date: datetime | None = None
 
     sources: Set[str] | None = None
-    cluster_nr: int | None = None
+    cluster_id: str | None = None
 
     search_fields = [("title", 5), ("description", 3), ("content", 1)]
     essential_fields = [
@@ -240,9 +240,9 @@ class ArticleSearchQuery(SearchQuery):
                 {"terms": {"profile": [source.lower() for source in self.sources]}}
             )
 
-        if self.cluster_nr is not None:
+        if self.cluster_id is not None:
             query["query"]["bool"]["filter"].append(
-                {"term": {"ml.cluster": {"value": self.cluster_nr}}}
+                {"term": {"ml.cluster": {"value": self.cluster_id}}}
             )
 
         if self.first_date or self.last_date:
@@ -658,7 +658,7 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
             "ml": {
                 "type": "object",
                 "properties": {
-                    "cluster": {"type": "integer"},
+                    "cluster": {"type": "keyword"},
                     "coordinates": {"type": "float"},
                 },
             },
