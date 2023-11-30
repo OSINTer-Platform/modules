@@ -44,6 +44,7 @@ class BaseConfig:
     def __init__(self) -> None:
         self.OPENAI_KEY = os.environ.get("OPENAI_KEY", None)
         self.OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
+        self.OPENAI_TOKEN_LIMIT = int(os.environ.get("OPENAI_TOKEN_LIMIT", 4096))
 
         self.ELASTICSEARCH_ARTICLE_INDEX = (
             os.environ.get("ARTICLE_INDEX") or "osinter_articles"
