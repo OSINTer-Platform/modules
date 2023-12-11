@@ -12,12 +12,17 @@ class ScrapingTargets(BaseModel):
     links: str
 
 
+class ElementSelector(BaseModel):
+    element: str
+    content_field: str
+
+
 class ArticleMeta(BaseModel):
-    author: str
-    publish_date: str
-    title: str
-    description: str
-    image_url: str
+    author: str | ElementSelector
+    publish_date: str | ElementSelector
+    title: str | ElementSelector
+    description: str | ElementSelector
+    image_url: str | ElementSelector
 
 
 class ArticleContent(BaseModel):
