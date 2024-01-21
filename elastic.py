@@ -677,3 +677,209 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
         },
     },
 }
+
+
+class SearchTemplate(TypedDict):
+    script: dict[Literal["source"], str]
+    dictionary: dict[
+        Literal["properties"], dict[str, bool | dict[str, dict[str, str] | str]]
+    ]
+
+
+ES_SEARCH_APPLICATIONS: dict[
+    Literal["ARTICLES"], dict[Literal["template"], SearchTemplate]
+] = {
+    "ARTICLES": {
+        "template": {
+            "script": {
+                "source": """{
+    "query": {
+        "bool": {
+            "should": [
+                {{#semantic_search}}
+                    {
+                        "text_expansion": {
+                        "elastic_ml.title_tokens": {
+                            "model_text": "{{semantic_search}}",
+                            "model_id": "{{elser_model}}{{^elser_model}}.elser_model_2{{/elser_model}}",
+                            "boost": 15
+                        }
+                        }
+                    },
+                    {
+                        "text_expansion": {
+                        "elastic_ml.description_tokens": {
+                            "model_text": "{{semantic_search}}",
+                            "model_id": "{{elser_model}}{{^elser_model}}.elser_model_2{{/elser_model}}",
+                            "boost": 9
+                        }
+                        }
+                    },
+                    {
+                        "text_expansion": {
+                        "elastic_ml.content_tokens": {
+                            "model_text": "{{semantic_search}}",
+                            "model_id": "{{elser_model}}{{^elser_model}}.elser_model_2{{/elser_model}}",
+                            "boost": 15
+                        }
+                        }
+                    }
+                {{/semantic_search}}
+            ],
+            "must": [
+                {{#search_term}}
+                    {
+                        "simple_query_string": {
+                            "query": "{{search_term}}",
+                            "fields": [
+                                "title^5",
+                                "description^3",
+                                "content^1"
+                            ]
+                        }
+                    }
+                {{/search_term}}
+            ],
+            "filter": [
+                {{#filters}}
+                    {{#toJson}}.{{/toJson}},
+                {{/filters}}
+                {{#ids.0}}
+                    {
+                        "terms": {
+                            "_id": {{#toJson}}ids{{/toJson}}
+                        }
+                    },
+                {{/ids.0}}
+
+                {{#sources.0}}
+                    {
+                        "terms": {
+                            "profile": {{#toJson}}sources{{/toJson}}
+                        }
+                    },
+                {{/sources.0}}
+
+                {{#cluster_id}}
+                    {
+                        "term": {
+                            "ml.cluster": "{{cluster_id}}"
+                        }
+                    },
+                {{/cluster_id}}
+
+                {
+                    "range": {
+                        "publish_date": {
+                            {{#first_date}}
+                                "gte": "{{first_date}}"
+                            {{/first_date}}
+
+                            {{#first_date}}
+                                {{#last_date}}
+                                    ,
+                                {{/last_date}}
+                            {{/first_date}}
+
+                            {{#last_date}}
+                                "lte": "{{last_date}}"
+                            {{/last_date}}
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    {{#highlight}}
+        "highlight": {
+            "pre_tags": ["{{highlight_symbol}}{{^highlight_symbol}}**{{/highlight_symbol}}"],
+            "post_tags": ["{{highlight_symbol}}{{^highlight_symbol}}**{{/highlight_symbol}}"],
+            "fields": {
+                "title": {},
+                "description": {},
+                "content": {}
+            }
+        },
+    {{/highlight}}
+
+    "_source": {
+        {{#include_fields.0}}
+            "includes": {{#toJson}}include_fields{{/toJson}},
+        {{/include_fields.0}}
+
+        {{#exclude_fields.0}}
+            "excludes": [{{#exclude_fields}}"{{.}}", {{/exclude_fields}} "elastic_ml"]
+        {{/exclude_fields.0}}
+
+        {{^exclude_fields}}
+            "excludes": ["elastic_ml"]
+        {{/exclude_fields}}
+    },
+
+    {{#sort.0}}
+        "sort": {{#toJson}}sort{{/toJson}},
+    {{/sort.0}}
+    {{^sort.0}}
+        "sort": [
+            {{#sort_by}}
+                {"{{sort_by}}": "{{sort_order}}{{^sort_order}}desc{{/sort_order}}"},
+            {{/sort_by}}
+
+            {{#semantic_search}}
+                {"_score": "desc"},
+            {{/semantic_search}}
+            {{^semantic_search}}
+                {{#search_term}}
+                    {"_score": "desc"},
+                {{/search_term}}
+            {{/semantic_search}}
+
+            {{#sort_tiebreaker}}
+                "url",
+            {{/sort_tiebreaker}}
+            "_doc"
+        ],
+    {{/sort.0}}
+
+    {{#search_after.0}}
+        "search_after": {{#toJson}}search_after{{/toJson}},
+    {{/search_after.0}}
+
+    {{#aggregations}}
+        "aggregations": {{#toJson}}aggregations{{/toJson}},
+    {{/aggregations}}
+
+    "from": "{{from}}{{^from}}0{{/from}}",
+    "size": "{{limit}}{{^limit}}10{{/limit}}",
+    "track_total_hits": "{{track_total}}{{^track_total}}false{{/track_total}}"
+}"""
+            },
+            "dictionary": {
+                "properties": {
+                    "highlight_symbol": {"type": "string"},
+                    "elser_model": {"type": "string"},
+                    "semantic_search": {"type": "string"},
+                    "search_term": {"type": "string"},
+                    "cluster_id": {"type": "string"},
+                    "first_date": {"type": "string"},
+                    "last_date": {"type": "string"},
+                    "sort_by": {"type": "string"},
+                    "sort_order": {"type": "string"},
+                    "ids": {"type": "array", "items": {"type": "string"}},
+                    "sources": {"type": "array", "items": {"type": "string"}},
+                    "include_fields": {"type": "array", "items": {"type": "string"}},
+                    "exclude_fields": {"type": "array", "items": {"type": "string"}},
+                    "filters": {"type": "array", "items": {"type": "object"}},
+                    "sort": {"type": "array", "items": {"type": "object"}},
+                    "search_after": {"type": "array"},
+                    "from": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                    "highlight": {"type": "boolean"},
+                    "track_total": {"type": "boolean"},
+                    "sort_tiebreaker": {"type": "boolean"},
+                    "additionalProperties": False,
+                }
+            },
+        }
+    }
+}
