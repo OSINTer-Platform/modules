@@ -310,31 +310,18 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             != 0
         )
 
-    def _concat_strings(self, string_list: Sequence[str]) -> str:
-        final_string = " ... ".join(string_list)
-
-        if not final_string[0].isupper():
-            final_string = "..." + final_string
-
-        if not final_string[-1] in [".", "!", "?"]:
-            final_string += "..."
-
-        return final_string
-
     def _process_search_results(
         self,
         hits: list[dict[str, Any]],
         convert: Callable[[dict[str, Any]], AnyDocument],
     ) -> tuple[list[AnyDocument], list[dict[str, Any]]]:
         for result in hits:
-            if "highlight" in result:
+            if "highlight" in result and len(result) > 0:
+                result["_source"]["highlights"] = {}
                 for field_type in result["highlight"].keys():
-                    if field_type not in result["_source"]:
-                        continue
-
-                    result["_source"][field_type] = self._concat_strings(
-                        result["highlight"][field_type]
-                    )
+                    result["_source"]["highlights"][field_type] = result["highlight"][
+                        field_type
+                    ]
 
         valid_docs: list[AnyDocument] = []
         invalid_docs: list[dict[str, Any]] = []
@@ -499,7 +486,9 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
                 operation: dict[str, Any] = {
                     "_op_type": "update",
                     "_index": self.index_name,
-                    "doc": document.model_dump(exclude_none=True, mode="json"),
+                    "doc": document.model_dump(
+                        exclude={"highlights"}, exclude_none=True, mode="json"
+                    ),
                 }
 
                 operation["_id"] = operation["doc"].pop("id")
@@ -528,7 +517,9 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             for document in documents:
                 operation: dict[str, Any] = {
                     "_index": self.index_name,
-                    "_source": document.model_dump(exclude_none=True, mode="json"),
+                    "_source": document.model_dump(
+                        exclude={"highlights"}, exclude_none=True, mode="json"
+                    ),
                 }
 
                 if self.ingest_pipeline and not bypass_pipeline:
@@ -544,7 +535,7 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
 
     def save_document(self, document_object: BaseDocument | FullDocument) -> str:
         document_dict: dict[str, Any] = document_object.model_dump(
-            exclude_none=True, mode="json"
+            exclude={"highlights"}, exclude_none=True, mode="json"
         )
 
         document_id = document_dict.pop("id")

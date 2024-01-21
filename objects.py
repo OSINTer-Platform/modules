@@ -29,6 +29,12 @@ class Tags(BaseModel):
     interesting: list[TagsOfInterest]
 
 
+class ArticleHighlights(BaseModel):
+    title: list[str] | None = None
+    description: list[str] | None = None
+    content: list[str] | None = None
+
+
 class AbstractDocument(BaseModel):
     id: str
 
@@ -88,6 +94,7 @@ class BaseArticle(AbstractDocument):
     ml: MLAttributes = MLAttributes(cluster="", coordinates=(0.0, 0.0), labels=[])
     tags: Tags = Tags(automatic=[], interesting=[])
     summary: str | None = None
+    highlights: ArticleHighlights | None = None
 
 
 class FullArticle(BaseArticle):
@@ -119,6 +126,12 @@ class PartialArticle(AbstractDocument, AbstractPartialDocument):
     summary: str | None = None
 
 
+class ClusterHighlights(BaseModel):
+    title: list[str] | None = None
+    description: list[str] | None = None
+    summary: list[str] | None = None
+
+
 class BaseCluster(AbstractDocument):
     nr: int
     document_count: int
@@ -128,6 +141,7 @@ class BaseCluster(AbstractDocument):
     summary: str
 
     keywords: list[str]
+    highlights: ClusterHighlights | None = None
 
 
 class FullCluster(BaseCluster):
