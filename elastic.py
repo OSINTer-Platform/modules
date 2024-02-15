@@ -651,6 +651,8 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
                 "properties": {
                     "cluster": {"type": "keyword"},
                     "coordinates": {"type": "float"},
+                    "labels": {"type": "keyword"},
+                    "incident": {"type": "integer"}
                 },
             },
         },
