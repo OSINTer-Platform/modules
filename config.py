@@ -70,6 +70,8 @@ class BaseConfig:
             self.ELASTICSEARCH_ELSER_PIPELINE
         )
 
+        self.COUCHDB_URL, self.COUCHDB_NAME = self.get_couchdb_details()
+
         self.es_conn = create_es_conn(
             self.ELASTICSEARCH_URL,
             self.ELASTICSEARCH_VERIFY_TLS,
@@ -92,3 +94,16 @@ class BaseConfig:
 
     def __setitem__(self, item_name: str, item: Any) -> None:
         setattr(self, item_name, item)
+
+    @staticmethod
+    def get_couchdb_details() -> tuple[str, str]:
+        """
+        Returns tuble[COUCHDB_URL, COUCHDB_NAME]
+        """
+        COUCHDB_URL = (
+            os.environ.get("COUCHDB_URL") or "http://admin:admin@localhost:5984/"
+        )
+
+        COUCHDB_NAME = os.environ.get("USER_DB_NAME") or "osinter_users"
+
+        return COUCHDB_URL, COUCHDB_NAME
