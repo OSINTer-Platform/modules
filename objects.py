@@ -13,12 +13,15 @@ from pydantic import (
 import annotated_types
 from pydantic_core import PydanticCustomError
 
+class MLClassification(BaseModel):
+    incident: bool = False
 
 class MLAttributes(BaseModel):
-    cluster: str
-    coordinates: tuple[float, float]
+    cluster: str = ""
+    coordinates: tuple[float, float] = (0, 0)
     labels: list[str] = []
     incident: int = 0
+    classification: MLClassification = MLClassification()
 
 
 class TagsOfInterest(BaseModel):
@@ -93,7 +96,9 @@ class BaseArticle(AbstractDocument):
     )
     read_times: int = 0
     similar: list[str] = []
-    ml: MLAttributes = MLAttributes(cluster="", coordinates=(0.0, 0.0), labels=[], incident=0)
+    ml: MLAttributes = MLAttributes(
+        cluster="", coordinates=(0.0, 0.0), labels=[], incident=0
+    )
     tags: Tags = Tags(automatic=[], interesting=[])
     summary: str | None = None
     highlights: ArticleHighlights | None = None
