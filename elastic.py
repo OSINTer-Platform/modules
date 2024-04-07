@@ -701,6 +701,81 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
             "dating": {"type": "date"},
         },
     },
+    "ELASTICSEARCH_CVE_INDEX": {
+        "properties": {
+            "cve": {"type": "keyword"},
+            "document_count": {"type": "integer"},
+            "title": {"type": "text"},
+            "description": {"type": "text"},
+            "publish_date": {"type": "date"},
+            "modified_date": {"type": "date"},
+            "weaknesses": {"type": "keyword"},
+            "cvss2": {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "keyword"},
+                    "base_severity": {"type": "keyword"},
+                    "exploitability_score": {"type": "half_float"},
+                    "impact_score": {"type": "half_float"},
+                    "ac_insuf_info": {"type": "boolean"},
+                    "obtain_all_privilege": {"type": "boolean"},
+                    "obtain_user_privilege": {"type": "boolean"},
+                    "obtain_other_privilege": {"type": "boolean"},
+                    "user_interaction_required": {"type": "boolean"},
+                    "cvss_data": {
+                        "type": "object",
+                        "properties": {
+                            "version": {"type": "keyword"},
+                            "vector_string": {"type": "keyword"},
+                            "access_vector": {"type": "keyword"},
+                            "access_complexity": {"type": "keyword"},
+                            "authentication": {"type": "keyword"},
+                            "confidentiality_impact": {"type": "keyword"},
+                            "integrity_impact": {"type": "keyword"},
+                            "availability_impact": {"type": "keyword"},
+                            "base_score": {"type": "half_float"},
+                        },
+                    },
+                },
+            },
+            "cvss3": {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "keyword"},
+                    "exploitability_score": {"type": "half_float"},
+                    "impact_score": {"type": "half_float"},
+                    "cvss_data": {
+                        "type": "object",
+                        "properties": {
+                            "version": {"type": "keyword"},
+                            "vector_string": {"type": "keyword"},
+                            "attack_vector": {"type": "keyword"},
+                            "attack_complexity": {"type": "keyword"},
+                            "privileges_required": {"type": "keyword"},
+                            "user_interaction": {"type": "keyword"},
+                            "scope": {"type": "keyword"},
+                            "confidentiality_impact": {"type": "keyword"},
+                            "integrity_impact": {"type": "keyword"},
+                            "availability_impact": {"type": "keyword"},
+                            "base_score": {"type": "half_float"},
+                            "base_severity": {"type": "keyword"},
+                        },
+                    },
+                },
+            },
+            "references": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "keyword"},
+                    "source": {"type": "keyword"},
+                    "tags": {"type": "keyword"},
+                },
+            },
+            "keywords": {"type": "keyword"},
+            "documents": {"type": "keyword"},
+            "dating": {"type": "date"},
+        },
+    },
 }
 
 
