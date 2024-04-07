@@ -11,6 +11,17 @@ from .articles import (
     ArticleHighlights,
 )
 from .clusters import BaseCluster, PartialCluster, FullCluster, ClusterHighlights
+from .cves import (
+    BaseCVE,
+    PartialCVE,
+    FullCVE,
+    CVEReference,
+    CVEHighlights,
+    CVSS2Data,
+    CVSS3Data,
+    CVSS2,
+    CVSS3,
+)
 
 from .generic import AbstractDocument, AbstractPartialDocument
 
@@ -36,4 +47,13 @@ __all__ = [
     "PartialCluster",
     "FullCluster",
     "ClusterHighlights",
+    "BaseCVE",
+    "PartialCVE",
+    "FullCVE",
+    "CVEHighlights",
+    "CVEReference",
+    "CVSS2Data",
+    "CVSS3Data",
+    "CVSS2",
+    "CVSS3",
 ]
