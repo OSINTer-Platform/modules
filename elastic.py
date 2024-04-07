@@ -346,39 +346,43 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
 
         return valid_docs, invalid_docs
 
-    def _query_large(self, query: dict[str, Any]) -> list[dict[str, Any]]:
+    def _query_large(
+        self,
+        query: dict[str, Any],
+        *,
+        batch_size: int = 10_000,
+        pit_keep_alive: str = "1m",
+    ) -> Generator[list[dict[str, Any]], None, None]:
         pit_id: str = self.es.open_point_in_time(
-            index=self.index_name, keep_alive="1m"
+            index=self.index_name, keep_alive=pit_keep_alive
         )["id"]
 
         search_after: Any = None
         prior_limit: int = query["size"]
 
-        hits: list[dict[str, Any]] = []
-
         while True:
             query["size"] = (
-                10_000 if prior_limit >= 10_000 or prior_limit == 0 else prior_limit
+                batch_size
+                if prior_limit >= batch_size or prior_limit == 0
+                else prior_limit
             )
 
             search_results: ObjectApiResponse[Any] = self.es.search(
                 **query,
-                pit={"id": pit_id, "keep_alive": "1m"},
+                pit={"id": pit_id, "keep_alive": pit_keep_alive},
                 search_after=search_after,
             )
 
-            hits.extend(search_results["hits"]["hits"])
+            yield search_results["hits"]["hits"]
 
-            if len(search_results["hits"]["hits"]) < 10_000:
+            if len(search_results["hits"]["hits"]) < batch_size:
                 break
 
             search_after = search_results["hits"]["hits"][-1]["sort"]
             pit_id = search_results["pit_id"]
 
             if prior_limit > 0:
-                prior_limit -= 10_000
-
-        return hits
+                prior_limit -= batch_size
 
     @overload
     def query_documents(
@@ -424,7 +428,7 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         if not search_q:
             search_q = self.document_object_class["search_query"]()
 
-        hits: list[dict[str, Any]]
+        hits: list[dict[str, Any]] = []
 
         if search_q.limit <= 10_000 and search_q.limit != 0:
             hits = self.es.search(
@@ -433,9 +437,10 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             )["hits"]["hits"]
 
         else:
-            hits = self._query_large(
+            for hit_batch in self._query_large(
                 search_q.generate_es_query(self.elser_model_id, completeness)
-            )
+            ):
+                hits.extend(hit_batch)
 
         if completeness is False:
             return self._process_search_results(
@@ -456,6 +461,25 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             )
         else:
             raise NotImplemented
+
+    def scroll_documents(
+        self,
+        search_q: SearchQueryType | None,
+        pit_keep_alive: str = "3m",
+        batch_size: int = 10_000,
+    ) -> Generator[list[FullDocument], None, None]:
+        if not search_q:
+            search_q = self.document_object_class["search_query"](limit=0)
+
+        for hits in self._query_large(
+            search_q.generate_es_query(self.elser_model_id, True),
+            pit_keep_alive=pit_keep_alive,
+            batch_size=batch_size,
+        ):
+            yield self._process_search_results(
+                hits,
+                lambda data: self.document_object_class["full"].model_validate(data),
+            )[0]
 
     def query_all_documents(self) -> list[FullDocument]:
         return self.query_documents(
