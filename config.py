@@ -51,6 +51,8 @@ class BaseConfig:
         self.OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
         self.OPENAI_TOKEN_LIMIT = int(os.environ.get("OPENAI_TOKEN_LIMIT", 4096))
 
+        self.NVD_KEY = os.environ.get("NVD_KEY", None)
+
         self.ELASTICSEARCH_ARTICLE_INDEX = (
             os.environ.get("ARTICLE_INDEX") or "osinter_articles"
         )
