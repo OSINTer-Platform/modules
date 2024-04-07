@@ -2,7 +2,12 @@ import logging
 import os
 from typing import Any, TypedDict
 
-from .elastic import create_es_conn, return_article_db_conn, return_cluster_db_conn
+from .elastic import (
+    create_es_conn,
+    return_article_db_conn,
+    return_cluster_db_conn,
+    return_cve_db_conn,
+)
 
 
 class LogHandler(TypedDict):
@@ -52,6 +57,7 @@ class BaseConfig:
         self.ELASTICSEARCH_CLUSTER_INDEX = (
             os.environ.get("CLUSTER_INDEX") or "osinter_clusters"
         )
+        self.ELASTICSEARCH_CVE_INDEX = os.environ.get("CVE_INDEX") or "osinter_cves"
         self.ELASTICSEARCH_URL = (
             os.environ.get("ELASTICSEARCH_URL") or "http://localhost:9200"
         )
@@ -87,6 +93,10 @@ class BaseConfig:
 
         self.es_cluster_client = return_cluster_db_conn(
             self.es_conn, self.ELASTICSEARCH_CLUSTER_INDEX, None, None
+        )
+
+        self.es_cve_client = return_cve_db_conn(
+            self.es_conn, self.ELASTICSEARCH_CVE_INDEX, None, None
         )
 
     def __getitem__(self, item: str) -> Any:
