@@ -74,7 +74,7 @@ def return_cluster_db_conn(
         es_conn=es_conn,
         index_name=index_name,
         ingest_pipeline=ingest_pipeline,
-        unique_field="url",
+        unique_field="nr",
         elser_model_id=elser_model_id,
         document_object_classes={
             "base": BaseCluster,
@@ -177,17 +177,25 @@ class SearchQuery(ABC):
 
 @dataclass
 class ClusterSearchQuery(SearchQuery):
-    search_fields = [("title", 5), ("description", 3), ("summary", 1)]
+    search_fields = [("title", 5), ("description", 3), ("summary", 2)]
+    essential_fields = [
+        "nr",
+        "document_count",
+        "title",
+        "description",
+        "summary",
+        "keywords",
+    ]
 
-    sort_by: Literal["document_count", "nr", ""] | None = "document_count"
+    sort_by: Literal["document_count", "nr", ""] | None = "document_count"  # type: ignore[unused-ignore]
 
     cluster_nr: int | None = None
-    semantic_search: None = None
+    semantic_search: None = None  # type: ignore[unused-ignore]
 
     exclude_outliers: bool = True
 
     def generate_es_query(
-        self, _: str | None, completeness: bool | list[str] = False
+        self, elser_id: str | None, completeness: bool | list[str] = False
     ) -> dict[str, Any]:
         query = super(ClusterSearchQuery, self).generate_es_query(None, completeness)
 
