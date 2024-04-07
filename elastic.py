@@ -6,7 +6,16 @@ from dataclasses import dataclass
 from datetime import datetime
 import logging
 from time import sleep
-from typing import Any, ClassVar, Generic, Literal, Type, TypeVar, cast, overload
+from typing import (
+    Any,
+    ClassVar,
+    Generic,
+    Literal,
+    Type,
+    TypeVar,
+    cast,
+    overload,
+)
 from typing_extensions import TypedDict
 
 from elastic_transport import ObjectApiResponse
@@ -206,6 +215,39 @@ class ClusterSearchQuery(SearchQuery):
 
         if self.exclude_outliers:
             query["query"]["bool"]["must_not"] = {"term": {"nr": {"value": -1}}}
+
+        return query
+
+
+@dataclass
+class CVESearchQuery(SearchQuery):
+    search_fields = [("title", 5), ("description", 3)]
+    essential_fields = [
+        "cve",
+        "document_count",
+        "title",
+        "description",
+        "keywords",
+        "publish_date",
+        "modified_date",
+        "weaknesses",
+        "cvss2",
+        "cvss3",
+        "references",
+    ]
+
+    sort_by: Literal["document_count", "cve", "publish_date", "modified_date"] | None = "document_count"  # type: ignore[unused-ignore]
+
+    cves: Set[str] | None = None
+    semantic_search: None = None  # type: ignore[unused-ignore]
+
+    def generate_es_query(
+        self, elser_id: str | None, completeness: bool | list[str] = False
+    ) -> dict[str, Any]:
+        query = super(CVESearchQuery, self).generate_es_query(None, completeness)
+
+        if self.cves:
+            query["query"]["bool"]["filter"].append({"terms": {"cve": list(self.cves)}})
 
         return query
 
