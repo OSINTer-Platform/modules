@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing_extensions import Annotated, TypeVar
+from typing_extensions import Annotated
 
 from pydantic import (
     AwareDatetime,
@@ -7,14 +7,15 @@ from pydantic import (
     BeforeValidator,
     Field,
     HttpUrl,
-    ValidationInfo,
-    model_validator,
 )
 import annotated_types
-from pydantic_core import PydanticCustomError
+
+from .generic import AbstractDocument, AbstractPartialDocument
+
 
 class MLClassification(BaseModel):
     incident: bool = False
+
 
 class MLAttributes(BaseModel):
     cluster: str = ""
@@ -38,44 +39,6 @@ class ArticleHighlights(BaseModel):
     title: list[str] | None = None
     description: list[str] | None = None
     content: list[str] | None = None
-
-
-class AbstractDocument(BaseModel):
-    id: str
-
-
-class AbstractPartialDocument(BaseModel):
-    @model_validator(mode="after")
-    def check_required_values(self, info: ValidationInfo) -> "AbstractPartialDocument":
-        context = info.context
-
-        if not context:
-            raise PydanticCustomError(
-                "missing_validation_context",
-                "No context was provided for validating partial document",
-            )
-
-        try:
-            fields_to_validate: None | list["str"] = context.get(
-                "fields_to_validate", None
-            )
-        except AttributeError:
-            raise PydanticCustomError(
-                "invalid_field_to_validate",
-                "The value passed to the field-to-validate context variable should be a dictionary",
-            )
-
-        if not fields_to_validate or len(fields_to_validate) < 1:
-            raise PydanticCustomError(
-                "missing_fields_to_validate",
-                "No list of fields to validate was provided",
-            )
-
-        for field_name in fields_to_validate:
-            if getattr(self, field_name, None) is None:
-                raise ValueError(f"Missing value for {field_name}")
-
-        return self
 
 
 class BaseArticle(AbstractDocument):
@@ -131,45 +94,3 @@ class PartialArticle(AbstractDocument, AbstractPartialDocument):
     formatted_content: Annotated[str, annotated_types.MinLen(10)] | None = None
     content: Annotated[str, annotated_types.MinLen(10)] | None = None
     summary: str | None = None
-
-
-class ClusterHighlights(BaseModel):
-    title: list[str] | None = None
-    description: list[str] | None = None
-    summary: list[str] | None = None
-
-
-class BaseCluster(AbstractDocument):
-    nr: int
-    document_count: int
-
-    title: str
-    description: str
-    summary: str
-
-    keywords: list[str]
-    highlights: ClusterHighlights | None = None
-
-
-class FullCluster(BaseCluster):
-    documents: set[str]
-    dating: set[Annotated[datetime, AwareDatetime]]
-
-
-class PartialCluster(AbstractDocument, AbstractPartialDocument):
-    nr: int | None = None
-    document_count: int | None = None
-
-    title: str | None = None
-    description: str | None = None
-    summary: str | None = None
-
-    keywords: list[str] | None = None
-
-    documents: set[str] | None = None
-    dating: set[Annotated[datetime, AwareDatetime]] | None = None
-
-
-BaseDocument = TypeVar("BaseDocument", bound=AbstractDocument)
-FullDocument = TypeVar("FullDocument", bound=AbstractDocument)
-PartialDocument = TypeVar("PartialDocument", bound=AbstractPartialDocument)
