@@ -90,6 +90,15 @@ class BaseCVE(AbstractDocument):
 
     weaknesses: list[str]
 
+    status: Literal[
+        "Awaiting Analysis",
+        "Received",
+        "Analyzed",
+        "Rejected",
+        "Modified",
+        "Undergoing Analysis",
+    ]
+
     cvss3: CVSS3 | None = None
     cvss2: CVSS2 | None = None
 

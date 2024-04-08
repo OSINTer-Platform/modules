@@ -255,6 +255,7 @@ class CVESearchQuery(SearchQuery):
         "publish_date",
         "modified_date",
         "weaknesses",
+        "status",
         "cvss2",
         "cvss3",
         "references",
@@ -776,6 +777,7 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
             "publish_date": {"type": "date"},
             "modified_date": {"type": "date"},
             "weaknesses": {"type": "keyword"},
+            "status": {"type": "keyword"},
             "cvss2": {
                 "type": "object",
                 "properties": {
