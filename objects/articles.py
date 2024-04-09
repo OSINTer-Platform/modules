@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Literal
 from typing_extensions import Annotated
 
 from pydantic import (
@@ -48,8 +49,8 @@ class BaseArticle(AbstractDocument):
     description: Annotated[
         str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(10)
     ]
-    url: HttpUrl
-    image_url: HttpUrl
+    url: Annotated[str, HttpUrl]
+    image_url: Annotated[str, HttpUrl] | Literal[""]
     profile: str
     source: str
     author: str | None = None
@@ -79,8 +80,8 @@ class PartialArticle(AbstractDocument, AbstractPartialDocument):
     description: Annotated[
         str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(10)
     ] | None = None
-    url: HttpUrl | None = None
-    image_url: HttpUrl | None = None
+    url: Annotated[str, HttpUrl] | None = None
+    image_url: Annotated[str, HttpUrl] | Literal[""] | None = None
     profile: str | None = None
     source: str | None = None
     author: str | None = None
