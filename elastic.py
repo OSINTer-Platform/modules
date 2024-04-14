@@ -128,6 +128,11 @@ class SearchQuery(ABC):
     search_term: str | None = None
     semantic_search: str | None = None
 
+    date_field: str | None = None
+
+    first_date: datetime | None = None
+    last_date: datetime | None = None
+
     ids: Set[str] | None = None
 
     highlight: bool = False
@@ -205,6 +210,22 @@ class SearchQuery(ABC):
                 {"terms": {"_id": ["THIS_ID_DOES_NOT_EXIST"]}}
             )
 
+        if self.date_field:
+            if self.first_date or self.last_date:
+                query["query"]["bool"]["filter"].append(
+                    {"range": {self.date_field: {}}}
+                )
+
+            if self.first_date:
+                query["query"]["bool"]["filter"][-1]["range"][self.date_field][
+                    "gte"
+                ] = self.first_date.isoformat()
+
+            if self.last_date:
+                query["query"]["bool"]["filter"][-1]["range"][self.date_field][
+                    "lte"
+                ] = self.last_date.isoformat()
+
         return query
 
 
@@ -224,6 +245,7 @@ class ClusterSearchQuery(SearchQuery):
 
     cluster_nr: int | None = None
     semantic_search: None = None  # type: ignore[unused-ignore]
+    date_field: None = None  # type: ignore[unused-ignore]
 
     exclude_outliers: bool = True
 
@@ -245,6 +267,8 @@ class ClusterSearchQuery(SearchQuery):
 
 @dataclass
 class CVESearchQuery(SearchQuery):
+    date_field: Literal["publish_date", "modified_date"] = "publish_date"  # type: ignore[unused-ignore]
+
     search_fields = [("title", 5), ("description", 3)]
     essential_fields = [
         "cve",
@@ -279,8 +303,7 @@ class CVESearchQuery(SearchQuery):
 
 @dataclass
 class ArticleSearchQuery(SearchQuery):
-    first_date: datetime | None = None
-    last_date: datetime | None = None
+    date_field: Literal["publish_date", "inserted_at"] = "publish_date"  # type: ignore[unused-ignore]
 
     sources: Set[str] | None = None
     cluster_id: str | None = None
@@ -319,19 +342,6 @@ class ArticleSearchQuery(SearchQuery):
             query["query"]["bool"]["filter"].append(
                 {"term": {"ml.cluster": {"value": self.cluster_id}}}
             )
-
-        if self.first_date or self.last_date:
-            query["query"]["bool"]["filter"].append({"range": {"publish_date": {}}})
-
-        if self.first_date:
-            query["query"]["bool"]["filter"][-1]["range"]["publish_date"][
-                "gte"
-            ] = self.first_date.isoformat()
-
-        if self.last_date:
-            query["query"]["bool"]["filter"][-1]["range"]["publish_date"][
-                "lte"
-            ] = self.last_date.isoformat()
 
         return query
 
