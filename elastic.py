@@ -307,6 +307,7 @@ class ArticleSearchQuery(SearchQuery):
 
     sources: Set[str] | None = None
     cluster_id: str | None = None
+    cve: str | None = None
 
     search_fields = [("title", 5), ("description", 3), ("content", 1)]
     essential_fields = [
@@ -341,6 +342,11 @@ class ArticleSearchQuery(SearchQuery):
         if self.cluster_id is not None:
             query["query"]["bool"]["filter"].append(
                 {"term": {"ml.cluster": {"value": self.cluster_id}}}
+            )
+
+        if self.cve is not None:
+            query["query"]["bool"]["filter"].append(
+                {"term": {"tags.interesting.values": {"value": self.cve}}}
             )
 
         return query
