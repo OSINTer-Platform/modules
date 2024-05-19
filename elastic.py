@@ -287,6 +287,7 @@ class CVESearchQuery(SearchQuery):
 
     sort_by: Literal["document_count", "cve", "publish_date", "modified_date"] | None = "document_count"  # type: ignore[unused-ignore]
 
+    min_doc_count: int | None = None
     cves: Set[str] | None = None
     semantic_search: None = None  # type: ignore[unused-ignore]
 
@@ -297,6 +298,9 @@ class CVESearchQuery(SearchQuery):
 
         if self.cves:
             query["query"]["bool"]["filter"].append({"terms": {"cve": list(self.cves)}})
+
+        if self.min_doc_count:
+            query["query"]["bool"]["filter"].append({"range": {"document_count": {"gte": self.min_doc_count}}})
 
         return query
 
