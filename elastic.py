@@ -285,7 +285,7 @@ class CVESearchQuery(SearchQuery):
         "references",
     ]
 
-    sort_by: Literal["document_count", "cve", "publish_date", "modified_date"] | None = "document_count"  # type: ignore[unused-ignore]
+    sort_by: Literal["document_count", "cve", "publish_date", "modified_date", ""] | None = "document_count"  # type: ignore[unused-ignore]
 
     min_doc_count: int | None = None
     cves: Set[str] | None = None
