@@ -300,7 +300,9 @@ class CVESearchQuery(SearchQuery):
             query["query"]["bool"]["filter"].append({"terms": {"cve": list(self.cves)}})
 
         if self.min_doc_count:
-            query["query"]["bool"]["filter"].append({"range": {"document_count": {"gte": self.min_doc_count}}})
+            query["query"]["bool"]["filter"].append(
+                {"range": {"document_count": {"gte": self.min_doc_count}}}
+            )
 
         return query
 
@@ -474,26 +476,25 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
     @overload
     def query_documents(
         self, search_q: SearchQueryType | None, completeness: Literal[False]
-    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]:
-        ...
+    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]: ...
 
     @overload
     def query_documents(
         self, search_q: SearchQueryType | None, completeness: Literal[True]
-    ) -> tuple[list[FullDocument], list[dict[str, Any]]]:
-        ...
+    ) -> tuple[list[FullDocument], list[dict[str, Any]]]: ...
 
     @overload
     def query_documents(
         self, search_q: SearchQueryType | None, completeness: bool
-    ) -> tuple[list[BaseDocument] | list[FullDocument], list[dict[str, Any]],]:
-        ...
+    ) -> tuple[
+        list[BaseDocument] | list[FullDocument],
+        list[dict[str, Any]],
+    ]: ...
 
     @overload
     def query_documents(
         self, search_q: SearchQueryType | None, completeness: list[str]
-    ) -> tuple[list[PartialDocument], list[dict[str, Any]]]:
-        ...
+    ) -> tuple[list[PartialDocument], list[dict[str, Any]]]: ...
 
     @overload
     def query_documents(
@@ -501,8 +502,7 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
     ) -> tuple[
         list[BaseDocument] | list[PartialDocument] | list[FullDocument],
         list[dict[str, Any]],
-    ]:
-        ...
+    ]: ...
 
     def query_documents(
         self,

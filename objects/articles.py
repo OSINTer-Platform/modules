@@ -74,12 +74,18 @@ class FullArticle(BaseArticle):
 
 
 class PartialArticle(AbstractDocument, AbstractPartialDocument):
-    title: Annotated[
-        str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(3)
-    ] | None = None
-    description: Annotated[
-        str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(10)
-    ] | None = None
+    title: (
+        Annotated[
+            str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(3)
+        ]
+        | None
+    ) = None
+    description: (
+        Annotated[
+            str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(10)
+        ]
+        | None
+    ) = None
     url: Annotated[str, HttpUrl] | None = None
     image_url: Annotated[str, HttpUrl] | Literal[""] | None = None
     profile: str | None = None
