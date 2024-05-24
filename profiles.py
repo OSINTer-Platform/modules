@@ -51,25 +51,42 @@ class Profile(BaseModel):
     scraping: ProfileScraping
 
 
-def list_profiles(complete_file_name: bool = False) -> list[str]:
+def list_profiles(
+    complete_file_name: bool = False, include_disabled: bool = False
+) -> list[str]:
+    def is_profile(name: str) -> bool:
+        if name.endswith(".profile"):
+            return True
+        if include_disabled and name.endswith(".disabled"):
+            return True
+
+        return False
+
+    def strip_extension(name: str) -> str:
+        return name.removesuffix(".profile").removesuffix(".disabled")
+
     if complete_file_name:
-        return [x for x in os.listdir(PROFILE_PATH) if ".profile" in x]
+        return [x for x in os.listdir(PROFILE_PATH) if is_profile(x)]
     else:
-        return [x[:-8] for x in os.listdir(PROFILE_PATH) if ".profile" in x]
+        return [strip_extension(x) for x in os.listdir(PROFILE_PATH) if is_profile(x)]
 
 
 def get_profile(specific_profile: str) -> Profile:
-    if ".profile" not in specific_profile:
+    if not specific_profile.endswith(".profile") and not specific_profile.endswith(
+        ".disabled"
+    ):
         specific_profile += ".profile"
 
     with open(os.path.join(PROFILE_PATH, specific_profile)) as f:
         return Profile.model_validate_json(f.read())
 
 
-def get_profiles() -> list[Profile]:
+def get_profiles(include_disabled: bool = False) -> list[Profile]:
     profiles: list[Profile] = []
 
-    for profile_name in list_profiles(complete_file_name=True):
+    for profile_name in list_profiles(
+        complete_file_name=True, include_disabled=include_disabled
+    ):
         with open(os.path.join(PROFILE_PATH, profile_name)) as f:
             profiles.append(Profile.model_validate_json(f.read().strip()))
 
