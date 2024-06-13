@@ -31,7 +31,9 @@ def article_to_md(article: FullArticle) -> str:
     return default_templater.substitute(**generate_substitution_mapping(article))
 
 
-def generate_substitution_mapping(article: FullArticle) -> dict[str, str]:
+def generate_substitution_mapping(
+    article: FullArticle, obsidian_tags: bool = False
+) -> dict[str, str]:
     technical_tags: str = ""
     auto_tags: str = ""
 
@@ -43,7 +45,10 @@ def generate_substitution_mapping(article: FullArticle) -> dict[str, str]:
         technical_tags = "\n".join(technical_tag_lists)
 
     if article.tags.automatic:
-        auto_tags = "[[" + "]] [[".join(article.tags.automatic) + "]]"
+        if obsidian_tags:
+            auto_tags = "[[" + "]] [[".join(article.tags.automatic) + "]]"
+        else:
+            auto_tags = " ".join(article.tags.automatic)
 
     return {
         "title": article.title,
