@@ -151,7 +151,7 @@ class SearchQuery(ABC):
         query: dict[str, Any] = {
             "size": self.limit,
             "sort": ["_doc"],
-            "query": {"bool": {"filter": [], "should": []}},
+            "query": {"bool": {"filter": [], "should": [], "must_not": []}},
         }
 
         if self.custom_exclude_fields:
@@ -312,6 +312,7 @@ class ArticleSearchQuery(SearchQuery):
     date_field: Literal["publish_date", "inserted_at"] = "publish_date"  # type: ignore[unused-ignore]
 
     sources: Set[str] | None = None
+    exclude_sources: Set[str] | None = None
     cluster_id: str | None = None
     cve: str | None = None
 
@@ -343,6 +344,15 @@ class ArticleSearchQuery(SearchQuery):
         if self.sources:
             query["query"]["bool"]["filter"].append(
                 {"terms": {"profile": [source.lower() for source in self.sources]}}
+            )
+
+        if self.exclude_sources:
+            query["query"]["bool"]["must_not"].append(
+                {
+                    "terms": {
+                        "profile": [source.lower() for source in self.exclude_sources]
+                    }
+                }
             )
 
         if self.cluster_id is not None:
