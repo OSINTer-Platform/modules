@@ -604,12 +604,12 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
 
     def update_documents(
         self,
-        documents: Sequence[BaseDocument | FullDocument],
+        documents: Sequence[FullDocument],
         fields: list[str] | None = None,
         use_pipeline: bool = False,
     ) -> int:
         def convert_documents(
-            documents: Sequence[BaseDocument | FullDocument],
+            documents: Sequence[FullDocument],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
                 operation: dict[str, Any] = {
@@ -636,12 +636,12 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
 
     def save_documents(
         self,
-        document_objects: Sequence[BaseDocument | FullDocument],
+        document_objects: Sequence[FullDocument],
         bypass_pipeline: bool = False,
         chunk_size: int = 50,
     ) -> int:
         def convert_documents(
-            documents: Sequence[BaseDocument | FullDocument],
+            documents: Sequence[FullDocument],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
                 operation: dict[str, Any] = {
@@ -662,7 +662,7 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             self.es, convert_documents(document_objects), chunk_size=chunk_size
         )[0]
 
-    def save_document(self, document_object: BaseDocument | FullDocument) -> str:
+    def save_document(self, document_object: FullDocument) -> str:
         document_dict: dict[str, Any] = document_object.model_dump(
             exclude={"highlights"}, exclude_none=True, mode="json"
         )
