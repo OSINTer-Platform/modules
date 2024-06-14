@@ -602,6 +602,23 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             unique_val["key"]: unique_val["doc_count"] for unique_val in unique_vals
         }
 
+    def _create_document_operation(
+        self, document: FullDocument, use_pipeline: bool
+    ) -> dict[str, Any]:
+        operation: dict[str, Any] = {
+            "_index": self.index_name,
+            "doc": document.model_dump(
+                exclude={"highlights"}, exclude_none=True, mode="json"
+            ),
+        }
+
+        operation["_id"] = operation["doc"].pop("id")
+
+        if self.ingest_pipeline and use_pipeline:
+            operation["pipeline"] = self.ingest_pipeline
+
+        return operation
+
     def update_documents(
         self,
         documents: Sequence[FullDocument],
@@ -612,23 +629,12 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             documents: Sequence[FullDocument],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
-                operation: dict[str, Any] = {
-                    "_op_type": "update",
-                    "_index": self.index_name,
-                    "doc": document.model_dump(
-                        exclude={"highlights"}, exclude_none=True, mode="json"
-                    ),
-                }
-
-                operation["_id"] = operation["doc"].pop("id")
-
+                operation = self._create_document_operation(document, use_pipeline)
+                operation["_op_type"] = "update"
                 if fields:
                     operation["doc"] = {
                         field: operation["doc"][field] for field in fields
                     }
-
-                if self.ingest_pipeline and use_pipeline:
-                    operation["pipeline"] = self.ingest_pipeline
 
                 yield operation
 
@@ -637,26 +643,14 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
     def save_documents(
         self,
         document_objects: Sequence[FullDocument],
-        bypass_pipeline: bool = False,
+        use_pipeline: bool = True,
         chunk_size: int = 50,
     ) -> int:
         def convert_documents(
             documents: Sequence[FullDocument],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
-                operation: dict[str, Any] = {
-                    "_index": self.index_name,
-                    "_source": document.model_dump(
-                        exclude={"highlights"}, exclude_none=True, mode="json"
-                    ),
-                }
-
-                if self.ingest_pipeline and not bypass_pipeline:
-                    operation["pipeline"] = self.ingest_pipeline
-
-                operation["_id"] = operation["_source"].pop("id")
-
-                yield operation
+                yield self._create_document_operation(document, use_pipeline)
 
         return bulk(
             self.es, convert_documents(document_objects), chunk_size=chunk_size
