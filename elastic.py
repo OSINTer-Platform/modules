@@ -381,6 +381,14 @@ class DocumentObjectClasses(
     search_query: Type[SearchQueryType]
 
 
+@dataclass
+class PrePipeline:
+    name: str
+    call: Callable[[dict[str, Any]], dict[str, Any]]
+    requires_elser: bool
+    requires_pipeline: bool
+
+
 class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQueryType]):
     def __init__(
         self,
@@ -393,6 +401,7 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         document_object_classes: DocumentObjectClasses[
             BaseDocument, PartialDocument, FullDocument, SearchQueryType
         ],
+        pre_pipelines: list[PrePipeline] | None = None,
     ):
         self.es: Elasticsearch = es_conn
         self.index_name: str = index_name
@@ -404,6 +413,8 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         self.document_object_class: DocumentObjectClasses[
             BaseDocument, PartialDocument, FullDocument, SearchQueryType
         ] = document_object_classes
+
+        self.pre_pipelines = pre_pipelines if pre_pipelines else []
 
     # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
     def exists_in_db(self, token: str) -> bool:
@@ -603,8 +614,16 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         }
 
     def _create_document_operation(
-        self, document: FullDocument, use_pipeline: bool
+        self, document: FullDocument, use_pipeline: bool, use_pre_pipelines: bool
     ) -> dict[str, Any]:
+        def run_pre_pipeline(operation: dict[str, Any], pipeline: PrePipeline) -> dict[str, Any]:
+            if pipeline.requires_elser and not self.elser_model_id:
+                return operation
+            if pipeline.requires_pipeline and (not self.ingest_pipeline or not use_pipeline):
+                return operation
+
+            return pipeline.call(operation)
+
         operation: dict[str, Any] = {
             "_index": self.index_name,
             "doc": document.model_dump(
@@ -617,6 +636,11 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         if self.ingest_pipeline and use_pipeline:
             operation["pipeline"] = self.ingest_pipeline
 
+        if use_pre_pipelines and self.pre_pipelines:
+            for pipeline in self.pre_pipelines:
+                operation = run_pre_pipeline(operation, pipeline)
+
+
         return operation
 
     def update_documents(
@@ -624,12 +648,13 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         documents: Sequence[FullDocument],
         fields: list[str] | None = None,
         use_pipeline: bool = False,
+        use_pre_pipelines: bool = False
     ) -> int:
         def convert_documents(
             documents: Sequence[FullDocument],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
-                operation = self._create_document_operation(document, use_pipeline)
+                operation = self._create_document_operation(document, use_pipeline, use_pre_pipelines)
                 operation["_op_type"] = "update"
                 if fields:
                     operation["doc"] = {
@@ -644,13 +669,14 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         self,
         document_objects: Sequence[FullDocument],
         use_pipeline: bool = True,
+        use_pre_pipelines: bool = True,
         chunk_size: int = 50,
     ) -> int:
         def convert_documents(
             documents: Sequence[FullDocument],
         ) -> Generator[dict[str, Any], None, None]:
             for document in documents:
-                yield self._create_document_operation(document, use_pipeline)
+                yield self._create_document_operation(document, use_pipeline, use_pre_pipelines)
 
         return bulk(
             self.es, convert_documents(document_objects), chunk_size=chunk_size
