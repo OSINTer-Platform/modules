@@ -1,5 +1,6 @@
 from collections.abc import Callable, Generator, Sequence, Set
 from dataclasses import dataclass
+import functools
 import logging
 from time import sleep
 from typing import (
@@ -12,6 +13,7 @@ from typing import (
     overload,
 )
 from typing_extensions import TypedDict
+import multiprocessing
 
 from elastic_transport import ObjectApiResponse
 from elasticsearch import Elasticsearch
@@ -20,11 +22,7 @@ from elasticsearch.client import TasksClient
 
 from pydantic import ValidationError
 
-from ..objects import (
-    BaseDocument,
-    FullDocument,
-    PartialDocument,
-)
+from ..objects import BaseDocument, FullDocument, PartialDocument, AbstractDocument
 from .queries import SearchQuery
 
 logger = logging.getLogger("osinter")
@@ -42,12 +40,68 @@ class DocumentObjectClasses(
     search_query: Type[SearchQueryType]
 
 
+# The function assigned to call needs to be global in order for the multiprocessing to work
 @dataclass
 class PrePipeline:
     name: str
     call: Callable[[dict[str, Any]], dict[str, Any]]
     requires_elser: bool
     requires_pipeline: bool
+
+
+# Needs to be global to allow pickling for multiprocessing
+def create_document_operation(
+    document: AbstractDocument,
+    index_name: str,
+    elser_model_id: str | None,
+    pipeline: str | None,
+    pre_pipelines: list[PrePipeline] | None,
+) -> dict[str, Any]:
+    def run_pre_pipeline(doc: dict[str, Any], pipeline: PrePipeline) -> dict[str, Any]:
+        if pipeline.requires_elser and not elser_model_id:
+            return doc
+        if pipeline.requires_pipeline and not pipeline:
+            return doc
+
+        return pipeline.call(doc)
+
+    doc = document.model_dump(exclude={"highlights"}, exclude_none=True, mode="json")
+
+    if pre_pipelines:
+        for pre_pipeline in pre_pipelines:
+            doc = run_pre_pipeline(doc, pre_pipeline)
+
+    operation: dict[str, Any] = {
+        "_index": index_name,
+        "doc": doc,
+    }
+
+    operation["_id"] = operation["doc"].pop("id")
+
+    if pipeline:
+        operation["pipeline"] = pipeline
+
+    return operation
+
+
+# Needs to be global to allow pickling for multiprocessing
+def create_document_update_operation(
+    document: AbstractDocument,
+    index_name: str,
+    fields: list[str] | None,
+    elser_model_id: str | None,
+    pipeline: str | None,
+    pre_pipelines: list[PrePipeline] | None,
+) -> dict[str, Any]:
+    operation = create_document_operation(
+        document, index_name, elser_model_id, pipeline, pre_pipelines
+    )
+
+    operation["_op_type"] = "update"
+    if fields:
+        operation["doc"] = {field: operation["doc"][field] for field in fields}
+
+    return operation
 
 
 class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQueryType]):
@@ -274,81 +328,45 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             unique_val["key"]: unique_val["doc_count"] for unique_val in unique_vals
         }
 
-    def _create_document_operation(
-        self, document: FullDocument, use_pipeline: bool, use_pre_pipelines: bool
-    ) -> dict[str, Any]:
-        def run_pre_pipeline(
-            operation: dict[str, Any], pipeline: PrePipeline
-        ) -> dict[str, Any]:
-            if pipeline.requires_elser and not self.elser_model_id:
-                return operation
-            if pipeline.requires_pipeline and (
-                not self.ingest_pipeline or not use_pipeline
-            ):
-                return operation
-
-            return pipeline.call(operation)
-
-        operation: dict[str, Any] = {
-            "_index": self.index_name,
-            "doc": document.model_dump(
-                exclude={"highlights"}, exclude_none=True, mode="json"
-            ),
-        }
-
-        operation["_id"] = operation["doc"].pop("id")
-
-        if self.ingest_pipeline and use_pipeline:
-            operation["pipeline"] = self.ingest_pipeline
-
-        if use_pre_pipelines and self.pre_pipelines:
-            for pipeline in self.pre_pipelines:
-                operation = run_pre_pipeline(operation, pipeline)
-
-        return operation
-
     def update_documents(
         self,
         documents: Sequence[FullDocument],
         fields: list[str] | None = None,
         use_pipeline: bool = False,
         use_pre_pipelines: bool = False,
+        chunk_size: int = 500,
     ) -> int:
-        def convert_documents(
-            documents: Sequence[FullDocument],
-        ) -> Generator[dict[str, Any], None, None]:
-            for document in documents:
-                operation = self._create_document_operation(
-                    document, use_pipeline, use_pre_pipelines
-                )
-                operation["_op_type"] = "update"
-                if fields:
-                    operation["doc"] = {
-                        field: operation["doc"][field] for field in fields
-                    }
+        func_call = functools.partial(
+            create_document_update_operation,
+            index_name=self.index_name,
+            fields=fields,
+            elser_model_id=self.elser_model_id,
+            pipeline=self.ingest_pipeline if use_pipeline else None,
+            pre_pipelines=self.pre_pipelines if use_pre_pipelines else None,
+        )
 
-                yield operation
-
-        return bulk(self.es, convert_documents(documents))[0]
+        with multiprocessing.Pool(multiprocessing.cpu_count() - 2) as pool:
+            operations = pool.imap_unordered(func_call, documents, 2000)
+            return bulk(self.es, operations, chunk_size=chunk_size)[0]
 
     def save_documents(
         self,
-        document_objects: Sequence[FullDocument],
+        documents: Sequence[FullDocument],
         use_pipeline: bool = True,
         use_pre_pipelines: bool = True,
         chunk_size: int = 50,
     ) -> int:
-        def convert_documents(
-            documents: Sequence[FullDocument],
-        ) -> Generator[dict[str, Any], None, None]:
-            for document in documents:
-                yield self._create_document_operation(
-                    document, use_pipeline, use_pre_pipelines
-                )
+        func_call = functools.partial(
+            create_document_operation,
+            index_name=self.index_name,
+            elser_model_id=self.elser_model_id,
+            pipeline=self.ingest_pipeline if use_pipeline else None,
+            pre_pipelines=self.pre_pipelines if use_pre_pipelines else None,
+        )
 
-        return bulk(
-            self.es, convert_documents(document_objects), chunk_size=chunk_size
-        )[0]
+        with multiprocessing.Pool(multiprocessing.cpu_count() - 2) as pool:
+            operations = pool.imap_unordered(func_call, documents, 2000)
+            return bulk(self.es, operations, chunk_size=chunk_size)[0]
 
     def save_document(self, document_object: FullDocument) -> str:
         document_dict: dict[str, Any] = document_object.model_dump(
