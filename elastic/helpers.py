@@ -1,4 +1,6 @@
+from typing import Any
 from elasticsearch import Elasticsearch
+from transformers import BertTokenizer
 
 from ..objects import (
     BaseArticle,
@@ -11,8 +13,42 @@ from ..objects import (
     FullCVE,
     PartialCVE,
 )
-from .client import ElasticDB
+from .client import ElasticDB, PrePipeline
 from .queries import ArticleSearchQuery, CVESearchQuery, ClusterSearchQuery
+
+bert_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+
+
+# Needs to be global to allow pickling for multiprocessing
+def chunk_for_elser(doc: dict[str, Any]) -> dict[str, Any]:
+    def chunk(
+        text: str, chunk_size: int = 500, overlap_ratio: float = 0.5
+    ) -> list[str]:
+        step_size = round(chunk_size * (1 - overlap_ratio))
+
+        # Setting max length to silence warnings about model only being able to handle 512 tokens
+        tokens = bert_tokenizer.encode(text, max_length=0, truncation=True)
+        tokens = tokens[1:-1]  # remove special beginning and end tokens
+
+        result = []
+        for i in range(0, len(tokens), step_size):
+            end = i + chunk_size
+            chunk = tokens[i:end]
+            result.append(bert_tokenizer.decode(chunk))
+            if end >= len(tokens):
+                break
+
+        return result
+
+    if "content" in doc:
+        if not "embeddings" in doc:
+            doc["embeddings"] = {}
+
+        doc["embeddings"]["content_chunks"] = [
+            {"text": chnk} for chnk in chunk(doc["content"])
+        ]
+
+    return doc
 
 
 def create_es_conn(
@@ -32,12 +68,21 @@ def return_article_db_conn(
     ingest_pipeline: str | None,
     elser_model_id: str | None,
 ) -> ElasticDB[BaseArticle, PartialArticle, FullArticle, ArticleSearchQuery]:
+
     return ElasticDB[BaseArticle, PartialArticle, FullArticle, ArticleSearchQuery](
         es_conn=es_conn,
         index_name=index_name,
         ingest_pipeline=ingest_pipeline,
         unique_field="url",
         elser_model_id=elser_model_id,
+        pre_pipelines=[
+            PrePipeline(
+                name="Chunk for elser",
+                call=chunk_for_elser,
+                requires_elser=True,
+                requires_pipeline=True,
+            )
+        ],
         document_object_classes={
             "base": BaseArticle,
             "full": FullArticle,
