@@ -1,5 +1,13 @@
 from typing import Any, Literal, TypedDict
 
+ELSER_CONFIG: dict[str, Any] = {
+    "properties": {
+        "tokens": {"type": "rank_features"},
+        "model_id": {"type": "keyword"},
+        "is_truncated": {"type": "boolean"},
+    }
+}
+
 ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
     "ELASTICSEARCH_ARTICLE_INDEX": {
         "properties": {
@@ -37,6 +45,19 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
                     "labels": {"type": "keyword"},
                     "incident": {"type": "integer"},
                 },
+            },
+            "embeddings": {
+                "properties": {
+                    "title": {"properties": {"elser": ELSER_CONFIG}},
+                    "description": {"properties": {"elser": ELSER_CONFIG}},
+                    "content_chunks": {
+                        "type": "nested",
+                        "properties": {
+                            "elser": ELSER_CONFIG,
+                            "text": {"type": "text", "index": False},
+                        },
+                    },
+                }
             },
         },
     },
