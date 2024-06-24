@@ -15,7 +15,13 @@ from .generic import AbstractDocument, AbstractPartialDocument
 
 
 class MLClassification(BaseModel):
+    processed: bool = False
     incident: bool = False
+    campaign: bool = False
+    vulnerability: bool = False
+    threat_actor: bool = False
+    research: bool = False
+    malware: bool = False
 
 
 class MLAttributes(BaseModel):

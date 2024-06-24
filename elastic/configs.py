@@ -43,6 +43,18 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
                     "cluster": {"type": "keyword"},
                     "coordinates": {"type": "float"},
                     "labels": {"type": "keyword"},
+                    "classification": {
+                        "type": "object",
+                        "properties": {
+                            "processed": {"type": "boolean"},
+                            "incident": {"type": "boolean"},
+                            "campaign": {"type": "boolean"},
+                            "vulnerability": {"type": "boolean"},
+                            "threat_actor": {"type": "boolean"},
+                            "research": {"type": "boolean"},
+                            "malware": {"type": "boolean"},
+                        },
+                    },
                     "incident": {"type": "integer"},
                 },
             },
