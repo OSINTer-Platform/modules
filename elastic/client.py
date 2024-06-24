@@ -73,10 +73,10 @@ def create_document_operation(
 
     operation: dict[str, Any] = {
         "_index": index_name,
-        "doc": doc,
+        "_source": doc,
     }
 
-    operation["_id"] = operation["doc"].pop("id")
+    operation["_id"] = operation["_source"].pop("id")
 
     if pipeline:
         operation["pipeline"] = pipeline
@@ -98,6 +98,10 @@ def create_document_update_operation(
     )
 
     operation["_op_type"] = "update"
+
+    operation["doc"] = operation["_source"]
+    del operation["_source"]
+
     if fields:
         operation["doc"] = {field: operation["doc"][field] for field in fields}
 
