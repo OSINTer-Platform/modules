@@ -1,6 +1,7 @@
 from collections.abc import Callable, Generator, Sequence, Set
 from dataclasses import dataclass
 import functools
+import itertools
 import logging
 from time import sleep
 from typing import (
@@ -135,17 +136,30 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
 
         self.pre_pipelines = pre_pipelines if pre_pipelines else []
 
-    # Checking if the document is already stored in the es db using the URL as that is probably not going to change and is uniqe
-    def exists_in_db(self, token: str) -> bool:
-        return (
-            int(
-                self.es.search(
-                    index=self.index_name,
-                    query={"term": {self.unique_field: {"value": token}}},
-                )["hits"]["total"]["value"]
+    def exists_in_db(self, token: str | list[str]) -> list[str]:
+        """Returns list of attributes for documents which exists in DB"""
+
+        token_list = token if isinstance(token, list) else [token]
+
+        remote_document_attributes: list[str] = []
+
+        for token_batch in itertools.batched(token_list, 10000):
+
+            search_result = self.es.search(
+                index=self.index_name,
+                query={"terms": {self.unique_field: token_batch}},
+                source_includes=[self.unique_field],
+                size=10000,
             )
-            != 0
-        )
+
+            remote_document_attributes.extend(
+                [
+                    result["_source"][self.unique_field]
+                    for result in search_result["hits"]["hits"]
+                ]
+            )
+
+        return remote_document_attributes
 
     def _process_search_results(
         self,
@@ -313,13 +327,9 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             self.document_object_class["search_query"](limit=0), True
         )[0]
 
-    def filter_document_list(self, document_attribute_list: Sequence[str]) -> list[str]:
-        filtered_document_list = []
-        for attr in document_attribute_list:
-            if not self.exists_in_db(attr):
-                filtered_document_list.append(attr)
-
-        return filtered_document_list
+    def filter_document_list(self, document_attribute_list: list[str]) -> list[str]:
+        existing_attributes = self.exists_in_db(document_attribute_list)
+        return [attr for attr in document_attribute_list if attr in existing_attributes]
 
     # If there's more than 10.000 unique values, then this function will only get the first 10.000
     def get_unique_values(self, field_name: str) -> dict[str, int]:
