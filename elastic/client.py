@@ -372,17 +372,25 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
             operations = pool.imap_unordered(func_call, documents, 2000)
             return bulk(self.es, operations, chunk_size=chunk_size)[0]
 
-    def save_document(self, document_object: FullDocument) -> str:
-        document_dict: dict[str, Any] = document_object.model_dump(
-            exclude={"highlights"}, exclude_none=True, mode="json"
+    def save_document(
+        self,
+        doc: FullDocument,
+        use_pipeline: bool = True,
+        use_pre_pipelines: bool = True,
+    ) -> str:
+        operation = create_document_operation(
+            doc,
+            self.index_name,
+            self.elser_model_id,
+            self.ingest_pipeline if use_pipeline else None,
+            self.pre_pipelines if use_pre_pipelines else None,
         )
 
-        document_id = document_dict.pop("id")
         response = self.es.index(
-            index=self.index_name,
-            pipeline=self.ingest_pipeline,
-            document=document_dict,
-            id=document_id,
+            index=operation["_index"],
+            pipeline=operation["pipeline"] if "pipeline" in operation else None,
+            document=operation["_source"],
+            id=operation["_id"],
         )["_id"]
 
         return cast(str, response)
