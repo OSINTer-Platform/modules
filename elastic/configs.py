@@ -15,6 +15,7 @@ ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
             "description": {"type": "text"},
             "content": {"type": "text"},
             "formatted_content": {"type": "text"},
+            "summary": {"type": "text"},
             "url": {"type": "keyword"},
             "profile": {"type": "keyword"},
             "source": {"type": "keyword"},
