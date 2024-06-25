@@ -19,7 +19,6 @@ class FromCammel(BaseModel):
 class CVEHighlights(BaseModel):
     title: list[str] | None = None
     description: list[str] | None = None
-    summary: list[str] | None = None
 
 
 class CVEReference(BaseModel):
@@ -116,7 +115,6 @@ class PartialCVE(AbstractDocument, AbstractPartialDocument):
 
     title: str | None = None
     description: str | None = None
-    summary: str | None = None
 
     keywords: list[str] | None = None
 
