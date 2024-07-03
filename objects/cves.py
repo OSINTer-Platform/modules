@@ -114,9 +114,30 @@ class PartialCVE(AbstractDocument, AbstractPartialDocument):
 
     title: str | None = None
     description: str | None = None
-
     keywords: list[str] | None = None
+
+    highlights: CVEHighlights | None = None
+
+    publish_date: Annotated[datetime, AwareDatetime] | None = None
+    modified_date: Annotated[datetime, AwareDatetime] | None = None
+
+    weaknesses: list[str] | None = None
+
+    status: (
+        Literal[
+            "Awaiting Analysis",
+            "Received",
+            "Analyzed",
+            "Rejected",
+            "Modified",
+            "Undergoing Analysis",
+        ]
+        | None
+    ) = None
+
+    cvss3: CVSS3 | None = None
+    cvss2: CVSS2 | None = None
 
     documents: set[str] | None = None
     dating: set[Annotated[datetime, AwareDatetime]] | None = None
-    highlights: CVEHighlights | None = None
+    references: list[CVEReference]
