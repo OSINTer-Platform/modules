@@ -8,6 +8,13 @@ from .helpers import (
     return_cve_db_conn,
 )
 
+from .objects import (
+    TermAgg,
+    TermAggBucket,
+    SignificantTermAgg,
+    SignificantTermAggBucket,
+)
+
 __all__ = [
     "DocumentObjectClasses",
     "PrePipeline",
@@ -23,4 +30,8 @@ __all__ = [
     "return_article_db_conn",
     "return_cluster_db_conn",
     "return_cve_db_conn",
+    "TermAgg",
+    "TermAggBucket",
+    "SignificantTermAgg",
+    "SignificantTermAggBucket",
 ]

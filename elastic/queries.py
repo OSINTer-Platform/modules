@@ -31,6 +31,7 @@ class SearchQuery(ABC):
     highlight_symbol: str = "**"
 
     custom_exclude_fields: list[str] | None = None
+    aggregations: dict[str, Any] | None = None
 
     search_fields: ClassVar[list[tuple[str, int]]] = []
     essential_fields: ClassVar[list[str]] = []
@@ -40,6 +41,9 @@ class SearchQuery(ABC):
     def generate_es_query(
         self, elser_id: str | None, completeness: bool | list[str]
     ) -> dict[str, Any]:
+        if self.aggregations and (self.limit < 1 or self.limit > 10000):
+            raise Exception("Aggregations are not allowed with large searches")
+
         query: dict[str, Any] = {
             "size": self.limit,
             "sort": ["_doc"],
@@ -117,6 +121,9 @@ class SearchQuery(ABC):
                 query["query"]["bool"]["filter"][-1]["range"][self.date_field][
                     "lte"
                 ] = self.last_date.isoformat()
+
+        if self.aggregations:
+            query["aggs"] = self.aggregations
 
         return query
 

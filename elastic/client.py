@@ -230,12 +230,12 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
     @overload
     def query_documents(
         self, search_q: SearchQueryType | None, completeness: Literal[False]
-    ) -> tuple[list[BaseDocument], list[dict[str, Any]]]: ...
+    ) -> tuple[list[BaseDocument], list[dict[str, Any]], dict[str, Any] | None]: ...
 
     @overload
     def query_documents(
         self, search_q: SearchQueryType | None, completeness: Literal[True]
-    ) -> tuple[list[FullDocument], list[dict[str, Any]]]: ...
+    ) -> tuple[list[FullDocument], list[dict[str, Any]], dict[str, Any] | None]: ...
 
     @overload
     def query_documents(
@@ -243,12 +243,13 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
     ) -> tuple[
         list[BaseDocument] | list[FullDocument],
         list[dict[str, Any]],
+        dict[str, Any] | None,
     ]: ...
 
     @overload
     def query_documents(
         self, search_q: SearchQueryType | None, completeness: list[str]
-    ) -> tuple[list[PartialDocument], list[dict[str, Any]]]: ...
+    ) -> tuple[list[PartialDocument], list[dict[str, Any]], dict[str, Any] | None]: ...
 
     @overload
     def query_documents(
@@ -256,6 +257,7 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
     ) -> tuple[
         list[BaseDocument] | list[PartialDocument] | list[FullDocument],
         list[dict[str, Any]],
+        dict[str, Any] | None,
     ]: ...
 
     def query_documents(
@@ -265,17 +267,24 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
     ) -> tuple[
         list[BaseDocument] | list[PartialDocument] | list[FullDocument],
         list[dict[str, Any]],
+        dict[str, Any] | None,
     ]:
         if not search_q:
             search_q = self.document_object_class["search_query"]()
 
         hits: list[dict[str, Any]] = []
+        aggs: dict[str, Any] | None = None
 
         if search_q.limit <= 10_000 and search_q.limit != 0:
-            hits = self.es.search(
+            search = self.es.search(
                 **search_q.generate_es_query(self.elser_model_id, completeness),
                 index=self.index_name,
-            )["hits"]["hits"]
+            )
+
+            hits = search["hits"]["hits"]
+
+            if "aggregations" in search:
+                aggs = search["aggregations"]
 
         else:
             for hit_batch in self._query_large(
@@ -284,22 +293,37 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
                 hits.extend(hit_batch)
 
         if completeness is False:
-            return self._process_search_results(
-                hits,
-                lambda data: self.document_object_class["base"].model_validate(data),
+            p1: tuple[list[BaseDocument], list[dict[str, Any]]] = (
+                self._process_search_results(
+                    hits,
+                    lambda data: self.document_object_class["base"].model_validate(
+                        data
+                    ),
+                )
             )
+
+            return (p1[0], p1[1], aggs)
         elif completeness is True:
-            return self._process_search_results(
-                hits,
-                lambda data: self.document_object_class["full"].model_validate(data),
-            )  # pyright: ignore
-        elif isinstance(completeness, list):
-            return self._process_search_results(
-                hits,
-                lambda data: self.document_object_class["partial"].model_validate(
-                    data, context={"fields_to_validate": completeness}
-                ),  # pyright: ignore
+            p2: tuple[list[FullDocument], list[dict[str, Any]]] = (
+                self._process_search_results(
+                    hits,
+                    lambda data: self.document_object_class["full"].model_validate(
+                        data
+                    ),
+                )
             )
+
+            return (p2[0], p2[1], aggs)
+        elif isinstance(completeness, list):
+            p3: tuple[list[PartialDocument], list[dict[str, Any]]] = (
+                self._process_search_results(
+                    hits,
+                    lambda data: self.document_object_class["partial"].model_validate(
+                        data, context={"fields_to_validate": completeness}
+                    ),
+                )
+            )
+            return (p3[0], p3[1], aggs)
         else:
             raise NotImplemented
 
