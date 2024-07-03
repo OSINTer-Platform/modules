@@ -101,12 +101,11 @@ class BaseCVE(AbstractDocument):
     cvss3: CVSS3 | None = None
     cvss2: CVSS2 | None = None
 
-    references: list[CVEReference]
-
 
 class FullCVE(BaseCVE):
     documents: set[str]
     dating: set[Annotated[datetime, AwareDatetime]]
+    references: list[CVEReference]
 
 
 class PartialCVE(AbstractDocument, AbstractPartialDocument):

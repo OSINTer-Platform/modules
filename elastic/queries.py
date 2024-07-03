@@ -174,7 +174,6 @@ class CVESearchQuery(SearchQuery):
         "status",
         "cvss2",
         "cvss3",
-        "references",
     ]
 
     sort_by: Literal["document_count", "cve", "publish_date", "modified_date", ""] | None = "document_count"  # type: ignore[unused-ignore]
