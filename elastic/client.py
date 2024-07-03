@@ -392,7 +392,7 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         documents: Sequence[FullDocument],
         use_pipeline: bool = True,
         use_pre_pipelines: bool = True,
-        chunk_size: int = 20,
+        chunk_size: int = 5,
     ) -> int:
         func_call = functools.partial(
             create_document_operation,
