@@ -39,7 +39,7 @@ class SearchQuery(ABC):
 
     search_fields: ClassVar[list[tuple[str, int]]] = []
     essential_fields: ClassVar[list[str]] = []
-    exclude_fields: ClassVar[list[str]] = ["elastic_ml"]
+    exclude_fields: ClassVar[list[str]] = []
     semantic_fields: ClassVar[list[SemanticSearchField]] = []
 
     @abstractmethod
@@ -255,6 +255,7 @@ class ArticleSearchQuery(SearchQuery):
         },
         {"field": "embeddings.title.elser.tokens", "nested_path": None, "boost": 1},
     ]
+    exclude_fields: ClassVar[list[str]] = ["embeddings"]
 
     def generate_es_query(
         self, elser_id: str | None, completeness: bool | list[str] = False
