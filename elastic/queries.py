@@ -7,8 +7,13 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    TypedDict,
 )
 
+class SemanticSearchField(TypedDict):
+    field: str
+    nested_path: str | None
+    boost: int
 
 @dataclass
 class SearchQuery(ABC):
@@ -18,7 +23,6 @@ class SearchQuery(ABC):
     sort_order: Literal["desc", "asc"] = "desc"
 
     search_term: str | None = None
-    semantic_search: str | None = None
 
     date_field: str | None = None
 
@@ -36,6 +40,7 @@ class SearchQuery(ABC):
     search_fields: ClassVar[list[tuple[str, int]]] = []
     essential_fields: ClassVar[list[str]] = []
     exclude_fields: ClassVar[list[str]] = ["elastic_ml"]
+    semantic_fields: ClassVar[list[SemanticSearchField]] = []
 
     @abstractmethod
     def generate_es_query(
@@ -67,32 +72,40 @@ class SearchQuery(ABC):
         elif isinstance(completeness, list):
             query["source_includes"] = completeness
 
-        if self.search_term or (self.semantic_search and elser_id):
+        if self.search_term:
             query["sort"].insert(0, "_score")
 
-        if self.semantic_search and elser_id:
-            for field in self.search_fields:
-                query["query"]["bool"]["should"].append(
-                    {
+            if self.search_fields:
+                query["query"]["bool"]["should"].append({
+                    "multi_match": {
+                        "query": self.search_term,
+                        "fields": [
+                            f"{field[0]}^{field[1]}" for field in self.search_fields
+                        ],
+                    }
+                })
+
+            if self.semantic_fields and elser_id:
+                for field in self.semantic_fields:
+                    semantic_query = {
                         "text_expansion": {
-                            f"elastic_ml.{field[0]}_tokens": {
-                                "model_text": self.semantic_search,
+                            field["field"]: {
                                 "model_id": elser_id,
-                                "boost": field[1] * 3,
+                                "model_text": self.search_term,
+                                "boost": field["boost"],
                             }
                         }
                     }
-                )
 
-        if self.search_term:
-            query["query"]["bool"]["must"] = {
-                "simple_query_string": {
-                    "query": self.search_term,
-                    "fields": [
-                        f"{field[0]}^{field[1]}" for field in self.search_fields
-                    ],
-                }
-            }
+                    if field["nested_path"]:
+                        semantic_query = {
+                            "nested": {
+                                "path": field["nested_path"],
+                                "query": semantic_query,
+                            }
+                        }
+
+                    query["query"]["bool"]["should"].append(semantic_query)
 
         if self.sort_by:
             query["sort"].insert(0, {self.sort_by: self.sort_order})
@@ -130,7 +143,7 @@ class SearchQuery(ABC):
 
 @dataclass
 class ClusterSearchQuery(SearchQuery):
-    search_fields = [("title", 5), ("description", 3), ("summary", 2)]
+    search_fields = [("title", 1), ("description", 1), ("summary", 1)]
     essential_fields = [
         "nr",
         "document_count",
@@ -143,7 +156,6 @@ class ClusterSearchQuery(SearchQuery):
     sort_by: Literal["document_count", "nr", ""] | None = "document_count"  # type: ignore[unused-ignore]
 
     cluster_nr: int | None = None
-    semantic_search: None = None  # type: ignore[unused-ignore]
     date_field: None = None  # type: ignore[unused-ignore]
 
     exclude_outliers: bool = True
@@ -168,7 +180,7 @@ class ClusterSearchQuery(SearchQuery):
 class CVESearchQuery(SearchQuery):
     date_field: Literal["publish_date", "modified_date"] = "publish_date"  # type: ignore[unused-ignore]
 
-    search_fields = [("title", 5), ("description", 3)]
+    search_fields = [("title", 1), ("description", 1)]
     essential_fields = [
         "cve",
         "document_count",
@@ -187,7 +199,6 @@ class CVESearchQuery(SearchQuery):
 
     min_doc_count: int | None = None
     cves: Set[str] | None = None
-    semantic_search: None = None  # type: ignore[unused-ignore]
 
     def generate_es_query(
         self, elser_id: str | None, completeness: bool | list[str] = False
@@ -214,7 +225,7 @@ class ArticleSearchQuery(SearchQuery):
     cluster_id: str | None = None
     cve: str | None = None
 
-    search_fields = [("title", 5), ("description", 3), ("content", 1)]
+    search_fields = [("title", 1), ("description", 1), ("content", 1)]
     essential_fields = [
         "title",
         "description",
@@ -230,6 +241,19 @@ class ArticleSearchQuery(SearchQuery):
         "summary",
         "ml",
         "read_times",
+    ]
+    semantic_fields = [
+        {
+            "field": "embeddings.content_chunks.elser.tokens",
+            "nested_path": "embeddings.content_chunks",
+            "boost": 1,
+        },
+        {
+            "field": "embeddings.description.elser.tokens",
+            "nested_path": None,
+            "boost": 1,
+        },
+        {"field": "embeddings.title.elser.tokens", "nested_path": None, "boost": 1},
     ]
 
     def generate_es_query(
