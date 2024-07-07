@@ -188,35 +188,37 @@ ES_SEARCH_APPLICATIONS: dict[
     "query": {
         "bool": {
             "should": [
-                {{#semantic_search}}
+                {{#search_term}}
                     {
-                        "text_expansion": {
-                        "elastic_ml.title_tokens": {
-                            "model_text": "{{semantic_search}}",
-                            "model_id": "{{elser_model}}{{^elser_model}}.elser_model_2{{/elser_model}}",
-                            "boost": 15
-                        }
+                        "nested": {
+                            "path": "embeddings.content_chunks",
+                            "query": {
+                            "text_expansion": {
+                                "embeddings.content_chunks.elser.tokens": {
+                                "model_id": "{{elser_model}}{{^elser_model}}.elser_model_2_linux-x86_64{{/elser_model}}",
+                                "model_text": "{{search_term}}"
+                                }
+                            }
+                            }
                         }
                     },
                     {
                         "text_expansion": {
-                        "elastic_ml.description_tokens": {
-                            "model_text": "{{semantic_search}}",
-                            "model_id": "{{elser_model}}{{^elser_model}}.elser_model_2{{/elser_model}}",
-                            "boost": 9
-                        }
+                            "embeddings.title.elser.tokens": {
+                                "model_id": "{{elser_model}}{{^elser_model}}.elser_model_2_linux-x86_64{{/elser_model}}",
+                                "model_text": "{{search_term}}"
+                            }
                         }
                     },
                     {
                         "text_expansion": {
-                        "elastic_ml.content_tokens": {
-                            "model_text": "{{semantic_search}}",
-                            "model_id": "{{elser_model}}{{^elser_model}}.elser_model_2{{/elser_model}}",
-                            "boost": 15
+                                "embeddings.description.elser.tokens": {
+                                "model_id": "{{elser_model}}{{^elser_model}}.elser_model_2_linux-x86_64{{/elser_model}}",
+                                "model_text": "{{search_term}}"
+                            }
                         }
-                        }
-                    }
-                {{/semantic_search}}
+                    },
+                {{/search_term}}
             ],
             "must": [
                 {{#search_term}}
@@ -224,10 +226,11 @@ ES_SEARCH_APPLICATIONS: dict[
                         "simple_query_string": {
                             "query": "{{search_term}}",
                             "fields": [
-                                "title^5",
-                                "description^3",
-                                "content^1"
-                            ]
+                                "title",
+                                "description",
+                                "content"
+                            ],
+                            "quote_field_suffix": ".exact"
                         }
                     }
                 {{/search_term}}
@@ -259,6 +262,13 @@ ES_SEARCH_APPLICATIONS: dict[
                         }
                     },
                 {{/cluster_id}}
+                {{#cve}}
+                    {
+                        "term": {
+                            "tags.interesting.values": "{{cve}}"
+                        }
+                    },
+                {{/cve}}
 
                 {
                     "range": {
@@ -317,14 +327,9 @@ ES_SEARCH_APPLICATIONS: dict[
                 {"{{sort_by}}": "{{sort_order}}{{^sort_order}}desc{{/sort_order}}"},
             {{/sort_by}}
 
-            {{#semantic_search}}
+            {{#search_term}}
                 {"_score": "desc"},
-            {{/semantic_search}}
-            {{^semantic_search}}
-                {{#search_term}}
-                    {"_score": "desc"},
-                {{/search_term}}
-            {{/semantic_search}}
+            {{/search_term}}
 
             {{#sort_tiebreaker}}
                 "url",
@@ -350,9 +355,9 @@ ES_SEARCH_APPLICATIONS: dict[
                 "properties": {
                     "highlight_symbol": {"type": "string"},
                     "elser_model": {"type": "string"},
-                    "semantic_search": {"type": "string"},
                     "search_term": {"type": "string"},
                     "cluster_id": {"type": "string"},
+                    "cve": {"type": "string"},
                     "first_date": {"type": "string"},
                     "last_date": {"type": "string"},
                     "sort_by": {"type": "string"},
