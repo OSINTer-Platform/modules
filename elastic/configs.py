@@ -8,12 +8,18 @@ ELSER_CONFIG: dict[str, Any] = {
     }
 }
 
+SEARCHABLE_TEXT_FIELD: dict[str, Any] = {
+    "type": "text",
+    "analyzer": "english",
+    "fields": {"exact": {"type": "text", "analyzer": "standard"}},
+}
+
 ES_INDEX_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
     "ELASTICSEARCH_ARTICLE_INDEX": {
         "properties": {
-            "title": {"type": "text"},
-            "description": {"type": "text"},
-            "content": {"type": "text"},
+            "title": SEARCHABLE_TEXT_FIELD,
+            "description": SEARCHABLE_TEXT_FIELD,
+            "content": SEARCHABLE_TEXT_FIELD,
             "formatted_content": {"type": "text"},
             "summary": {"type": "text"},
             "url": {"type": "keyword"},
