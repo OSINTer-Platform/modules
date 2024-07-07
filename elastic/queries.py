@@ -10,10 +10,12 @@ from typing import (
     TypedDict,
 )
 
+
 class SemanticSearchField(TypedDict):
     field: str
     nested_path: str | None
     boost: int
+
 
 @dataclass
 class SearchQuery(ABC):
@@ -52,7 +54,7 @@ class SearchQuery(ABC):
         query: dict[str, Any] = {
             "size": self.limit,
             "sort": ["_doc"],
-            "query": {"bool": {"filter": [], "should": [], "must_not": []}},
+            "query": {"bool": {"filter": [], "should": [], "must_not": [], "must": []}},
         }
 
         if self.custom_exclude_fields:
@@ -76,14 +78,17 @@ class SearchQuery(ABC):
             query["sort"].insert(0, "_score")
 
             if self.search_fields:
-                query["query"]["bool"]["should"].append({
-                    "multi_match": {
-                        "query": self.search_term,
-                        "fields": [
-                            f"{field[0]}^{field[1]}" for field in self.search_fields
-                        ],
+                query["query"]["bool"]["must"].append(
+                    {
+                        "simple_query_string": {
+                            "query": self.search_term,
+                            "fields": [
+                                f"{field[0]}^{field[1]}" for field in self.search_fields
+                            ],
+                            "quote_field_suffix": ".exact",
+                        }
                     }
-                })
+                )
 
             if self.semantic_fields and elser_id:
                 for field in self.semantic_fields:
