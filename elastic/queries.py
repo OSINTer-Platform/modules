@@ -171,7 +171,7 @@ class ClusterSearchQuery(SearchQuery):
             )
 
         if self.exclude_outliers:
-            query["query"]["bool"]["must_not"] = {"term": {"nr": {"value": -1}}}
+            query["query"]["bool"]["must_not"].append({"term": {"nr": {"value": -1}}})
 
         return query
 
