@@ -92,7 +92,7 @@ class SearchQuery(ABC):
 
             if self.semantic_fields and elser_id:
                 for field in self.semantic_fields:
-                    semantic_query = {
+                    semantic_query: dict[str, Any] = {
                         "text_expansion": {
                             field["field"]: {
                                 "model_id": elser_id,
