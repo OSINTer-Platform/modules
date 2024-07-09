@@ -75,7 +75,7 @@ class SearchQuery(ABC):
             query["source_includes"] = completeness
 
         if self.search_term:
-            query["sort"].insert(0, "_score")
+            query["sort"].insert(0, {"_score": self.sort_order})
 
             if self.search_fields:
                 query["query"]["bool"]["must"].append(
