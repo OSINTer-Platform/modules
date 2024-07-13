@@ -21,6 +21,10 @@ class CVEHighlights(BaseModel):
     description: list[str] | None = None
 
 
+class AbstractCVE(AbstractDocument):
+    highlights: CVEHighlights | None = None
+
+
 class CVEReference(BaseModel):
     url: str
     source: str
@@ -74,15 +78,13 @@ class CVSS2(FromCammel):
     cvss_data: CVSS2Data
 
 
-class BaseCVE(AbstractDocument):
+class BaseCVE(AbstractCVE):
     cve: str
     document_count: int = 0
 
     title: str
     description: str
     keywords: list[str]
-
-    highlights: CVEHighlights | None = None
 
     publish_date: Annotated[datetime, AwareDatetime]
     modified_date: Annotated[datetime, AwareDatetime]
@@ -108,15 +110,13 @@ class FullCVE(BaseCVE):
     references: list[CVEReference]
 
 
-class PartialCVE(AbstractDocument, AbstractPartialDocument):
+class PartialCVE(AbstractCVE, AbstractPartialDocument):
     cve: int | None = None
     document_count: int | None = None
 
     title: str | None = None
     description: str | None = None
     keywords: list[str] | None = None
-
-    highlights: CVEHighlights | None = None
 
     publish_date: Annotated[datetime, AwareDatetime] | None = None
     modified_date: Annotated[datetime, AwareDatetime] | None = None

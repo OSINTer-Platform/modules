@@ -1,6 +1,7 @@
 from typing_extensions import TypeVar
 
 from .articles import (
+    AbstractArticle,
     BaseArticle,
     PartialArticle,
     FullArticle,
@@ -10,8 +11,15 @@ from .articles import (
     Tags,
     ArticleHighlights,
 )
-from .clusters import BaseCluster, PartialCluster, FullCluster, ClusterHighlights
+from .clusters import (
+    AbstractCluster,
+    BaseCluster,
+    PartialCluster,
+    FullCluster,
+    ClusterHighlights,
+)
 from .cves import (
+    AbstractCVE,
     BaseCVE,
     PartialCVE,
     FullCVE,
@@ -35,6 +43,9 @@ __all__ = [
     "PartialDocument",
     "AbstractDocument",
     "AbstractPartialDocument",
+    "AbstractArticle",
+    "AbstractCluster",
+    "AbstractCVE",
     "BaseArticle",
     "PartialArticle",
     "FullArticle",
