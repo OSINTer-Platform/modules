@@ -17,6 +17,12 @@ class SemanticSearchField(TypedDict):
     boost: int
 
 
+class SearchFields(TypedDict):
+    field: str
+    boost: int
+    highlight_fragments: bool
+
+
 @dataclass
 class SearchQuery(ABC):
     limit: int = 10_000
@@ -39,7 +45,7 @@ class SearchQuery(ABC):
     custom_exclude_fields: list[str] | None = None
     aggregations: dict[str, Any] | None = None
 
-    search_fields: ClassVar[list[tuple[str, int]]] = []
+    search_fields: ClassVar[list[SearchFields]] = []
     essential_fields: ClassVar[list[str]] = []
     exclude_fields: ClassVar[list[str]] = []
     semantic_fields: ClassVar[list[SemanticSearchField]] = []
@@ -66,7 +72,12 @@ class SearchQuery(ABC):
             query["highlight"] = {
                 "pre_tags": [self.highlight_symbol],
                 "post_tags": [self.highlight_symbol],
-                "fields": {field_type[0]: {} for field_type in self.search_fields},
+                "fields": {
+                    field["field"]: {
+                        "number_of_fragments": 5 if field["highlight_fragments"] else 0
+                    }
+                    for field in self.search_fields
+                },
             }
 
         if completeness is False:
@@ -83,7 +94,8 @@ class SearchQuery(ABC):
                         "simple_query_string": {
                             "query": self.search_term,
                             "fields": [
-                                f"{field[0]}^{field[1]}" for field in self.search_fields
+                                f"{field['field']}^{field['boost']}"
+                                for field in self.search_fields
                             ],
                             "quote_field_suffix": ".exact",
                         }
@@ -148,7 +160,11 @@ class SearchQuery(ABC):
 
 @dataclass
 class ClusterSearchQuery(SearchQuery):
-    search_fields = [("title", 1), ("description", 1), ("summary", 1)]
+    search_fields = [
+        {"field": "title", "boost": 1, "highlight_fragments": False},
+        {"field": "description", "boost": 1, "highlight_fragments": False},
+        {"field": "summary", "boost": 1, "highlight_fragments": False},
+    ]
     essential_fields = [
         "nr",
         "document_count",
@@ -185,7 +201,10 @@ class ClusterSearchQuery(SearchQuery):
 class CVESearchQuery(SearchQuery):
     date_field: Literal["publish_date", "modified_date"] = "publish_date"  # type: ignore[unused-ignore]
 
-    search_fields = [("title", 1), ("description", 1)]
+    search_fields = [
+        {"field": "title", "boost": 1, "highlight_fragments": False},
+        {"field": "description", "boost": 1, "highlight_fragments": False},
+    ]
     essential_fields = [
         "cve",
         "document_count",
@@ -230,7 +249,11 @@ class ArticleSearchQuery(SearchQuery):
     cluster_id: str | None = None
     cve: str | None = None
 
-    search_fields = [("title", 1), ("description", 1), ("content", 1)]
+    search_fields = [
+        {"field": "title", "boost": 1, "highlight_fragments": False},
+        {"field": "description", "boost": 1, "highlight_fragments": False},
+        {"field": "content", "boost": 1, "highlight_fragments": True},
+    ]
     essential_fields = [
         "title",
         "description",
