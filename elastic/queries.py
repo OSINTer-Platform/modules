@@ -68,18 +68,6 @@ class SearchQuery(ABC):
         else:
             query["source_excludes"] = self.exclude_fields
 
-        if self.highlight:
-            query["highlight"] = {
-                "pre_tags": [self.highlight_symbol],
-                "post_tags": [self.highlight_symbol],
-                "fields": {
-                    field["field"]: {
-                        "number_of_fragments": 5 if field["highlight_fragments"] else 0
-                    }
-                    for field in self.search_fields
-                },
-            }
-
         if completeness is False:
             query["source_includes"] = self.essential_fields
         elif isinstance(completeness, list):
@@ -154,6 +142,26 @@ class SearchQuery(ABC):
 
         if self.aggregations:
             query["aggs"] = self.aggregations
+
+        if self.highlight:
+            query["highlight"] = {
+                "pre_tags": [self.highlight_symbol],
+                "post_tags": [self.highlight_symbol],
+                "fields": {},
+            }
+
+            for search_field in self.search_fields:
+                if (
+                    "source_includes"
+                    and query["source_includes"]
+                    and search_field["field"] not in query["source_includes"]
+                ):
+                    continue
+
+                frag_nr = 5 if search_field["highlight_fragments"] else 0
+                query["highlight"]["fields"][search_field["field"]] = {
+                    "number_of_fragments": frag_nr
+                }
 
         return query
 
