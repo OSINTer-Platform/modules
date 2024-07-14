@@ -352,8 +352,9 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
         )[0]
 
     def filter_document_list(self, document_attribute_list: list[str]) -> list[str]:
+        """Returns a list with values which are not present in the DB"""
         existing_attributes = self.exists_in_db(document_attribute_list)
-        return [attr for attr in document_attribute_list if attr in existing_attributes]
+        return [attr for attr in document_attribute_list if attr not in existing_attributes]
 
     # If there's more than 10.000 unique values, then this function will only get the first 10.000
     def get_unique_values(self, field_name: str) -> dict[str, int]:
