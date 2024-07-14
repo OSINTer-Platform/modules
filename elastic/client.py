@@ -23,7 +23,7 @@ from elasticsearch.client import TasksClient
 
 from pydantic import ValidationError
 
-from ..objects import BaseDocument, FullDocument, PartialDocument, AbstractDocument
+from ..objects import BaseDocument, FullDocument, PartialDocument, AbstractDocument, AbstractPartialDocument
 from .queries import SearchQuery
 
 logger = logging.getLogger("osinter")
@@ -52,7 +52,7 @@ class PrePipeline:
 
 # Needs to be global to allow pickling for multiprocessing
 def create_document_operation(
-    document: AbstractDocument,
+    document: AbstractDocument | AbstractPartialDocument,
     index_name: str,
     elser_model_id: str | None,
     pipeline: str | None,
@@ -87,7 +87,7 @@ def create_document_operation(
 
 # Needs to be global to allow pickling for multiprocessing
 def create_document_update_operation(
-    document: AbstractDocument,
+    document: AbstractDocument | AbstractPartialDocument,
     index_name: str,
     fields: list[str] | None,
     elser_model_id: str | None,
@@ -369,7 +369,7 @@ class ElasticDB(Generic[BaseDocument, PartialDocument, FullDocument, SearchQuery
 
     def update_documents(
         self,
-        documents: Sequence[FullDocument],
+        documents: Sequence[FullDocument] | Sequence[PartialDocument],
         fields: list[str] | None = None,
         use_pipeline: bool = False,
         use_pre_pipelines: bool = False,

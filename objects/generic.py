@@ -13,6 +13,8 @@ class AbstractDocument(BaseModel):
 
 
 class AbstractPartialDocument(BaseModel):
+    id: str
+
     @model_validator(mode="after")
     def check_required_values(self, info: ValidationInfo) -> Self:
         context = info.context
