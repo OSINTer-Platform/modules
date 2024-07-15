@@ -19,7 +19,10 @@ class FromCammel(BaseModel):
 class CVEHighlights(BaseModel):
     title: list[str] | None = None
     description: list[str] | None = None
-    summary: list[str] | None = None
+
+
+class AbstractCVE(AbstractDocument):
+    highlights: CVEHighlights | None = None
 
 
 class CVEReference(BaseModel):
@@ -75,15 +78,13 @@ class CVSS2(FromCammel):
     cvss_data: CVSS2Data
 
 
-class BaseCVE(AbstractDocument):
+class BaseCVE(AbstractCVE):
     cve: str
     document_count: int = 0
 
     title: str
     description: str
     keywords: list[str]
-
-    highlights: CVEHighlights | None = None
 
     publish_date: Annotated[datetime, AwareDatetime]
     modified_date: Annotated[datetime, AwareDatetime]
@@ -102,24 +103,41 @@ class BaseCVE(AbstractDocument):
     cvss3: CVSS3 | None = None
     cvss2: CVSS2 | None = None
 
-    references: list[CVEReference]
-
 
 class FullCVE(BaseCVE):
     documents: set[str]
     dating: set[Annotated[datetime, AwareDatetime]]
+    references: list[CVEReference]
 
 
-class PartialCVE(AbstractDocument, AbstractPartialDocument):
+class PartialCVE(AbstractCVE, AbstractPartialDocument):
     cve: int | None = None
     document_count: int | None = None
 
     title: str | None = None
     description: str | None = None
-    summary: str | None = None
-
     keywords: list[str] | None = None
+
+    publish_date: Annotated[datetime, AwareDatetime] | None = None
+    modified_date: Annotated[datetime, AwareDatetime] | None = None
+
+    weaknesses: list[str] | None = None
+
+    status: (
+        Literal[
+            "Awaiting Analysis",
+            "Received",
+            "Analyzed",
+            "Rejected",
+            "Modified",
+            "Undergoing Analysis",
+        ]
+        | None
+    ) = None
+
+    cvss3: CVSS3 | None = None
+    cvss2: CVSS2 | None = None
 
     documents: set[str] | None = None
     dating: set[Annotated[datetime, AwareDatetime]] | None = None
-    highlights: CVEHighlights | None = None
+    references: list[CVEReference]

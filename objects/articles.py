@@ -14,8 +14,24 @@ import annotated_types
 from .generic import AbstractDocument, AbstractPartialDocument
 
 
+class ArticleHighlights(BaseModel):
+    title: list[str] | None = None
+    description: list[str] | None = None
+    content: list[str] | None = None
+
+
+class AbstractArticle(AbstractDocument):
+    highlights: ArticleHighlights | None = None
+
+
 class MLClassification(BaseModel):
+    processed: bool = False
     incident: bool = False
+    campaign: bool = False
+    vulnerability: bool = False
+    threat_actor: bool = False
+    research: bool = False
+    malware: bool = False
 
 
 class MLAttributes(BaseModel):
@@ -36,13 +52,7 @@ class Tags(BaseModel):
     interesting: list[TagsOfInterest]
 
 
-class ArticleHighlights(BaseModel):
-    title: list[str] | None = None
-    description: list[str] | None = None
-    content: list[str] | None = None
-
-
-class BaseArticle(AbstractDocument):
+class BaseArticle(AbstractArticle):
     title: Annotated[
         str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(3)
     ]
@@ -65,7 +75,6 @@ class BaseArticle(AbstractDocument):
     )
     tags: Tags = Tags(automatic=[], interesting=[])
     summary: str | None = None
-    highlights: ArticleHighlights | None = None
 
 
 class FullArticle(BaseArticle):
@@ -73,7 +82,7 @@ class FullArticle(BaseArticle):
     content: Annotated[str, annotated_types.MinLen(10)]
 
 
-class PartialArticle(AbstractDocument, AbstractPartialDocument):
+class PartialArticle(AbstractArticle, AbstractPartialDocument):
     title: (
         Annotated[
             str, BeforeValidator(lambda x: str.strip((x))), annotated_types.MinLen(3)

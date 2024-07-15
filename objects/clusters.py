@@ -15,7 +15,11 @@ class ClusterHighlights(BaseModel):
     summary: list[str] | None = None
 
 
-class BaseCluster(AbstractDocument):
+class AbstractCluster(AbstractDocument):
+    highlights: ClusterHighlights | None = None
+
+
+class BaseCluster(AbstractCluster):
     nr: int
     document_count: int
 
@@ -24,7 +28,6 @@ class BaseCluster(AbstractDocument):
     summary: str
 
     keywords: list[str]
-    highlights: ClusterHighlights | None = None
 
 
 class FullCluster(BaseCluster):
@@ -32,7 +35,7 @@ class FullCluster(BaseCluster):
     dating: set[Annotated[datetime, AwareDatetime]]
 
 
-class PartialCluster(AbstractDocument, AbstractPartialDocument):
+class PartialCluster(AbstractCluster, AbstractPartialDocument):
     nr: int | None = None
     document_count: int | None = None
 
@@ -44,4 +47,3 @@ class PartialCluster(AbstractDocument, AbstractPartialDocument):
 
     documents: set[str] | None = None
     dating: set[Annotated[datetime, AwareDatetime]] | None = None
-    highlights: ClusterHighlights | None = None
