@@ -48,8 +48,8 @@ def configure_logger(name: str = __name__) -> logging.Logger:
 class BaseConfig:
     def __init__(self) -> None:
         self.OPENAI_KEY = os.environ.get("OPENAI_KEY", None)
-        self.OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
-        self.OPENAI_TOKEN_LIMIT = int(os.environ.get("OPENAI_TOKEN_LIMIT", 4096))
+        self.OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+        self.OPENAI_TOKEN_LIMIT = int(os.environ.get("OPENAI_TOKEN_LIMIT", 16000))
 
         self.NVD_KEY = os.environ.get("NVD_KEY", None)
 
