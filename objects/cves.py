@@ -98,6 +98,7 @@ class BaseCVE(AbstractCVE):
         "Rejected",
         "Modified",
         "Undergoing Analysis",
+        "Deferred"
     ]
 
     cvss3: CVSS3 | None = None
