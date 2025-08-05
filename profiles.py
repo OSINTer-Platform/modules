@@ -52,7 +52,7 @@ class Profile(BaseModel):
 
 
 def list_profiles(
-    complete_file_name: bool = False, include_disabled: bool = False
+    complete_file_name: bool = False, include_disabled: bool = False, path: str | None = None
 ) -> list[str]:
     def is_profile(name: str) -> bool:
         if name.endswith(".profile"):
@@ -66,28 +66,28 @@ def list_profiles(
         return name.removesuffix(".profile").removesuffix(".disabled")
 
     if complete_file_name:
-        return [x for x in os.listdir(PROFILE_PATH) if is_profile(x)]
+        return [x for x in os.listdir(path if path else PROFILE_PATH) if is_profile(x)]
     else:
-        return [strip_extension(x) for x in os.listdir(PROFILE_PATH) if is_profile(x)]
+        return [strip_extension(x) for x in os.listdir(path if path else PROFILE_PATH) if is_profile(x)]
 
 
-def get_profile(specific_profile: str) -> Profile:
+def get_profile(specific_profile: str, path: str | None = None) -> Profile:
     if not specific_profile.endswith(".profile") and not specific_profile.endswith(
         ".disabled"
     ):
         specific_profile += ".profile"
 
-    with open(os.path.join(PROFILE_PATH, specific_profile)) as f:
+    with open(os.path.join(path if path else PROFILE_PATH, specific_profile)) as f:
         return Profile.model_validate_json(f.read())
 
 
-def get_profiles(include_disabled: bool = False) -> list[Profile]:
+def get_profiles(include_disabled: bool = False, path: str | None = None) -> list[Profile]:
     profiles: list[Profile] = []
 
     for profile_name in list_profiles(
-        complete_file_name=True, include_disabled=include_disabled
+        complete_file_name=True, include_disabled=include_disabled, path=path
     ):
-        with open(os.path.join(PROFILE_PATH, profile_name)) as f:
+        with open(os.path.join(path if path else PROFILE_PATH, profile_name)) as f:
             profiles.append(Profile.model_validate_json(f.read().strip()))
 
     return profiles
